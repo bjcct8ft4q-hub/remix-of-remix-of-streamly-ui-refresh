@@ -12,7 +12,7 @@ export type PlayerSubtitle = { url: string; label: string; lang?: string | undef
 type Props = {
   kind?: "hls" | "mp4" | "embed";
   subtitles?: PlayerSubtitle[];
-  intro?: { start: number; end: number };
+  intro?: { start: number; end: number } | undefined;
   src: string; poster?: string | undefined; autoPlay?: boolean; autoSkip?: boolean; fileName: string;
   onEnded?: () => void; onError?: () => void; onLoaded?: (v: HTMLVideoElement) => void;
 };
