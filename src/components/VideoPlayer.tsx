@@ -12,7 +12,7 @@ export type PlayerSubtitle = { url: string; label: string; lang?: string | undef
 type Props = {
   kind?: "hls" | "mp4" | "embed";
   subtitles?: PlayerSubtitle[];
-  intro?: { start: number; end: number };
+  intro?: { start: number; end: number } | undefined;
   src: string; poster?: string | undefined; autoPlay?: boolean; autoSkip?: boolean; fileName: string;
   onEnded?: () => void; onError?: () => void; onLoaded?: (v: HTMLVideoElement) => void;
 };
@@ -113,7 +113,6 @@ export const VideoPlayer = forwardRef<HTMLVideoElement | null, Props>(function V
         allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
         allowFullScreen
         referrerPolicy="strict-origin-when-cross-origin"
-        sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
       />
     </div>;
   }

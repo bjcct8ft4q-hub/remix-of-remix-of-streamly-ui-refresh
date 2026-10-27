@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogOverlay, DialogPortal, DialogTitle } from "@/components/ui/dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { seriesListQuery, type SeriesRow } from "@/lib/queries";
+import { animeSearchQuery } from "@/lib/anime-queries";
+import { animeTitle } from "@/lib/kitsune";
 
 type TrendingAnime = {
   id: number;
@@ -64,6 +66,7 @@ export function QuickSearch({ open, onOpenChange }: { open: boolean; onOpenChang
     retry: 1,
   });
   const term = query.trim().toLowerCase();
+  const anime = useQuery({ ...animeSearchQuery(term), enabled: open && term.length >= 2 });
   const matches = term
     ? data.filter((series) => series.title.toLowerCase().includes(term) || series.genres.some((genre) => genre.toLowerCase().includes(term)))
     : [];
@@ -92,8 +95,8 @@ export function QuickSearch({ open, onOpenChange }: { open: boolean; onOpenChang
             <div className="max-h-[min(50dvh,24rem)] overflow-y-auto p-2">
               {term ? (isPending ? <div role="status" className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground"><LoaderCircle className="h-4 w-4 animate-spin motion-reduce:animate-none" />Loading series…</div>
                 : isError ? <div role="alert" className="py-6 text-center text-sm text-muted-foreground"><p>Series couldn’t be loaded.</p><Button variant="ghost" onClick={() => void refetch()} className="mt-2">Try again</Button></div>
-                : matches.length === 0 ? <p role="status" className="px-3 py-8 text-center text-sm text-muted-foreground">No series found.</p>
-                : matches.slice(0, 10).map((series, index) => (
+                : matches.length === 0 && !anime.data?.length ? <p role="status" className="px-3 py-8 text-center text-sm text-muted-foreground">{anime.isFetching ? "Searching anime…" : "No series found."}</p>
+                : [...matches.slice(0, 10).map((series, index) => (
                   <Button asChild variant="ghost" key={series.id} className="h-auto min-h-16 w-full justify-start gap-3 whitespace-normal px-1.5 py-2">
                     <Link to="/series/$id" params={{ id: series.id }} onClick={() => onOpenChange(false)}>
                       <span className="w-4 shrink-0 text-[10px] font-bold text-primary">{String(index + 1).padStart(2, "0")}</span>
@@ -102,7 +105,16 @@ export function QuickSearch({ open, onOpenChange }: { open: boolean; onOpenChang
                       <ChevronRight className="shrink-0 text-muted-foreground" />
                     </Link>
                   </Button>
-                )))
+                )), ...(anime.data ?? []).filter((a) => !matches.some((m) => Number(m.anilist_id) === a.id)).slice(0, 8).map((a) => (
+                  <Button asChild variant="ghost" key={`a${a.id}`} className="h-auto min-h-16 w-full justify-start gap-3 whitespace-normal px-1.5 py-2">
+                    <Link to="/anime/$id" params={{ id: String(a.id) }} onClick={() => onOpenChange(false)}>
+                      <span className="w-4 shrink-0 text-[10px] font-bold text-primary"><Film className="h-3 w-3" /></span>
+                      {a.coverImage.large ? <img src={a.coverImage.large} alt="" className="h-12 w-9 shrink-0 rounded-sm object-cover" /> : <span className="h-12 w-9 shrink-0 rounded-sm bg-muted" />}
+                      <span className="min-w-0 flex-1"><span className="line-clamp-2 text-xs font-bold">{animeTitle(a)}</span><span className="mt-1 block text-[10px] text-muted-foreground">{[a.format?.replaceAll("_", " "), a.seasonYear].filter(Boolean).join(" · ")}</span></span>
+                      <ChevronRight className="shrink-0 text-muted-foreground" />
+                    </Link>
+                  </Button>
+                ))])
                 : trendingPending ? <div role="status" className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground"><LoaderCircle className="h-4 w-4 animate-spin motion-reduce:animate-none" />Loading live trends…</div>
                 : trendingError ? <div role="alert" className="py-6 text-center text-sm text-muted-foreground"><p>Live trends couldn’t be loaded.</p><Button variant="ghost" onClick={() => void refetchTrending()} className="mt-2">Try again</Button></div>
                 : trending.slice(0, 5).map((anime, index) => {
@@ -119,12 +131,12 @@ export function QuickSearch({ open, onOpenChange }: { open: boolean; onOpenChang
                           <ChevronRight className="shrink-0 text-muted-foreground" />
                         </Link>
                       ) : (
-                        <a href={anime.siteUrl} target="_blank" rel="noreferrer" onClick={() => onOpenChange(false)}>
+                        <Link to="/anime/$id" params={{ id: String(anime.id) }} onClick={() => onOpenChange(false)}>
                           <span className="w-4 shrink-0 text-[10px] font-bold text-primary">{String(index + 1).padStart(2, "0")}</span>
                           {anime.coverImage.large ? <img src={anime.coverImage.large} alt="" className="h-12 w-9 shrink-0 rounded-sm object-cover" /> : <span className="flex h-12 w-9 shrink-0 items-center justify-center rounded-sm bg-muted"><Film className="text-muted-foreground" /></span>}
                           <span className="min-w-0 flex-1"><span className="line-clamp-2 text-xs font-bold">{title}</span><span className="mt-1 block text-[10px] text-muted-foreground">{subtitle ? `${subtitle} · Not on Streamly yet` : "Trending on AniList · Not on Streamly yet"}</span></span>
                           <ChevronRight className="shrink-0 text-muted-foreground" />
-                        </a>
+                        </Link>
                       )}
                     </Button>
                   );

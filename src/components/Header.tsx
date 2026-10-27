@@ -14,7 +14,7 @@ function MenuLabel({ children }: { children: ReactNode }) {
   return <div className="flex items-center gap-2 px-3 pb-2 pt-3 text-xs font-bold uppercase tracking-wider text-muted-foreground"><span className="h-3 w-0.5 bg-primary" />{children}<span className="flex-1 border-t border-dashed border-border" /></div>;
 }
 
-function MenuLink({ to, icon: Icon, active, onClick, children }: { to: "/" | "/browse" | "/admin"; icon: LucideIcon; active: boolean; onClick: () => void; children: ReactNode }) {
+function MenuLink({ to, icon: Icon, active, onClick, children }: { to: "/" | "/browse" | "/admin" | "/my-list"; icon: LucideIcon; active: boolean; onClick: () => void; children: ReactNode }) {
   return <Button asChild variant="ghost" className={`h-11 w-full justify-start gap-3 ${active ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}><Link to={to} onClick={onClick} aria-current={active ? "page" : undefined}><span className="flex h-6 w-6 items-center justify-center border border-border bg-muted/40"><Icon className="h-4 w-4" /></span>{children}</Link></Button>;
 }
 
@@ -57,6 +57,7 @@ export function Header() {
               <MenuLink to="/" icon={Home} active={home} onClick={() => setMenuOpen(false)}>Home</MenuLink>
               <MenuLink to="/browse" icon={Search} active={pathname === "/browse"} onClick={() => setMenuOpen(false)}>Search</MenuLink>
               <MenuLink to="/browse" icon={Library} active={pathname === "/browse"} onClick={() => setMenuOpen(false)}>All series</MenuLink>
+              <MenuLink to="/my-list" icon={Library} active={pathname === "/my-list"} onClick={() => setMenuOpen(false)}>My list</MenuLink>
               {isAdmin && (
                 <>
                   <MenuLabel>Admin</MenuLabel>
@@ -87,6 +88,7 @@ export function Header() {
                 <DropdownMenuItem asChild><Link to="/admin"><Shield /> Admin dashboard</Link></DropdownMenuItem>
               )}
               <DropdownMenuItem asChild><Link to="/browse"><Library /> Browse series</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link to="/my-list"><Library /> My list</Link></DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onSelect={async () => {
