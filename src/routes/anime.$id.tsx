@@ -4,12 +4,11 @@ import { useState } from "react";
 import { LoaderCircle, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WatchlistButton } from "@/components/WatchlistButton";
-import { animeTitle, getAnime, getSourceEpisodes, type Audio } from "@/lib/kitsune";
+import { animeTitle, type Audio } from "@/lib/kitsune";
+import { animeQuery, episodesQuery } from "@/lib/anime-queries";
 import { useAuth } from "@/lib/auth";
 import { historyQuery } from "@/lib/library";
 
-export const animeQuery = (id: number) => ({ queryKey: ["anime", id], queryFn: () => getAnime(id), staleTime: 60 * 60 * 1000 });
-export const episodesQuery = (id: number) => ({ queryKey: ["anime-episodes", id], queryFn: () => getSourceEpisodes(id), staleTime: 10 * 60 * 1000, retry: 1 });
 
 export const Route = createFileRoute("/anime/$id")({
   head: () => ({

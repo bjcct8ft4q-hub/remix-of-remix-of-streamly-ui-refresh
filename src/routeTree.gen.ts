@@ -12,8 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as BrowseRouteImport } from './routes/browse'
+import { Route as MyListRouteImport } from './routes/my-list'
+import { Route as AnimeIdRouteImport } from './routes/anime.$id'
 import { Route as SeriesIdRouteImport } from './routes/series.$id'
 import { Route as WatchEpisodeIdRouteImport } from './routes/watch.$episodeId'
+import { Route as AnimeIdWatchRouteImport } from './routes/anime.$id_.watch'
 import { Route as ApiPublicProxyRouteImport } from './routes/api/public/proxy'
 import { Route as ApiPublicJobsAnilistSyncRouteImport } from './routes/api/public/jobs/anilist-sync'
 import { Route as ApiPublicKitsuneSplatRouteImport } from './routes/api/public/kitsune/$'
@@ -33,6 +36,16 @@ const BrowseRoute = BrowseRouteImport.update({
   path: '/browse',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MyListRoute = MyListRouteImport.update({
+  id: '/my-list',
+  path: '/my-list',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnimeIdRoute = AnimeIdRouteImport.update({
+  id: '/anime/$id',
+  path: '/anime/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SeriesIdRoute = SeriesIdRouteImport.update({
   id: '/series/$id',
   path: '/series/$id',
@@ -41,6 +54,11 @@ const SeriesIdRoute = SeriesIdRouteImport.update({
 const WatchEpisodeIdRoute = WatchEpisodeIdRouteImport.update({
   id: '/watch/$episodeId',
   path: '/watch/$episodeId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnimeIdWatchRoute = AnimeIdWatchRouteImport.update({
+  id: '/anime/$id_/watch',
+  path: '/anime/$id/watch',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicProxyRoute = ApiPublicProxyRouteImport.update({
@@ -64,8 +82,11 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/browse': typeof BrowseRoute
+  '/my-list': typeof MyListRoute
+  '/anime/$id': typeof AnimeIdRoute
   '/series/$id': typeof SeriesIdRoute
   '/watch/$episodeId': typeof WatchEpisodeIdRoute
+  '/anime/$id/watch': typeof AnimeIdWatchRoute
   '/api/public/proxy': typeof ApiPublicProxyRoute
   '/api/public/jobs/anilist-sync': typeof ApiPublicJobsAnilistSyncRoute
   '/api/public/kitsune/$': typeof ApiPublicKitsuneSplatRoute
@@ -74,8 +95,11 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/browse': typeof BrowseRoute
+  '/my-list': typeof MyListRoute
+  '/anime/$id': typeof AnimeIdRoute
   '/series/$id': typeof SeriesIdRoute
   '/watch/$episodeId': typeof WatchEpisodeIdRoute
+  '/anime/$id/watch': typeof AnimeIdWatchRoute
   '/api/public/proxy': typeof ApiPublicProxyRoute
   '/api/public/jobs/anilist-sync': typeof ApiPublicJobsAnilistSyncRoute
   '/api/public/kitsune/$': typeof ApiPublicKitsuneSplatRoute
@@ -85,8 +109,11 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/browse': typeof BrowseRoute
+  '/my-list': typeof MyListRoute
+  '/anime/$id': typeof AnimeIdRoute
   '/series/$id': typeof SeriesIdRoute
   '/watch/$episodeId': typeof WatchEpisodeIdRoute
+  '/anime/$id_/watch': typeof AnimeIdWatchRoute
   '/api/public/proxy': typeof ApiPublicProxyRoute
   '/api/public/jobs/anilist-sync': typeof ApiPublicJobsAnilistSyncRoute
   '/api/public/kitsune/$': typeof ApiPublicKitsuneSplatRoute
@@ -97,8 +124,11 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/browse'
+    | '/my-list'
+    | '/anime/$id'
     | '/series/$id'
     | '/watch/$episodeId'
+    | '/anime/$id/watch'
     | '/api/public/proxy'
     | '/api/public/jobs/anilist-sync'
     | '/api/public/kitsune/$'
@@ -107,8 +137,11 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/browse'
+    | '/my-list'
+    | '/anime/$id'
     | '/series/$id'
     | '/watch/$episodeId'
+    | '/anime/$id/watch'
     | '/api/public/proxy'
     | '/api/public/jobs/anilist-sync'
     | '/api/public/kitsune/$'
@@ -117,8 +150,11 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/browse'
+    | '/my-list'
+    | '/anime/$id'
     | '/series/$id'
     | '/watch/$episodeId'
+    | '/anime/$id_/watch'
     | '/api/public/proxy'
     | '/api/public/jobs/anilist-sync'
     | '/api/public/kitsune/$'
@@ -128,8 +164,11 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   BrowseRoute: typeof BrowseRoute
+  MyListRoute: typeof MyListRoute
+  AnimeIdRoute: typeof AnimeIdRoute
   SeriesIdRoute: typeof SeriesIdRoute
   WatchEpisodeIdRoute: typeof WatchEpisodeIdRoute
+  AnimeIdWatchRoute: typeof AnimeIdWatchRoute
   ApiPublicProxyRoute: typeof ApiPublicProxyRoute
   ApiPublicJobsAnilistSyncRoute: typeof ApiPublicJobsAnilistSyncRoute
   ApiPublicKitsuneSplatRoute: typeof ApiPublicKitsuneSplatRoute
@@ -158,6 +197,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BrowseRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/my-list': {
+      id: '/my-list'
+      path: '/my-list'
+      fullPath: '/my-list'
+      preLoaderRoute: typeof MyListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/anime/$id': {
+      id: '/anime/$id'
+      path: '/anime/$id'
+      fullPath: '/anime/$id'
+      preLoaderRoute: typeof AnimeIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/series/$id': {
       id: '/series/$id'
       path: '/series/$id'
@@ -170,6 +223,13 @@ declare module '@tanstack/react-router' {
       path: '/watch/$episodeId'
       fullPath: '/watch/$episodeId'
       preLoaderRoute: typeof WatchEpisodeIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/anime/$id_/watch': {
+      id: '/anime/$id_/watch'
+      path: '/anime/$id/watch'
+      fullPath: '/anime/$id/watch'
+      preLoaderRoute: typeof AnimeIdWatchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/proxy': {
@@ -200,8 +260,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   BrowseRoute: BrowseRoute,
+  MyListRoute: MyListRoute,
+  AnimeIdRoute: AnimeIdRoute,
   SeriesIdRoute: SeriesIdRoute,
   WatchEpisodeIdRoute: WatchEpisodeIdRoute,
+  AnimeIdWatchRoute: AnimeIdWatchRoute,
   ApiPublicProxyRoute: ApiPublicProxyRoute,
   ApiPublicJobsAnilistSyncRoute: ApiPublicJobsAnilistSyncRoute,
   ApiPublicKitsuneSplatRoute: ApiPublicKitsuneSplatRoute,

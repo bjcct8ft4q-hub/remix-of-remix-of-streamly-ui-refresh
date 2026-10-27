@@ -36,8 +36,7 @@ function MyList() {
   const hist = useQuery(historyQuery(user?.id));
   if (loading) return <main className="pt-40" />;
   if (!user) return <main className="mx-auto max-w-md px-4 pt-40 text-center"><h1 className="text-2xl font-bold">My list</h1><p className="mt-2 text-muted-foreground">Sign in to save anime and pick up where you left off.</p><Button className="mt-4" onClick={() => openAuth("signin")}>Sign in</Button></main>;
-  const latest = [...new Map((hist.data ?? []).map((h) => [h.anilist_id, h])).values()];
-  const latestById = new Map<number, (typeof latest)[number]>();
+  const latestById = new Map<number, NonNullable<typeof hist.data>[number]>();
   for (const h of hist.data ?? []) if (!latestById.has(h.anilist_id)) latestById.set(h.anilist_id, h);
   const grid = "grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6";
   return (

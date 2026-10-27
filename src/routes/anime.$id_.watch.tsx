@@ -9,7 +9,7 @@ import { WatchlistButton } from "@/components/WatchlistButton";
 import { animeTitle, getStreams, PROVIDER_ORDER, providerLabel } from "@/lib/kitsune";
 import { useAuth } from "@/lib/auth";
 import { historyQuery, saveProgress } from "@/lib/library";
-import { animeQuery, episodesQuery } from "./anime.$id";
+import { animeQuery, episodesQuery } from "@/lib/anime-queries";
 
 export const Route = createFileRoute("/anime/$id_/watch")({
   validateSearch: z.object({ ep: z.coerce.number().default(1), audio: z.enum(["sub", "dub"]).default("sub"), provider: z.string().optional() }),
