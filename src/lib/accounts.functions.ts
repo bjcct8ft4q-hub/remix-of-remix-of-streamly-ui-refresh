@@ -54,7 +54,7 @@ export const resolveLoginIdentifier = createServerFn({ method: "POST" })
     const { checkLimit } = await import("@/lib/accounts.server");
     await checkLimit(supabaseAdmin, "email-lookup:" + (getRequestHeader("x-vercel-forwarded-for")?.split(",")[0] || getRequestHeader("x-real-ip") || "unknown"), 30);
     const { data: row, error } = await supabaseAdmin.from("account_credentials")
-      .select("username").ilike("recovery_email", data.replace(/[\\%_]/g, "\\.select("username").ilike("recovery_email", data.replace(/[\\%_]/g, "\\export const recoverUsernameAccount =")).maybeSingle();")).maybeSingle();
+      .select("username").ilike("recovery_email", data.replace(/[\\%_]/g, "\\$&")).maybeSingle();
     if (error) throw new Error("Sign in is temporarily unavailable.");
     return { email: row ? usernameEmail(row.username) : "nonexistent@username.streamly.invalid" };
   });
