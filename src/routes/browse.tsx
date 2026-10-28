@@ -22,7 +22,7 @@ const empty: Filters = { q: "", genre: "", tag: "", year: "", status: "", format
 const genreOptions: [string, string][] = [
   ["Action", "Action"], ["Adventure", "Adventure"], ["Boys Love", "Boys Love / Yaoi"],
   ["Cars", "Cars"], ["Comedy", "Comedy"], ["Demons", "Demons"], ["Drama", "Drama"],
-  ["Ecchi", "Ecchi"], ["Erotica", "Erotica"], ["Fantasy", "Fantasy"], ["Video Games", "Game"],
+  ["Fantasy", "Fantasy"], ["Video Games", "Game"],
   ["Girls Love", "Girls Love / Yuri"], ["Harem", "Harem"], ["Historical", "Historical"],
   ["Horror", "Horror"], ["Isekai", "Isekai / Reincarnation / Transmigration"],
   ["Magic", "Magic"], ["Martial Arts", "Martial Arts"], ["Mecha", "Mecha"],
@@ -33,7 +33,7 @@ const genreOptions: [string, string][] = [
   ["Psychological", "Suspense"], ["Thriller", "Thriller"],
 ];
 const anilistGenres = new Set(["Action", "Adventure", "Comedy", "Drama", "Fantasy", "Horror", "Mecha", "Music", "Mystery", "Sci-Fi", "Slice of Life", "Sports", "Supernatural", "Thriller", "Boys Love", "Girls Love", "Ecchi"]);
-const ageRatings: [string, string][] = [["general", "Not marked adult"], ["adult", "Adult content (18+)"]];
+const ageRatings: [string, string][] = [["general", "Non-adult titles"]];
 const demographics: [string, string][] = [["Josei", "Josei"], ["Shoujo", "Shoujo"], ["Shounen", "Shounen"]];
 const tagOptions: [string, string][] = ["School", "Female Protagonist", "Male Protagonist", "Vampire", "Time Travel", "Revenge", "Super Power", "Military", "Space"].map((x) => [x, x]);
 const formats = [["TV", "TV"], ["TV_SHORT", "TV Short"], ["MOVIE", "Movie"], ["OVA", "OVA"], ["ONA", "ONA"], ["SPECIAL", "Special"], ["MUSIC", "Music"]];
@@ -81,7 +81,7 @@ async function fetchFilteredAnime(f: Filters): Promise<{ media: AnimeSummary[]; 
     genre: anilistGenres.has(f.genre) ? f.genre : undefined,
     // For tag-based categories, use the AniList tag filter. A demographic takes precedence.
     tag: f.demographic || (!anilistGenres.has(f.genre) ? f.genre : "") || f.tag || undefined,
-    adult: f.ageRating === "adult",
+    adult: false,
     season: f.season || undefined,
     origin: f.origin || undefined,
     year: f.year ? Number(f.year) : undefined, status: f.status || undefined, format: f.format || undefined,
@@ -105,7 +105,7 @@ async function fetchFilteredAnime(f: Filters): Promise<{ media: AnimeSummary[]; 
   const json = await response.json();
   if (json.errors?.length) throw new Error("Unable to apply those filters.");
   const found: AnimeSummary[] = json.data?.Page?.media ?? [];
-  if (found.length || !f.q.trim() || f.q.trim().length < 5 || f.ageRating === "adult") {
+  if (found.length || !f.q.trim() || f.q.trim().length < 5) {
     return { media: groupAnimeSeasons(found), total: groupAnimeSeasons(found).length };
   }
   // Retry a word stem when AniList's exact search finds no titles.
