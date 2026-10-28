@@ -8,6 +8,15 @@ let nextRequestAt = 0;
 async function getRating(id: number): Promise<string | null> {
   const cached = ratings.get(id);
   if (cached && cached.expires > Date.now()) return cached.rating;
+  // Prefer ratings saved in Supabase. A missing migration must not break lookups.
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin.from("anime_age_ratings").select("rating,source,updated_at").eq("mal_id", id).maybeSingle();
+    if (data && (data.source === "admin" || Date.now() - new Date(data.updated_at).getTime() < 7 * 86400000)) {
+      ratings.set(id, { rating: data.rating, expires: Date.now() + 3600000 });
+      return data.rating;
+    }
+  } catch { /* Database not connected or migration not installed: use provider. */ }
   const existing = pending.get(id);
   if (existing) return existing;
   const task = (async () => {
@@ -24,6 +33,10 @@ async function getRating(id: number): Promise<string | null> {
       const json = await response.json() as { data?: { rating?: string | null } };
       const rating = json.data?.rating?.split(" - ")[0]?.trim() || null;
       ratings.set(id, { rating, expires: Date.now() + (rating ? 86400000 : 3600000) });
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        await supabaseAdmin.from("anime_age_ratings").upsert({ mal_id: id, rating, source: "jikan", updated_at: new Date().toISOString() }, { onConflict: "mal_id", ignoreDuplicates: false });
+      } catch { /* Cache writes are best effort. */ }
       return rating;
     } catch {
       return null;
