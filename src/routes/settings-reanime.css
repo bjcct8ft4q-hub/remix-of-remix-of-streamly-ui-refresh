@@ -122,3 +122,15 @@ html.halloween .streamly-settings-nav > button[aria-current="page"]{
  box-shadow:inset 3px 0 0 #ff7900!important;
 }
 html.halloween .streamly-settings-nav > button[aria-current="page"] svg{color:#ff7900!important;}
+
+/* Clean, uninterrupted settings reading area: keep scrolling, hide the inner scrollbar. */
+.streamly-settings-content {
+ scrollbar-width:none!important;
+ -ms-overflow-style:none!important;
+}
+.streamly-settings-content::-webkit-scrollbar {display:none!important;width:0!important;height:0!important;}
+@media(min-width:768px){
+ .streamly-settings-grid {grid-template-columns:207px minmax(0,1fr)!important;column-gap:clamp(40px,5vw,80px)!important;max-width:1180px!important;}
+ .streamly-settings-content {padding:12px 28px 110px 0!important;scrollbar-gutter:auto!important;}
+ .streamly-settings-content > section,.streamly-settings-content > div[id^="settings-section-"] {max-width:790px!important;}
+}
