@@ -44,7 +44,7 @@ export function Header() {
   }, [menuOpen]);
 
   return (
-    <header className="relative z-30 flex flex-wrap items-center gap-x-3 gap-y-3 border-b border-border bg-background px-4 py-3 sm:px-6">
+    <header className="relative z-30 flex flex-wrap items-center gap-x-3 gap-y-3 bg-background px-4 py-3 sm:px-6">
       {halloween && <div className="halloween-web pointer-events-none absolute left-0 top-0 h-24 w-24" />}
       <div className="relative shrink-0">
         <Button variant="ghost" size="icon" aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-expanded={menuOpen} onClick={() => setMenuOpen((o) => !o)} className="text-muted-foreground hover:text-foreground">
@@ -58,6 +58,10 @@ export function Header() {
               <MenuLink to="/" icon={Home} active={home} onClick={() => setMenuOpen(false)}>Home</MenuLink>
               <MenuLink to="/browse" icon={Search} active={pathname === "/browse"} onClick={() => setMenuOpen(false)}>Search</MenuLink>
               <MenuLink to="/browse" icon={Library} active={pathname === "/browse"} onClick={() => setMenuOpen(false)}>All series</MenuLink>
+              <div className="my-1 border-t border-border/40" />
+              <Link to="/schedule" onClick={() => setMenuOpen(false)} className={`flex h-11 items-center gap-3 rounded px-3 text-sm hover:bg-primary/10 hover:text-primary ${pathname === "/schedule" ? "text-primary" : "text-muted-foreground"}`}><CalendarDays className="h-4 w-4" />Weekly Schedule</Link>
+              <Link to="/news" onClick={() => setMenuOpen(false)} className={`flex h-11 items-center gap-3 rounded px-3 text-sm hover:bg-primary/10 hover:text-primary ${pathname === "/news" ? "text-primary" : "text-muted-foreground"}`}><Bell className="h-4 w-4" />News & Updates</Link>
+              <Link to="/watch-together" onClick={() => setMenuOpen(false)} className={`flex h-11 items-center gap-3 rounded px-3 text-sm hover:bg-primary/10 hover:text-primary ${pathname.startsWith("/watch-together") ? "text-primary" : "text-muted-foreground"}`}><Users className="h-4 w-4" />Watch Together</Link>
               <MenuLink to="/my-list" icon={Library} active={pathname === "/my-list"} onClick={() => setMenuOpen(false)}>My list</MenuLink>
               <MenuLink to="/settings" icon={Settings} active={pathname === "/settings"} onClick={() => setMenuOpen(false)}>Settings</MenuLink>
               {isAdmin && (
