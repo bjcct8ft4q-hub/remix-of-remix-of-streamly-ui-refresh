@@ -66,7 +66,12 @@ export const Route = createFileRoute("/settings")({ component: Settings, head: (
 function Settings() {
   const { preference, setPreference } = useAudioPreference();
   const { user } = useAuth();
-  const [settingsTab, setSettingsTab] = useState<"profile" | "playback">("profile");
+  const [settingsTab, setSettingsTab] = useState<"profile" | "playback" | "security">("profile");
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteCode, setDeleteCode] = useState("");
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [avatarTab, setAvatarTab] = useState<"anime" | "upload">("anime");
   const [selectedShow, setSelectedShow] = useState(113415);
   const [avatarSearch, setAvatarSearch] = useState("");
@@ -112,6 +117,7 @@ function Settings() {
       <nav aria-label="Settings categories" className="flex h-fit gap-2 overflow-x-auto rounded-xl border border-border bg-card p-2 md:sticky md:top-28 md:flex-col">
         <button type="button" onClick={() => setSettingsTab("profile")} aria-current={settingsTab === "profile" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "profile" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Profile & avatar</button>
         <button type="button" onClick={() => setSettingsTab("playback")} aria-current={settingsTab === "playback" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "playback" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Language & playback</button>
+        <button type="button" onClick={() => setSettingsTab("security")} aria-current={settingsTab === "security" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "security" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Account & security</button>
       </nav>
       <div className="min-w-0">
         {settingsTab === "profile" && <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
@@ -145,6 +151,30 @@ function Settings() {
             <span><strong className="block">{choice.label}</strong><span className="mt-1 block text-sm text-muted-foreground">{choice.detail}</span></span>
           </label>)}</div>
           <p className="mt-4 text-xs text-muted-foreground">Saved on this device. Audio and subtitle availability varies by anime and episode.</p>
+        </section>}
+        {settingsTab === "security" && <section className="rounded-xl border border-red-500/30 bg-card p-4 sm:p-6">
+          <h2 className="text-xl font-bold">Delete your account</h2>
+          <p className="mt-2 text-sm text-muted-foreground">Permanently delete your Streamly account. This cannot be undone. You must enter your password, one unused account recovery code and type DELETE to confirm.</p>
+          {!user ? <p className="mt-5 text-sm">Sign in to manage your account.</p> : <form className="mt-6 space-y-4" onSubmit={async (event) => {
+            event.preventDefault(); if (deleteBusy || deleteConfirmation !== "DELETE") return;
+            setDeleteBusy(true); setDeleteError("");
+            try {
+              const session = await supabase.auth.getSession();
+              if (!session.data.session?.access_token) throw new Error("Sign in again to continue.");
+              const response = await fetch("/api/account/delete", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.data.session.access_token}` }, body: JSON.stringify({ password: deletePassword, recoveryCode: deleteCode, confirmation: deleteConfirmation }) });
+              const result = await response.json();
+              if (!response.ok) throw new Error(result.error || "Could not delete account.");
+              await supabase.auth.signOut();
+              window.location.assign("/");
+            } catch (error) { setDeleteError(error instanceof Error ? error.message : "Could not delete account."); }
+            finally { setDeleteBusy(false); }
+          }}>
+            <label className="block text-sm font-semibold">Current password<input required type="password" autoComplete="current-password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} className="mt-2 block w-full rounded-lg border border-border bg-background p-3" /></label>
+            <label className="block text-sm font-semibold">Unused recovery code<input required type="text" autoComplete="off" value={deleteCode} onChange={(event) => setDeleteCode(event.target.value)} className="mt-2 block w-full rounded-lg border border-border bg-background p-3" /></label>
+            <label className="block text-sm font-semibold">Type DELETE to confirm<input required type="text" autoComplete="off" value={deleteConfirmation} onChange={(event) => setDeleteConfirmation(event.target.value)} className="mt-2 block w-full rounded-lg border border-border bg-background p-3" /></label>
+            {deleteError && <p role="alert" className="text-sm text-red-400">{deleteError}</p>}
+            <button type="submit" disabled={deleteBusy || deleteConfirmation !== "DELETE"} className="rounded-lg bg-red-600 px-5 py-3 text-sm font-bold text-white disabled:opacity-40">{deleteBusy ? "Deleting account…" : "Permanently delete account"}</button>
+          </form>}
         </section>}
       </div>
     </div>
