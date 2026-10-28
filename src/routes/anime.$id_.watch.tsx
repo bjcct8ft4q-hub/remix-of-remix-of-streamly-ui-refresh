@@ -212,29 +212,20 @@ function WatchAnime() {
           </div>
           {roomError && <p role="alert" className="my-2 text-xs text-destructive">{roomError}</p>}
           {showShortcuts && <div className="my-2 rounded border border-border bg-card p-3 text-xs text-muted-foreground">Player shortcuts: Space/K = play or pause · ←/→ = seek 10 seconds · F = fullscreen · M = mute</div>}
-          {reportOpen && <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/80 p-4" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) setReportOpen(false); }}>
-            <div role="dialog" aria-modal="true" aria-labelledby="episode-report-title" className="my-auto w-full max-w-md rounded-2xl border border-border bg-background p-5 shadow-2xl sm:p-6">
-              <div className="mb-4 flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3"><span className="rounded-lg border border-primary/40 bg-primary/10 p-2 text-primary"><Flag className="h-5 w-5" /></span><div><h2 id="episode-report-title" className="text-lg font-extrabold">Report an Issue</h2><p className="mt-1 text-xs text-muted-foreground">Something broken with this episode? Send a report to the moderation team.</p></div></div>
-                <button type="button" aria-label="Close report" onClick={() => setReportOpen(false)}><X className="h-5 w-5 text-muted-foreground" /></button>
-              </div>
-              <div className="mb-4 flex items-center gap-3 rounded-lg border border-border bg-card p-3">
-                {cover && <img src={cover} alt="" className="h-14 w-11 rounded object-cover" />}
-                <div className="min-w-0"><p className="truncate text-sm font-bold">{title}</p><p className="mt-1 text-xs text-muted-foreground">Episode {ep} · {providerLabel(current?.provider ?? "") || "Unknown source"} ({audio.toUpperCase()})</p></div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {([["wrong_episode","Wrong Episode"],["video_not_working","Video Not Working"],["audio_issue","Audio Issue"],["subtitle_issue","Subtitle Issue"],["other","Something else"]] as const).map(([value,label]) => <button key={value} type="button" aria-pressed={reportCategory === value} onClick={() => setReportCategory(value)} className={`min-h-11 rounded-lg border px-3 py-2 text-left text-xs font-semibold transition ${reportCategory === value ? "border-primary bg-primary/15 text-primary" : "border-border bg-card text-muted-foreground hover:border-primary/60"}`}>{label}</button>)}
-              </div>
-              <p className="mb-2 mt-4 text-xs text-muted-foreground">Attach to report (optional)</p>
-              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-card p-3 text-xs">
-                <input type="checkbox" checked={includeDevice} onChange={(e) => setIncludeDevice(e.target.checked)} className="accent-primary" />
-                <span className="min-w-0 flex-1 break-words font-semibold">{deviceInfo || "Browser and device"}</span><span className="text-muted-foreground">{includeDevice ? "Included" : "Include"}</span>
-              </label>
-              <textarea value={reportText} maxLength={2000} onChange={(e) => setReportText(e.target.value)} placeholder="Anything else we should know? (optional)" className="mt-3 min-h-24 w-full resize-y rounded-lg border border-border bg-card p-3 text-sm outline-none focus:border-primary" />
-              {reportError && <p role="alert" className="mt-2 text-xs text-destructive">{reportError}</p>}
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <Button type="button" variant="outline" onClick={() => setReportOpen(false)}>Cancel</Button>
-                <Button type="button" disabled={!reportCategory || reportSending} onClick={() => void submitReport()}>{reportSending ? "Submitting…" : "Submit report"}</Button>
+          {reportOpen && <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/85 p-3 backdrop-blur-[3px]" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) setReportOpen(false); }}>
+            <div role="dialog" aria-modal="true" aria-labelledby="episode-report-title" className="relative my-auto w-full max-w-[448px] overflow-hidden rounded-[20px] border border-primary/35 bg-[#07080b] text-white shadow-[0_28px_90px_rgba(0,0,0,.8)]">
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-40" style={{backgroundImage:"repeating-linear-gradient(115deg,transparent 0px,transparent 24px,rgba(150,150,150,.1) 25px,transparent 26px),radial-gradient(circle at 100% 0%,hsl(var(--primary)/.2),transparent 38%)"}} />
+              <div className="relative p-5 sm:p-[22px]">
+                <div className="mb-4 flex items-start gap-3"><span className="rounded-lg border border-primary/60 bg-primary/15 p-2.5 text-primary"><Flag className="h-5 w-5" /></span><div className="min-w-0 flex-1"><h2 id="episode-report-title" className="text-[18px] font-extrabold">Report an Issue</h2><p className="mt-1 text-[13px] leading-5 text-zinc-400">Something broken with this episode? Reports go straight to the mod team.</p></div><button type="button" aria-label="Close report" onClick={() => setReportOpen(false)} className="text-zinc-400 hover:text-white"><X className="h-5 w-5" /></button></div>
+                <div className="mb-4 flex items-center gap-3 rounded-xl border border-white/10 bg-white/[.035] p-3">{cover && <img src={cover} alt="" className="h-[54px] w-[39px] rounded object-cover" />}<div className="min-w-0"><p className="truncate text-[13px] font-bold">{title}</p><p className="mt-1 text-xs text-zinc-400">Episode {ep} · {providerLabel(current?.provider ?? "") || "Unknown source"} ({audio.toUpperCase()})</p></div></div>
+                <div className="grid grid-cols-2 gap-2">
+                  {([["wrong_episode","Wrong Episode",ListVideo],["video_not_working","Video Not Working",MonitorPlay],["audio_issue","Audio Issue",Mic],["subtitle_issue","Subtitle Issue",Captions],["other","Something else",MessageSquare]] as const).map(([value,label,Icon]) => <button key={value} type="button" aria-pressed={reportCategory === value} onClick={() => setReportCategory(value)} className={`flex min-h-11 items-center gap-2 rounded-lg border px-3 py-2 text-left text-xs font-semibold transition ${reportCategory === value ? "border-primary bg-primary/20 text-primary" : "border-white/10 bg-white/[.035] text-zinc-400 hover:border-primary/50 hover:text-white"}`}><Icon className="h-4 w-4 shrink-0" />{label}</button>)}
+                </div>
+                <p className="mb-2 mt-3 text-xs text-zinc-500">Attach to report</p>
+                <label className={`flex cursor-pointer items-center gap-2 rounded-lg border p-3 text-xs transition ${includeDevice ? "border-primary/70 bg-primary/20" : "border-white/10 bg-white/[.035]"}`}><input type="checkbox" checked={includeDevice} onChange={(e) => setIncludeDevice(e.target.checked)} className="accent-primary" /><MonitorPlay className="h-4 w-4 text-zinc-400" /><span className="min-w-0 flex-1 break-words font-semibold text-zinc-300">{deviceInfo || "Browser and device"}</span><span className="text-zinc-400">{includeDevice ? "Included" : "Include"}</span></label>
+                <textarea value={reportText} maxLength={2000} onChange={(e) => setReportText(e.target.value)} placeholder="Anything else we should know? (optional)" className="mt-4 min-h-[80px] w-full resize-y rounded-xl border border-white/10 bg-white/[.035] p-3 text-[13px] text-white outline-none placeholder:text-zinc-500 focus:border-primary" />
+                {reportError && <p role="alert" className="mt-2 text-xs text-red-400">{reportError}</p>}
+                <div className="mt-4 grid grid-cols-2 gap-2"><button type="button" onClick={() => setReportOpen(false)} className="min-h-11 rounded-lg border border-white/10 bg-[#101116] text-sm font-bold text-white hover:bg-white/10">Cancel</button><button type="button" disabled={!reportCategory || reportSending} onClick={() => void submitReport()} className="min-h-11 rounded-lg bg-primary text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50">{reportSending ? "Submitting…" : "Submit report"}</button></div>
               </div>
             </div>
           </div>}
