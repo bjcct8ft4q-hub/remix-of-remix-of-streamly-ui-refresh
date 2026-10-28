@@ -62,7 +62,9 @@ export async function searchAnime(search: string): Promise<AnimeSummary[]> {
   const results = primary.Page.media ?? [];
   // AniList search is not fuzzy. For misspellings, retry a shortened word stem
   // and rank matches locally instead of requiring an exact spelling.
-  if (results.length || resolved.length < 5) return groupAnimeSeasons(results);
+  // JoJo parts, films and OVAs must remain separate searchable entries.
+  const preserveJojo = /jo\\s*jo|jojo|joestar|stardust crusaders|diamond is unbreakable|golden wind|stone ocean|steel ball run|phantom blood|battle tendency|kishibe rohan/i.test(search);
+  if (results.length || resolved.length < 5) return preserveJojo ? results : groupAnimeSeasons(results);
   const words = resolved.trim().split(/\s+/).filter((word) => word.length >= 4);
   const attempts = [...words].sort((a, b) => a.length - b.length).map((word) => word.slice(0, Math.max(3, word.length - 2)));
   const found = new Map<number, AnimeSummary>();
@@ -73,7 +75,7 @@ export async function searchAnime(search: string): Promise<AnimeSummary[]> {
     }
     if (found.size) break;
   }
-  return groupAnimeSeasons([...found.values()]).slice(0, 24);
+  return (preserveJojo ? [...found.values()] : groupAnimeSeasons([...found.values()])).slice(0, 24);
 }
 
 export async function getAnime(id: number): Promise<AnimeDetails | null> {
