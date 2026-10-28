@@ -66,6 +66,7 @@ function WatchAnime() {
 
   const list = (eps.data ?? []).filter((e) => e.sources.some((s) => s.audio === audio));
   const filteredEpisodes = list.filter((e) => `${e.number} ${e.title ?? ""}`.toLowerCase().includes(episodeSearch.toLowerCase()));
+  const recommended = (info.data?.recommendations?.nodes ?? []).map((n) => n.mediaRecommendation).filter((item) => !!item && item.id !== id).slice(0, 6);
   const idx = list.findIndex((e) => e.number === ep);
   const prev = list[idx - 1], next = list[idx + 1];
   const hasDub = !!episode?.sources.some((s) => s.audio === "dub");
@@ -120,6 +121,7 @@ function WatchAnime() {
           </div>
         </aside>
       </div>
+      {recommended.length > 0 && <section className="mt-8 border-t border-border pt-5"><h2 className="mb-4 border-l-2 border-primary pl-3 text-lg font-extrabold">Recommended for this series</h2><div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">{recommended.map((item) => item && <Link key={item.id} to="/anime/$id" params={{ id: String(item.id) }} className="group flex gap-3 rounded-lg border border-border bg-card/40 p-2 hover:border-primary"><img src={item.coverImage.large || ""} alt="" loading="lazy" className="h-24 w-16 shrink-0 rounded object-cover" /><div className="min-w-0"><p className="line-clamp-3 text-xs font-bold group-hover:text-primary">{animeTitle(item)}</p><p className="mt-2 text-xs text-primary">★ {item.averageScore != null ? (item.averageScore / 10).toFixed(1) : "N/A"}</p></div></Link>)}</div></section>}
     </main>
   );
 }
