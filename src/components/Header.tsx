@@ -51,7 +51,7 @@ export function Header() {
 
   return (
     <header className="relative z-30 flex flex-wrap items-center gap-x-2 gap-y-2 bg-background px-3 py-3 sm:gap-x-3 sm:gap-y-3 sm:px-6">
-      {halloween && <div className="halloween-web pointer-events-none absolute left-0 top-0 h-24 w-24" />}
+
       <div className="relative shrink-0">
         <Button variant="ghost" size="icon" aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-expanded={menuOpen} onClick={() => setMenuOpen((o) => !o)} className="text-muted-foreground hover:text-foreground">
           {menuOpen ? <X /> : <Menu />}
