@@ -20,7 +20,7 @@ export function AnimeCard({ a }: { a: AnimeSummary }) {
       </div>
       <p className="mt-3 flex items-start gap-1.5 text-sm font-semibold leading-relaxed">
         <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-        <span className="min-w-0 break-words">{title}</span>
+        <span className="min-w-0 break-words">{title} <span className="ml-1 inline-block whitespace-nowrap rounded border border-border bg-muted/70 px-1.5 py-0.5 align-middle text-[10px] font-bold text-muted-foreground" title={ageRating.verified ? "MyAnimeList age classification" : "Age classification not confirmed"}>{ageRating.label}</span></span>
       </p>
       <p className="mt-1 pl-3 text-xs text-muted-foreground">{[a.format?.replaceAll("_", " "), a.seasonYear].filter(Boolean).join(" · ") || "TV"}</p>
     </Link>
