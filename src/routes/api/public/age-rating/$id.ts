@@ -6,6 +6,7 @@ const pending = new Map<number, Promise<string | null>>();
 let nextRequestAt = 0;
 
 async function getRating(id: number): Promise<string | null> {
+  if (ratings.size > 2000) { for (const [key, entry] of ratings) { if (entry.expires <= Date.now()) ratings.delete(key); } while (ratings.size > 2000) ratings.delete(ratings.keys().next().value!); }
   const cached = ratings.get(id);
   if (cached && cached.expires > Date.now()) return cached.rating;
   // Prefer ratings saved in Supabase. A missing migration must not break lookups.
