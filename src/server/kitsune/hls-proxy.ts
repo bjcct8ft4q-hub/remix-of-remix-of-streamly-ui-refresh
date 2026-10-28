@@ -92,6 +92,31 @@ export function unwrapFlixImageSegment(bodyBuffer: Buffer): {
   return { body: out, unwrapped: true };
 }
 
+// Restrict user-provided destinations before each outbound request, including redirects.
+function validateProxyDestination(value: string): URL {
+  const url = new URL(value);
+  if (url.protocol !== "https:" || url.username || url.password || (url.port && url.port !== "443")) throw new Error("Unsafe proxy destination");
+  const host = url.hostname.toLowerCase().replace(/\\.$/, "");
+  if (!host.includes(".") || host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal") || host.endsWith(".test") || host.endsWith(".invalid") || host.endsWith(".onion") || /^\\[/.test(host) || /^[0-9.]+$/.test(host)) throw new Error("Unsafe proxy destination");
+  return url;
+}
+
+async function safeProxyFetch(target: string, headers: Record<string,string>): Promise<Response> {
+  let url = target;
+  for (let i=0;i<4;i++) {
+    validateProxyDestination(url);
+    const response = await fetch(url, {headers, redirect:"manual", signal:AbortSignal.timeout(15000)});
+    if ([301,302,303,307,308].includes(response.status)) {
+      const location = response.headers.get("location");
+      if (!location) throw new Error("Redirect without location");
+      url = new URL(location,url).toString();
+      continue;
+    }
+    return response;
+  }
+  throw new Error("Too many redirects");
+}
+
 export async function handleHlsProxyRequest(
   requestUrl: string,
   proxyPathPrefix: string = "/api/proxy",
@@ -162,7 +187,7 @@ export async function handleHlsProxyRequest(
     headers: Record<string, string>;
     body: Uint8Array;
   }> => {
-    const targetUri = new URL(targetUrl);
+    const targetUri = validateProxyDestination(targetUrl);
     const origin = targetUri.origin;
 
     let customHeaders: Record<string, string> = {};
@@ -212,16 +237,10 @@ export async function handleHlsProxyRequest(
       Origin: customHeaders.Origin || customHeaders.origin || refererOrigin,
     };
 
-    let response = await fetch(targetUrl, {
-      headers: fetchHeaders,
-      redirect: "follow",
-    });
+    let response = await safeProxyFetch(targetUrl, fetchHeaders);
 
     if (!response.ok && (response.status === 404 || response.status === 403)) {
-      response = await fetch(targetUrl, {
-        headers: baseHeaders,
-        redirect: "follow",
-      });
+      response = await safeProxyFetch(targetUrl, baseHeaders);
     }
 
     if (!response.ok) {
