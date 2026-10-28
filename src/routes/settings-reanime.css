@@ -140,3 +140,21 @@ body:has(main.streamly-settings) footer,
 body:has(main.streamly-settings) [data-site-footer] {
   display: none !important;
 }
+
+/* Reference-aligned settings layout: compact rail, spacious reading column. */
+@media(min-width:768px){
+ .streamly-settings-grid{max-width:1220px!important;grid-template-columns:166px minmax(0,1fr)!important;column-gap:clamp(70px,12vw,220px)!important;padding:0 12px!important;}
+ .streamly-settings-nav{width:166px!important;border-right:1px solid #171717!important;padding:13px 10px 16px!important;gap:2px!important;}
+ .streamly-settings-nav:before{font-size:10px!important;padding:0 7px 9px!important;}
+ .streamly-settings-nav > button{min-height:31px!important;padding:7px 10px!important;gap:9px!important;border-radius:6px!important;font-size:12px!important;box-shadow:none!important;}
+ .streamly-settings-nav > button svg{width:13px!important;height:13px!important;}
+ .streamly-settings-nav > button[aria-current="page"]{border-color:transparent!important;box-shadow:none!important;}
+ .streamly-settings-account-info{padding:14px 7px 5px!important;font-size:10px!important;}
+ .streamly-settings-content{max-width:660px!important;padding:23px 0 85px!important;}
+ .streamly-settings-content > section,.streamly-settings-content > div[id^="settings-section-"]{max-width:660px!important;margin-bottom:90px!important;scroll-margin-top:0!important;}
+ .streamly-settings-content section > h2:first-child{font-size:38px!important;line-height:1.12!important;font-weight:800!important;letter-spacing:-.035em!important;margin-bottom:30px!important;}
+}
+.streamly-settings-content section .rounded-2xl.border{border-color:#1c1c1c!important;}
+.streamly-settings-content section input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),.streamly-settings-content section textarea{background:#090909!important;border-color:#222!important;}
+.streamly-settings-content section input:focus-visible,.streamly-settings-content section button:focus-visible{outline:2px solid var(--settings-orange)!important;outline-offset:2px;}
+@media(max-width:767px){.streamly-settings-content{padding-bottom:60px!important;}.streamly-settings-content section > h2:first-child{font-size:30px!important;}}
