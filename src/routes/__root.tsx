@@ -168,6 +168,16 @@ function TrafficTracker() {
   return null;
 }
 
+function ThemeToggle() {
+  const { halloween, toggleHalloween } = useTheme();
+  return <button type="button" onClick={toggleHalloween}
+    className="streamly-theme-toggle fixed bottom-5 right-5 z-[100] flex h-12 w-12 items-center justify-center rounded-full border border-primary/50 bg-background/95 text-2xl shadow-lg shadow-primary/20 backdrop-blur transition-transform hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:bottom-6 sm:right-6"
+    aria-label={halloween ? "Switch to normal blue theme" : "Switch to Halloween orange theme"}
+    title={halloween ? "Switch to normal theme" : "Switch to Halloween theme"}>
+    <span aria-hidden="true">{halloween ? "🎃" : "🎃"}</span>
+  </button>;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
@@ -178,6 +188,7 @@ function RootComponent() {
             <InteractionEffects />
             <TrafficTracker />
             <Header />
+            <ThemeToggle />
             <Outlet />
             <Footer />
           </div>
