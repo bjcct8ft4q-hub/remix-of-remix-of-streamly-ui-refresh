@@ -165,7 +165,7 @@ function Browse() {
         </div>
         {expanded && <div className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-card/60 p-4 sm:grid-cols-4">{field("Demographics", "demographic", demographics)}{field("Season", "season", seasons)}{field("Origin", "origin", origins)}<p className="col-span-2 self-end text-xs text-muted-foreground sm:col-span-1">AniList age flags are not official age classifications.</p></div>}
       </form>
-      <div className="mt-4 flex flex-col gap-4 border-t border-border pt-4 lg:flex-row">
+      <div className="mt-4 flex flex-col gap-4 lg:flex-row">
         {sidebarOpen && <aside className="w-full shrink-0 space-y-3 lg:w-44 xl:w-48">
           {([
             ["Season", "season", seasons],
