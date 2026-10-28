@@ -9,7 +9,7 @@ export const createUsernameAccount = createServerFn({ method: "POST" })
     setResponseHeader("Cache-Control", "no-store");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { checkLimit, issueCodes } = await import("@/lib/accounts.server");
-    await checkLimit(supabaseAdmin, `signup:${getRequestHeader("cf-connecting-ip") || "local"}`, 10);
+    await checkLimit(supabaseAdmin, `signup:${getRequestHeader("x-vercel-forwarded-for")?.split(",")[0] || getRequestHeader("x-real-ip") || "unknown"}`, 10);
     if (!data.email) throw new Error("An email address is required for new accounts.");
     const { data: user, error } = await supabaseAdmin.auth.admin.createUser({
       email: usernameEmail(data.username), password: data.password, email_confirm: true,
@@ -57,7 +57,7 @@ export const recoverUsernameAccount = createServerFn({ method: "POST" })
     setResponseHeader("Cache-Control", "no-store");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { checkLimit, hashCode } = await import("@/lib/accounts.server");
-    await checkLimit(supabaseAdmin, `recovery-ip:${getRequestHeader("cf-connecting-ip") || "local"}`, 20);
+    await checkLimit(supabaseAdmin, `recovery-ip:${getRequestHeader("x-vercel-forwarded-for")?.split(",")[0] || getRequestHeader("x-real-ip") || "unknown"}`, 20);
     await checkLimit(supabaseAdmin, `recovery-user:${data.username}`, 10);
     const account = await supabaseAdmin.from("account_credentials").select("user_id").eq("username", data.username).maybeSingle();
     const hash = await hashCode(data.code);
