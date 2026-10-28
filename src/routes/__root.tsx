@@ -125,7 +125,7 @@ function InteractionEffects() {
         oscillator.stop(context.currentTime + duration + 0.005);
       } catch { /* Sound must never interfere with interaction. */ }
     };
-    const enabled = () => { try { return localStorage.getItem("streamly-ui-sounds") === "on"; } catch { return false; } };
+    const enabled = () => { try { return localStorage.getItem("streamly-ui-sounds") !== "off"; } catch { return true; } };
     const click = (event: MouseEvent) => {
       if (!enabled()) return;
       const target = event.target;
