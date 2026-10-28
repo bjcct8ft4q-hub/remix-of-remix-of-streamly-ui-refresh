@@ -12,6 +12,7 @@ import { historyQuery, saveProgress } from "@/lib/library";
 import { animeQuery, episodesQuery } from "@/lib/anime-queries";
 import { useAnimeAgeRating } from "@/lib/age-ratings";
 import { supabase } from "@/integrations/supabase/client";
+import { formatBold } from "@/lib/account-schema";
 
 export const Route = createFileRoute("/anime/$id_/watch")({
   validateSearch: z.object({ ep: z.coerce.number().default(1), audio: z.enum(["sub", "dub"]).default("sub"), provider: z.string().optional() }),
@@ -57,8 +58,10 @@ function WatchAnime() {
   const [rating, setRating] = useState(0);
   const [autoPlay, setAutoPlay] = useState(true);
   const [commentText, setCommentText] = useState("");
+  const [commentSpoiler, setCommentSpoiler] = useState(false);
+  const [revealedSpoilers, setRevealedSpoilers] = useState<string[]>([]);
   const [commentSort, setCommentSort] = useState<"newest" | "oldest">("newest");
-  const [comments, setComments] = useState<Array<{ id: string; author: string; body: string; created: number; parent?: string; likes: number; dislikes: number }>>([]);
+  const [comments, setComments] = useState<Array<{ id: string; author: string; body: string; created: number; parent?: string; likes: number; dislikes: number; spoiler?: boolean }>>([]);
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportText, setReportText] = useState("");
@@ -95,7 +98,7 @@ function WatchAnime() {
   useEffect(() => {
     try { setComments(JSON.parse(localStorage.getItem(`streamly-comments-${id}-${ep}`) || "[]")); }
     catch { setComments([]); }
-    setReplyTo(null); setCommentText("");
+    setReplyTo(null); setCommentText(""); setCommentSpoiler(false); setRevealedSpoilers([]);
   }, [id, ep]);
   const updateComments = (nextComments: typeof comments) => {
     setComments(nextComments);
@@ -105,8 +108,8 @@ function WatchAnime() {
     const body = commentText.trim();
     if (!body) return;
     if (!user) { openAuth("signin"); return; }
-    updateComments([...comments, { id: crypto.randomUUID(), author: username || "Viewer", body, created: Date.now(), parent: replyTo || undefined, likes: 0, dislikes: 0 }]);
-    setCommentText(""); setReplyTo(null);
+    updateComments([...comments, { id: crypto.randomUUID(), author: username || "Viewer", body, created: Date.now(), parent: replyTo || undefined, likes: 0, dislikes: 0, spoiler: commentSpoiler }]);
+    setCommentText(""); setReplyTo(null); setCommentSpoiler(false);
   };
   const voteComment = (commentId: string, direction: "likes" | "dislikes") => {
     updateComments(comments.map((c) => c.id === commentId ? { ...c, [direction]: c[direction] + 1 } : c));
@@ -300,18 +303,18 @@ function WatchAnime() {
             <h2 className="flex items-center gap-2 text-lg font-extrabold uppercase"><MessageSquare className="h-5 w-5 text-primary" /> Comments <span className="rounded bg-primary px-2 py-0.5 text-xs text-primary-foreground">{comments.length}</span></h2>
             <div className="flex items-center gap-3 text-xs font-semibold">{(["newest", "oldest"] as const).map((sort) => <button key={sort} type="button" onClick={() => setCommentSort(sort)} className={`rounded px-2 py-1 capitalize ${commentSort === sort ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>{sort}</button>)}</div>
           </div>
-          <p className="my-3 rounded bg-card/60 p-3 text-xs text-muted-foreground">Share your thoughts about this episode. Be respectful and avoid spoilers. Comments are currently saved only in this browser, not shared publicly.</p>
+          <p className="my-3 rounded bg-card/60 p-3 text-xs text-muted-foreground">Share your thoughts about this episode. Be respectful. Mark spoilers so readers can choose whether to reveal them. Use **double asterisks** for bold text. Comments are saved only in this browser, not shared publicly.</p>
           <div className="rounded-lg border border-border bg-card/30 p-3">
             {replyTo && <div className="mb-2 flex items-center justify-between text-xs text-primary"><span>Replying to {comments.find((c) => c.id === replyTo)?.author}</span><button onClick={() => setReplyTo(null)} aria-label="Cancel reply"><X className="h-4 w-4" /></button></div>}
             <textarea value={commentText} onChange={(e) => setCommentText(e.target.value)} rows={3} placeholder={user ? "Write your comment..." : "Sign in to comment..."} className="w-full resize-y rounded border border-border bg-background p-3 text-sm outline-none focus:border-primary" />
-            <div className="mt-2 flex justify-end"><Button size="sm" onClick={postComment} disabled={!commentText.trim()}><Send className="mr-2 h-4 w-4" />{user ? "Post comment" : "Sign in to post"}</Button></div>
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-3"><label className="flex cursor-pointer items-center gap-2 text-xs"><input type="checkbox" checked={commentSpoiler} onChange={(event) => setCommentSpoiler(event.target.checked)} className="accent-primary" /> Contains spoilers</label><Button size="sm" onClick={postComment} disabled={!commentText.trim()}><Send className="mr-2 h-4 w-4" />{user ? "Post comment" : "Sign in to post"}</Button></div>
           </div>
           <div className="mt-5 space-y-5">
             {comments.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">No comments yet. Be the first to share your thoughts.</p>}
             {[...comments].sort((a,b) => commentSort === "newest" ? b.created - a.created : a.created - b.created).map((comment) => <article key={comment.id} className={`border-b border-border/50 pb-4 ${comment.parent ? "ml-7 border-l-2 border-l-primary/40 pl-3" : ""}`}>
               <div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">{comment.author.slice(0,1).toUpperCase()}</span><strong className="text-xs">{comment.author}</strong><span className="text-[11px] text-muted-foreground">{new Date(comment.created).toLocaleDateString()}</span></div>
               {comment.parent && <p className="mt-1 text-xs text-primary">Reply to {comments.find((c) => c.id === comment.parent)?.author || "comment"}</p>}
-              <p className="mt-2 whitespace-pre-wrap break-words text-sm">{comment.body}</p>
+              {comment.spoiler && !revealedSpoilers.includes(comment.id) ? <button type="button" className="relative mt-2 w-full overflow-hidden rounded-lg border border-primary/30 bg-muted/60 p-3 text-left text-sm" onClick={() => setRevealedSpoilers((current) => [...current, comment.id])} aria-label="Reveal spoiler comment"><span className="pointer-events-none select-none blur-md">{comment.body}</span><span className="absolute inset-0 flex items-center justify-center bg-background/40 font-bold text-primary"><EyeOff className="mr-2 h-4 w-4" /> Spoiler · Click to reveal</span></button> : <div className="mt-2 whitespace-pre-wrap break-words text-sm">{formatBold(comment.body).map((part, i) => part.bold ? <strong key={i}>{part.text}</strong> : <span key={i}>{part.text}</span>)}{comment.spoiler && <button type="button" className="ml-3 text-xs text-primary underline" onClick={() => setRevealedSpoilers((current) => current.filter((id) => id !== comment.id))}>Hide spoiler</button>}</div>}
               <div className="mt-2 flex gap-4 text-xs text-muted-foreground"><button onClick={() => voteComment(comment.id, "likes")} className="flex items-center gap-1 hover:text-primary"><ThumbsUp className="h-3.5 w-3.5" /> {comment.likes}</button><button onClick={() => voteComment(comment.id, "dislikes")} className="flex items-center gap-1 hover:text-primary"><ThumbsDown className="h-3.5 w-3.5" /> {comment.dislikes}</button><button onClick={() => { setReplyTo(comment.id); document.querySelector("textarea")?.focus(); }} className="flex items-center gap-1 hover:text-primary"><Reply className="h-3.5 w-3.5" /> Reply</button></div>
             </article>)}
           </div>
