@@ -182,20 +182,30 @@ function ThemeToggle() {
     try {
       const ctx = new AudioContext();
       audio.current = ctx;
-      const length = Math.floor(ctx.sampleRate * 0.23);
+      const duration = 0.55;
+      const length = Math.floor(ctx.sampleRate * duration);
       const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
       const samples = buffer.getChannelData(0);
-      for (let i = 0; i < length; i++) samples[i] = (Math.random() * 2 - 1) * (1 - i / length);
+      for (let i = 0; i < length; i++) {
+        const t = i / ctx.sampleRate;
+        const gate = Math.sin(t * 93) > 0.05 ? 1 : 0.18;
+        samples[i] = (Math.random() * 2 - 1) * gate;
+      }
       const source = ctx.createBufferSource();
       source.buffer = buffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.value = 1850;
+      filter.Q.value = 0.65;
       const gain = ctx.createGain();
       gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.045, ctx.currentTime + 0.025);
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.22);
-      source.connect(gain).connect(ctx.destination);
+      gain.gain.linearRampToValueAtTime(0.075, ctx.currentTime + 0.025);
+      gain.gain.setValueAtTime(0.055, ctx.currentTime + 0.27);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.54);
+      source.connect(filter).connect(gain).connect(ctx.destination);
       source.start();
       source.onended = () => { if (audio.current === ctx) audio.current = null; void ctx.close(); };
-    } catch { /* Audio is optional, including on browsers that block it. */ }
+    } catch { /* Audio is optional if blocked by the browser. */ }
   };
   const changeTheme = () => {
     if (busy.current) return;
@@ -206,15 +216,15 @@ function ThemeToggle() {
     busy.current = true;
     setGlitch(true);
     playStatic();
-    timers.current.push(window.setTimeout(() => toggleHalloween(), 170));
+    timers.current.push(window.setTimeout(() => toggleHalloween(), 280));
     timers.current.push(window.setTimeout(() => {
       setGlitch(false);
       busy.current = false;
       timers.current = [];
-    }, 480));
+    }, 680));
   };
   return <>
-    {glitch && <div className="streamly-glitch-overlay" aria-hidden="true"><div className="streamly-glitch-noise" /><div className="streamly-glitch-scanlines" /></div>}
+    {glitch && <div className="streamly-glitch-overlay" aria-hidden="true"><div className="streamly-glitch-noise" /><div className="streamly-glitch-scanlines" /><div className="streamly-glitch-tear streamly-glitch-tear-one" /><div className="streamly-glitch-tear streamly-glitch-tear-two" /></div>}
     <button type="button" onClick={changeTheme}
       className="streamly-theme-toggle fixed bottom-5 right-5 z-[100] flex h-12 w-12 items-center justify-center border-0 bg-transparent p-0 text-3xl shadow-none transition-transform hover:scale-110 focus-visible:rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:bottom-6 sm:right-6"
       aria-label={halloween ? "Switch to normal blue theme" : "Switch to Halloween orange theme"}
