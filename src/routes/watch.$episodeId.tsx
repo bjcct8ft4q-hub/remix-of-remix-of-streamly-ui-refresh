@@ -39,6 +39,16 @@ export const Route = createFileRoute("/watch/$episodeId")({
   component: Watch,
 });
 
+function renderCommentText(body: string) {
+  // React escapes text nodes: formatting never interprets user content as HTML.
+  return body.split(/(\\*\\*[^*\\n]+\\*\\*|__[^_\\n]+__|\\*[^*\\n]+\\*)/g).map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) return <strong key={index}>{part.slice(2, -2)}</strong>;
+    if (part.startsWith("__") && part.endsWith("__")) return <u key={index}>{part.slice(2, -2)}</u>;
+    if (part.startsWith("*") && part.endsWith("*")) return <em key={index}>{part.slice(1, -1)}</em>;
+    return part;
+  });
+}
+
 function Watch() {
   const { episodeId } = Route.useParams();
   const { lang = "sub" } = Route.useSearch();
@@ -57,6 +67,18 @@ function Watch() {
   const video = useSignedUrl(ep ? episodeVideoPath(ep, version) : null);
   const poster = useSignedUrl(series?.banner_url || series?.cover_url);
   const [body, setBody] = useState("");
+  const commentInput = useRef<HTMLTextAreaElement | null>(null);
+  const formatComment = (marker: string) => {
+    const el = commentInput.current;
+    if (!el) return;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const selected = body.slice(start, end) || "text";
+    const updated = body.slice(0, start) + marker + selected + marker + body.slice(end);
+    if (updated.length > 1000) return void toast.error("Comments are limited to 1,000 characters.");
+    setBody(updated);
+    requestAnimationFrame(() => { el.focus(); el.setSelectionRange(start + marker.length, start + marker.length + selected.length); });
+  };
   const [episodeSearch, setEpisodeSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "sub" | "dub">("all");
   const [theater, setTheater] = useState(false);
@@ -107,6 +129,8 @@ function Watch() {
     finally { setPosting(false); }
   };
   const del = async (id: string) => {
+    if (!user) return void openAuth("signin");
+    if (!window.confirm("Delete this comment?")) return;
     const { error } = await supabase.from("comments").delete().eq("id", id);
     if (error) return void toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["comments", episodeId] });
@@ -143,8 +167,8 @@ function Watch() {
     </div>
     <div className="mt-6 grid gap-6 border-t border-border pt-5 lg:grid-cols-[minmax(0,1fr)_300px]">
       <section className="min-w-0"><div className="mb-4 flex items-center justify-between gap-2"><h2 className="text-sm font-extrabold uppercase">Comments <span className="ml-1 rounded-sm bg-primary px-1.5 py-0.5 text-[10px] text-primary-foreground">{comments.length}</span></h2><div className="flex gap-1"><Button size="sm" variant={!oldest ? "default" : "ghost"} onClick={() => setOldest(false)} className="h-7 text-xs">Newest</Button><Button size="sm" variant={oldest ? "default" : "ghost"} onClick={() => setOldest(true)} className="h-7 text-xs">Oldest</Button></div></div>
-        {user ? <form onSubmit={post} className="flex items-start gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted"><UserRound className="h-5 w-5" /></span><div className="min-w-0 flex-1"><textarea aria-label="Write your comment" value={body} onChange={(event) => setBody(event.target.value)} maxLength={1000} rows={3} placeholder="Write your comment…" className="w-full resize-y rounded-sm border border-border bg-card/40 p-3 text-xs outline-none focus:border-primary" /><Button type="submit" size="sm" disabled={posting || !body.trim()} className="mt-2">{posting ? "Posting…" : "Post comment"}</Button></div></form> : <Button variant="outline" onClick={() => openAuth("signin")} className="w-full justify-start text-sm text-muted-foreground">Sign in to comment</Button>}
-        <ul className="mt-6 divide-y divide-border/50">{(oldest ? [...comments].reverse() : comments).map((comment) => <li key={comment.id} className="flex gap-3 py-4"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-primary">{(comment.profiles?.username ?? "U").slice(0, 1).toUpperCase()}</span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2 text-[10px]"><span className="font-bold text-primary">{comment.profiles?.username ?? "user"}</span><time className="text-muted-foreground">{new Date(comment.created_at).toLocaleString()}</time>{(comment.user_id === user?.id || isAdmin) && <Button variant="ghost" size="icon" aria-label="Delete comment" onClick={() => del(comment.id)} className="ml-auto h-6 w-6 text-muted-foreground"><Trash2 /></Button>}</div><p className="mt-2 break-words text-sm leading-relaxed">{comment.body}</p></div></li>)}</ul>{!comments.length && <p className="py-6 text-xs text-muted-foreground">No comments yet.</p>}
+        {user ? <form onSubmit={post} className="flex items-start gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted"><UserRound className="h-5 w-5" /></span><div className="min-w-0 flex-1"><div className="mb-2 flex flex-wrap gap-2" role="toolbar" aria-label="Comment formatting"><Button type="button" size="sm" variant="outline" onClick={() => formatComment("**")} aria-label="Bold selected text"><strong>B</strong></Button><Button type="button" size="sm" variant="outline" onClick={() => formatComment("*")} aria-label="Italic selected text"><em>I</em></Button><Button type="button" size="sm" variant="outline" onClick={() => formatComment("__")} aria-label="Underline selected text"><u>U</u></Button><span className="self-center text-xs text-muted-foreground">Select text, then choose formatting</span></div><textarea ref={commentInput} aria-label="Write your comment" value={body} onChange={(event) => setBody(event.target.value)} maxLength={1000} rows={3} placeholder="Write your comment…" className="w-full resize-y rounded-sm border border-border bg-card/40 p-3 text-xs outline-none focus:border-primary" /><Button type="submit" size="sm" disabled={posting || !body.trim()} className="mt-2">{posting ? "Posting…" : "Post comment"}</Button></div></form> : <Button variant="outline" onClick={() => openAuth("signin")} className="w-full justify-start text-sm text-muted-foreground">Sign in to comment</Button>}
+        <ul className="mt-6 divide-y divide-border/50">{(oldest ? [...comments].reverse() : comments).map((comment) => <li key={comment.id} className="flex gap-3 py-4"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-primary">{(comment.profiles?.username ?? "U").slice(0, 1).toUpperCase()}</span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2 text-[10px]"><span className="font-bold text-primary">{comment.profiles?.username ?? "user"}</span><time className="text-muted-foreground">{new Date(comment.created_at).toLocaleString()}</time>{(comment.user_id === user?.id || isAdmin) && <Button variant="ghost" size="icon" aria-label="Delete comment" onClick={() => del(comment.id)} className="ml-auto h-6 w-6 text-muted-foreground"><Trash2 /></Button>}</div><p className="mt-2 break-words text-sm leading-relaxed">{renderCommentText(comment.body)}</p></div></li>)}</ul>{!comments.length && <p className="py-6 text-xs text-muted-foreground">No comments yet.</p>}
       </section>
       <aside className="min-w-0"><h2 className="mb-3 border-l-3 border-primary pl-2 font-extrabold">Recommendations</h2>{recommendations.map((item) => <WatchRecommendation key={item.id} series={item} />)}{!recommendations.length && <p className="text-xs text-muted-foreground">No recommendations yet.</p>}</aside>
     </div>
