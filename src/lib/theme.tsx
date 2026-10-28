@@ -33,7 +33,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [halloween]);
   useEffect(() => {
     if (!transitioning) return;
-    const timer = window.setTimeout(() => setTransitioning(false), 900);
+    const timer = window.setTimeout(() => setTransitioning(false), 1450);
     return () => window.clearTimeout(timer);
   }, [transitionKey, transitioning]);
   const toggleHalloween = () => {
@@ -47,7 +47,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       return next;
     });
   };
-  return <Ctx.Provider value={{ halloween, toggleHalloween }}>{children}{transitioning && <div key={transitionKey} className={`streamly-theme-wipe ${halloween ? "streamly-theme-wipe-halloween" : "streamly-theme-wipe-blue"}`} aria-hidden="true" />}</Ctx.Provider>;
+  return <Ctx.Provider value={{ halloween, toggleHalloween }}>{children}{transitioning && <div key={transitionKey} className={`streamly-theme-cinematic ${halloween ? "streamly-theme-enter" : "streamly-theme-exit"}`} aria-hidden="true"><div className="streamly-theme-darkness" /><div className="streamly-theme-halo" /><div className="streamly-theme-symbol">{halloween ? "🎃" : "✦"}</div><div className="streamly-theme-flash" /></div>}</Ctx.Provider>;
 }
 
 export const useTheme = () => useContext(Ctx);
