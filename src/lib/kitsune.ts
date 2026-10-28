@@ -32,7 +32,7 @@ export type AnimeDetails = AnimeSummary & {
   tags: { name: string; rank: number; isMediaSpoiler: boolean }[];
   characters: { edges: { node: { id: number; name: { full: string }; image: { medium: string | null } }; role: string; voiceActors: { id: number; name: { full: string }; image: { medium: string | null } }[] }[] };
   relations: { edges: { relationType: string; node: AnimeSummary }[] };
-  recommendations: { nodes: { mediaRecommendation: AnimeSummary | null }[] };
+  recommendations: { nodes: { rating: number | null; mediaRecommendation: AnimeSummary | null }[] };
 };
 
 const SUMMARY = "id title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore isAdult";
@@ -74,7 +74,7 @@ export async function searchAnime(search: string): Promise<AnimeSummary[]> {
 
 export async function getAnime(id: number): Promise<AnimeDetails | null> {
   const data = await anilist<{ Media: AnimeDetails | null }>(
-    `query ($id: Int) { Media(id: $id, type: ANIME) { ${SUMMARY} description(asHtml: false) status season genres countryOfOrigin duration synonyms tags { name rank isMediaSpoiler } startDate { year month day } studios(isMain: true) { nodes { name } } characters(sort: [ROLE, RELEVANCE], perPage: 24) { edges { role node { id name { full } image { medium } } voiceActors(language: JAPANESE, sort: [RELEVANCE, ID]) { id name { full } image { medium } } } } relations { edges { relationType node { ${SUMMARY} } } } recommendations(sort: RATING_DESC, perPage: 24) { nodes { mediaRecommendation { ${SUMMARY} } } } } }`,
+    `query ($id: Int) { Media(id: $id, type: ANIME) { ${SUMMARY} description(asHtml: false) status season genres countryOfOrigin duration synonyms tags { name rank isMediaSpoiler } startDate { year month day } studios(isMain: true) { nodes { name } } characters(sort: [ROLE, RELEVANCE], perPage: 24) { edges { role node { id name { full } image { medium } } voiceActors(language: JAPANESE, sort: [RELEVANCE, ID]) { id name { full } image { medium } } } } relations { edges { relationType node { ${SUMMARY} } } } recommendations(sort: RATING_DESC, perPage: 25) { nodes { rating mediaRecommendation { ${SUMMARY} } } } } }`,
     { id },
   );
   return data.Media;
