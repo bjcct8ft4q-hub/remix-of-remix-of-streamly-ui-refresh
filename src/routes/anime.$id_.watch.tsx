@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
-import { ChevronLeft, ChevronRight, LoaderCircle, Search, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, LoaderCircle, Search, Play, MonitorPlay, ListVideo, SkipForward, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { WatchlistButton } from "@/components/WatchlistButton";
@@ -39,6 +39,8 @@ function WatchAnime() {
   const [failed, setFailed] = useState<string[]>([]);
   const [server, setServer] = useState(0);
   const [episodeSearch, setEpisodeSearch] = useState("");
+  const [autoNext, setAutoNext] = useState(true);
+  const [theaterMode, setTheaterMode] = useState(false);
   useEffect(() => { setFailed([]); setServer(0); }, [ep, audio]);
   const current = sources.find((s) => s.provider === provider) ?? sources.find((s) => !failed.includes(s.provider));
   const streams = useQuery({ queryKey: ["streams", current?.watchId], queryFn: () => getStreams(current!.watchId), enabled: !!current, retry: 0, staleTime: 5 * 60 * 1000 });
@@ -73,21 +75,22 @@ function WatchAnime() {
   const go = (search: { ep?: number; audio?: "sub" | "dub"; provider?: string | undefined }) => void navigate({ search: (s) => ({ ...s, provider: undefined, ...search }) });
 
   return (
-    <main className="mx-auto max-w-[1800px] px-4 pb-20 pt-4 sm:px-6 md:pt-6">
-      <Link to="/anime/$id" params={{ id: String(id) }} className="text-sm text-muted-foreground hover:text-primary">← {title || "Back to series"}</Link>
-      <h1 className="mt-2 mb-4 text-xl font-extrabold">Episode {ep}{episode?.title ? ` — ${episode.title}` : ""}</h1>
-      <div className="grid items-start gap-4 xl:grid-cols-[210px_minmax(0,1fr)_320px]">
-        <aside className="hidden rounded-xl border border-border bg-card/40 p-3 xl:block">{cover && <img src={cover} alt="" className="mx-auto aspect-[2/3] w-full max-w-40 rounded-lg object-cover" />}<Link to="/anime/$id" params={{ id: String(id) }} className="mt-3 block text-base font-extrabold hover:text-primary">{title}</Link>{info.data?.averageScore != null && <p className="mt-2 text-sm font-semibold text-primary">★ {(info.data.averageScore / 10).toFixed(1)} / 10</p>}{info.data?.genres?.length ? <p className="mt-3 text-xs leading-5 text-muted-foreground">{info.data.genres.join(" · ")}</p> : null}{info.data?.description && <p className="mt-3 line-clamp-6 text-xs leading-5 text-muted-foreground">{info.data.description.replace(/<[^>]+>/g, "")}</p>}</aside>
+    <main className="mx-auto max-w-[1900px] px-3 pb-20 pt-3 sm:px-5 md:pt-4">
+      <nav className="mb-3 flex items-center gap-2 text-xs text-muted-foreground"><Link to="/" className="hover:text-primary">Home</Link><span>›</span><Link to="/anime/$id" params={{ id: String(id) }} className="max-w-56 truncate hover:text-primary">{title || "Series"}</Link><span>›</span><span className="font-semibold text-primary">Episode {ep}</span></nav>
+      <div className={`grid items-start gap-3 ${theaterMode ? "grid-cols-1" : "xl:grid-cols-[240px_minmax(0,1fr)_350px]"}`}>
+        <aside className={`${theaterMode ? "hidden" : "hidden xl:block"} rounded-xl border border-border bg-card/40 p-3`}>{cover && <img src={cover} alt="" className="mx-auto aspect-[2/3] w-full max-w-[185px] rounded-lg object-cover" />}<Link to="/anime/$id" params={{ id: String(id) }} className="mt-3 block text-base font-extrabold hover:text-primary">{title}</Link>{info.data?.averageScore != null && <p className="mt-2 text-sm font-semibold text-primary">★ {(info.data.averageScore / 10).toFixed(1)} / 10</p>}{info.data?.genres?.length ? <p className="mt-3 text-xs leading-5 text-muted-foreground">{info.data.genres.join(" · ")}</p> : null}{info.data?.description && <p className="mt-3 line-clamp-6 text-xs leading-5 text-muted-foreground">{info.data.description.replace(/<[^>]+>/g, "")}</p>}</aside>
         <div className="min-w-0">
-          <div className="aspect-video overflow-hidden rounded-lg border border-border bg-overlay shadow-lg">
+          <div className="aspect-video overflow-hidden rounded-lg border border-border bg-black shadow-lg">
             {eps.isPending || (current && streams.isPending) ? <div role="status" className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground"><LoaderCircle className="h-5 w-5 animate-spin" />{eps.isPending ? "Finding episode…" : `Loading ${providerLabel(current!.provider)}…`}</div>
               : !current ? <div role="alert" className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center text-sm text-muted-foreground"><p>{sources.length ? "None of the sources had a working video for this episode." : `No ${audio} version found for this episode.`}</p>{sources.length > 0 && <Button variant="outline" onClick={() => setFailed([])}>Try again</Button>}</div>
               : streams.isError ? <div role="alert" className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">{providerLabel(current.provider)} has no video for this episode right now. Pick another source.</div>
               : stream ? <VideoPlayer key={stream.src} ref={playerRef} kind={stream.kind} src={stream.src} subtitles={stream.subtitles} intro={stream.intro} poster={episode?.image ?? undefined} fileName={`${title} - ${ep}`} autoPlay
                   onLoaded={(v) => { if (resumeAt > 5 && resumeAt < v.duration - 30) v.currentTime = resumeAt; }}
-                  onEnded={() => { if (playerRef.current) save(playerRef.current, true); if (next) go({ ep: next.number }); }}
+                  onEnded={() => { if (playerRef.current) save(playerRef.current, true); if (autoNext && next) go({ ep: next.number }); }}
                   onError={() => { if (streams.data && server < streams.data.length - 1) setServer(server + 1); }} /> : null}
           </div>
+          <div className="mt-2 rounded-md border border-primary/20 bg-primary/10 px-3 py-2 text-xs text-muted-foreground">If playback is unavailable, try another available source or server below.</div>
+          <div className="mt-2 flex flex-wrap items-center gap-2 border-b border-border py-3 text-xs font-semibold"> <span className="mr-auto text-primary"><ListVideo className="mr-1 inline h-4 w-4" />Episode {ep}</span><button type="button" onClick={() => setTheaterMode(!theaterMode)} className="rounded px-2 py-1 hover:bg-muted"><MonitorPlay className="mr-1 inline h-4 w-4" />{theaterMode ? "Exit theater" : "Theater"}</button><button type="button" onClick={() => setAutoNext(!autoNext)} aria-pressed={autoNext} className={`rounded px-2 py-1 hover:bg-muted ${autoNext ? "text-primary" : "text-muted-foreground"}`}><SkipForward className="mr-1 inline h-4 w-4" />Auto next {autoNext ? "On" : "Off"}</button></div>
           <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card/40 p-3">
             <Button variant="outline" size="sm" disabled={!prev} onClick={() => prev && go({ ep: prev.number })}><ChevronLeft /> Previous</Button>
             <Button variant="outline" size="sm" disabled={!next} onClick={() => next && go({ ep: next.number })}>Next <ChevronRight /></Button>
@@ -97,7 +100,8 @@ function WatchAnime() {
             </div>
             {info.data && <WatchlistButton anime={{ id, title, cover }} />}
           </div>
-          {sources.length > 0 && <div className="mt-4">
+          <div className="mt-4 rounded-lg border border-border bg-card/30 p-4"><div className="mb-3 text-center"><p className="text-xs text-muted-foreground">You are watching</p><h2 className="mt-1 font-bold">Episode {ep}{episode?.title ? ` — ${episode.title}` : ""}</h2></div>
+          {sources.length > 0 && <div>
             <p className="mb-2 text-xs font-bold uppercase text-muted-foreground">Source</p>
             <div className="flex flex-wrap gap-2">
               {sources.map((s) => <Button key={s.provider} size="sm" variant={s.provider === current?.provider ? "default" : "outline"} className={failed.includes(s.provider) && s.provider !== current?.provider ? "opacity-50" : ""} onClick={() => go({ provider: s.provider })}>{providerLabel(s.provider)}</Button>)}
@@ -108,8 +112,9 @@ function WatchAnime() {
             </>}
           </div>}
           {!user && <p className="mt-4 text-sm text-muted-foreground">Sign in to save your progress.</p>}
+          </div>
         </div>
-        <aside className="min-w-0 rounded-xl border border-border bg-card/40 p-3 xl:sticky xl:top-20">
+        <aside className={`${theaterMode ? "hidden" : ""} min-w-0 rounded-xl border border-border bg-card/40 p-3 xl:sticky xl:top-20`}>
           <h2 className="mb-3 text-lg font-extrabold">Episodes <span className="rounded bg-muted px-2 py-1 text-xs text-muted-foreground">{list.length}</span></h2>
           <label className="relative block"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input value={episodeSearch} onChange={(e) => setEpisodeSearch(e.target.value)} placeholder="Search episodes..." aria-label="Search episodes" className="w-full rounded-md border border-border bg-background py-2 pl-9 pr-3 text-sm outline-none focus:border-primary" /></label>
           <div className="mt-3 max-h-[65vh] space-y-2 overflow-y-auto pr-1">
@@ -117,7 +122,7 @@ function WatchAnime() {
               <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded bg-muted">{(e.image || cover) && <img src={e.image || cover || ""} alt="" loading="lazy" className="h-full w-full object-cover" />}{e.number === ep && <span className="absolute inset-0 flex items-center justify-center bg-black/40 text-primary"><Play className="h-5 w-5 fill-current" /></span>}</div>
               <div className="min-w-0"><p className={`text-[10px] font-bold uppercase ${e.number === ep ? "text-primary" : "text-muted-foreground"}`}>EP {String(e.number).padStart(2, "0")}</p><p className="mt-1 line-clamp-2 text-xs font-semibold">{e.title || `Episode ${e.number}`}</p></div>
             </button>)}
-            {!filteredEpisodes.length && <p className="p-4 text-center text-sm text-muted-foreground">No episodes match your search.</p>}
+            {!filteredEpisodes.length && <div className="p-4 text-center text-sm text-muted-foreground">{eps.isPending ? <span><RefreshCw className="mr-2 inline h-4 w-4 animate-spin" />Finding episodes…</span> : eps.isError ? <span>Episodes could not be loaded. <button className="font-bold text-primary underline" onClick={() => void eps.refetch()}>Retry</button></span> : list.length === 0 ? "No episodes available for this audio language yet." : "No episodes match your search."}</div>}
           </div>
         </aside>
       </div>
