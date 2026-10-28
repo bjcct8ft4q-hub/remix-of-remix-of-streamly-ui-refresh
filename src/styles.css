@@ -325,3 +325,71 @@ html.streamly-theme-ready :where(header, nav, aside, main, footer, section, arti
 @media (prefers-reduced-motion: reduce) {
   .streamly-glitch-overlay { display: none; }
 }
+
+/* The PAGE itself loses signal: offset content and separated colour channels.
+   This is distinct from the static overlay, which alone looked like a filter. */
+html.streamly-screen-glitch body > #root,
+html.streamly-screen-glitch body > #app {
+  animation: streamly-page-desync 900ms steps(1,end) both;
+}
+html.streamly-screen-glitch :is(header, main, footer) {
+  animation: streamly-content-jump 900ms steps(1,end) both !important;
+  transition-duration: 0ms !important;
+}
+html.streamly-screen-glitch main {
+  filter: drop-shadow(9px 0 0 rgba(0,210,255,.55)) drop-shadow(-9px 0 0 rgba(255,58,92,.45));
+}
+html.streamly-screen-glitch header {
+  filter: drop-shadow(-6px 0 0 rgba(0,210,255,.65)) drop-shadow(6px 0 0 rgba(255,60,40,.5));
+}
+.streamly-glitch-blocks {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, transparent 0 8%, rgba(0,205,255,.75) 8% 29%, transparent 29% 100%) 0 18% / 100% 18px no-repeat,
+    linear-gradient(90deg, transparent 0 43%, rgba(255,255,255,.95) 43% 86%, transparent 86% 100%) 0 47% / 100% 8px no-repeat,
+    linear-gradient(90deg, transparent 0 17%, rgba(255,55,35,.8) 17% 64%, transparent 64% 100%) 0 75% / 100% 24px no-repeat;
+  animation: streamly-block-desync 110ms steps(1,end) infinite;
+}
+.streamly-glitch-color {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(0,200,255,.16), transparent 40%, rgba(255,45,80,.2));
+  mix-blend-mode: screen;
+  animation: streamly-color-desync 125ms steps(1,end) infinite;
+}
+@keyframes streamly-content-jump {
+  0%, 100% { transform: translate(0,0) skewX(0); }
+  9% { transform: translate(15px,-2px) skewX(-1.5deg); }
+  17% { transform: translate(-19px,2px) skewX(1deg); }
+  25% { transform: translate(0,0); }
+  34% { transform: translate(24px,0) skewX(-2deg); }
+  43% { transform: translate(-14px,-3px); }
+  52% { transform: translate(3px,0); }
+  61% { transform: translate(-25px,2px) skewX(2deg); }
+  70% { transform: translate(12px,0); }
+  79% { transform: translate(-9px,-1px); }
+  90% { transform: translate(4px,0); }
+}
+@keyframes streamly-page-desync {
+  0%, 100% { filter: none; }
+  30%, 65% { filter: contrast(1.6) saturate(1.9); }
+  45% { filter: grayscale(1) contrast(2); }
+}
+@keyframes streamly-block-desync {
+  0% { transform: translate(0,0); opacity: .2; }
+  25% { transform: translate(55px,-70px); opacity: .95; }
+  50% { transform: translate(-70px,100px); opacity: .4; }
+  75% { transform: translate(30px,-35px); opacity: 1; }
+}
+@keyframes streamly-color-desync {
+  0% { transform: translateX(-12px); opacity: .5; }
+  50% { transform: translateX(20px); opacity: 1; }
+  100% { transform: translateX(-24px); opacity: .6; }
+}
+.streamly-glitch-overlay { animation-duration: 900ms; }
+@media (prefers-reduced-motion: reduce) {
+  html.streamly-screen-glitch :is(header,main,footer),
+  html.streamly-screen-glitch body > #root,
+  html.streamly-screen-glitch body > #app { animation: none !important; filter: none !important; }
+}
