@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { Info, Link2, Check, UserRound, HeartPulse } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { historyQuery, watchlistQuery } from "@/lib/library";
@@ -26,6 +27,25 @@ function PublicProfile() {
   });
   const activeDays = activityDays.filter((day) => day.count > 0).length;
   const [tab, setTab] = useState<"watchlist" | "activity">("watchlist");
+  const [identityOpen, setIdentityOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const copyProfile = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.origin + "/public-profile");
+      setCopied(true);
+    } catch { setCopied(false); }
+  };
+  const profileActions = <div className="relative flex items-center gap-2">
+    <div className="relative">
+      <button type="button" onClick={() => setIdentityOpen(v => !v)} aria-label="Profile information" aria-expanded={identityOpen} className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white/80 hover:border-primary hover:text-primary"><Info size={15}/></button>
+      {identityOpen && <div className="absolute left-0 top-9 z-50 w-56 rounded-lg border border-white/15 bg-[#121317] p-1.5 shadow-2xl">
+        <div className="flex items-center gap-2 rounded-md px-2.5 py-2 text-xs text-gray-200"><UserRound size={14} className="text-gray-400"/>Also known as #{username}</div>
+        <button type="button" onClick={copyProfile} className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-xs text-gray-200 hover:bg-white/10">{copied ? <Check size={14} className="text-emerald-400"/> : <Link2 size={14} className="text-gray-400"/>}{copied ? "Copied Profile URL" : "Copy Profile URL"}</button>
+      </div>}
+    </div>
+    <button type="button" onClick={() => { setTab("activity"); setIdentityOpen(false); }} aria-label="View activity" title="View activity" className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white/80 hover:border-primary hover:text-primary"><HeartPulse size={15}/></button>
+  </div>;
+
   const [range, setRange] = useState<30 | 90 | 365>(30);
   const recent = activityDays.slice(-range);
   return <main className="min-h-screen bg-[#050505] pb-24 pt-16 text-white">
@@ -39,7 +59,7 @@ function PublicProfile() {
         <div className="flex flex-wrap items-end gap-4 border-b border-white/10 pb-7 sm:gap-6">
           <div className="relative z-10 shrink-0 rounded-full border-4 border-[#050505] bg-[#111] shadow-xl"><AccountAvatar size="lg" /></div>
           <div className="min-w-0 flex-1 pb-1">
-            <div className="flex flex-wrap items-center gap-2"><h1 className="break-words text-xl font-extrabold sm:text-2xl">{displayName || username}</h1><ShieldCheck size={17} className="text-primary" aria-label="Streamly member" /></div>
+            <div className="flex flex-wrap items-center gap-2"><h1 className="break-words text-xl font-extrabold sm:text-2xl">{displayName || username}</h1><ShieldCheck size={17} className="text-primary" aria-label="Streamly member" />{profileActions}</div>
             <p className="text-xs text-gray-400">@{username}</p>
             {profileBio && <p className="mt-2 text-xs text-gray-200">{profileBio}</p>}
             <p className="mt-2 flex items-center gap-1.5 text-[11px] text-gray-400"><CalendarDays size={12}/> Joined {memberSince.toLocaleDateString("en-GB", {month:"long",year:"numeric"})}</p>
@@ -51,7 +71,7 @@ function PublicProfile() {
       </div>
     </> : <div className="mx-auto max-w-[920px] px-5 pt-12">
       <button onClick={()=>setTab("watchlist")} className="mb-5 text-xs text-gray-400 hover:text-white">← Profile</button>
-      <div className="mb-8 flex flex-wrap items-center gap-4"><AccountAvatar size="lg"/><div className="min-w-0 flex-1"><h1 className="text-2xl font-extrabold">{displayName || username}</h1><p className="text-xs text-gray-400">@{username} · Activity</p></div><div className="text-xs text-gray-400">Member since {memberSince.toLocaleDateString("en-GB",{month:"long",year:"numeric"})}</div></div>
+      <div className="mb-8 flex flex-wrap items-center gap-4"><AccountAvatar size="lg"/><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><h1 className="text-2xl font-extrabold">{displayName || username}</h1>{profileActions}</div><p className="text-xs text-gray-400">@{username} · Activity</p></div><div className="text-xs text-gray-400">Member since {memberSince.toLocaleDateString("en-GB",{month:"long",year:"numeric"})}</div></div>
       <section className="rounded-lg border border-white/10 bg-[#0d0e11] p-4"><h2 className="text-sm font-bold">Past year</h2><p className="mt-1 text-xs text-gray-400">{activeDays} active days</p><div className="mt-5 grid grid-flow-col grid-rows-7 gap-[3px] overflow-x-auto">{activityDays.map((day,i)=><div key={i} title={day.date.toDateString()+": "+day.count+" episodes"} className="h-[10px] w-[10px] rounded-[2px]" style={{background:day.count===0?"#1c1e23":day.count===1?"#123e66":day.count<4?"#0879c5":"#1e9bff"}}/>)}</div><p className="mt-3 text-right text-[10px] text-gray-400">Less ▪ ▪ ▪ More</p></section>
       <div className="mt-8 flex gap-6 border-b border-white/10">{([30,90,365] as const).map(n=><button key={n} onClick={()=>setRange(n)} className={`border-b-2 pb-3 text-xs ${range===n?"border-primary text-white":"border-transparent text-gray-400"}`}>{n===365?"1 year":n+" days"}</button>)}</div>
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">{[{name:"Episodes",value:recent.reduce((sum,d)=>sum+d.count,0)},{name:"Anime",value:series},{name:"Watchlist",value:watchlist.data?.length??0},{name:"Active days",value:recent.filter(d=>d.count>0).length}].map(stat=><div key={stat.name} className="rounded-lg border border-white/10 bg-[#0d0e11] p-4"><p className="text-xs text-gray-400">{stat.name}</p><p className="mt-3 text-2xl font-black">{stat.value}</p></div>)}</div>
