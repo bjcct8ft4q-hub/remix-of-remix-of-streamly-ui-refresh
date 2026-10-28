@@ -329,6 +329,44 @@ function EpisodeManager({ seriesId }: { seriesId: string }) {
   );
 }
 
+type EpisodeReport = { id: string; anime_id: number; anime_title: string; episode: number; audio: string; provider: string | null; category: string; details: string; device_info: string | null; status: string; created_at: string };
+function ReportManager() {
+  const qc = useQueryClient();
+  const [filter, setFilter] = useState("open");
+  const [updating, setUpdating] = useState<string | null>(null);
+  const { data = [], isPending, error } = useQuery({
+    queryKey: ["admin-episode-reports", filter],
+    queryFn: async () => {
+      let q = (supabase as any).from("episode_reports").select("id,anime_id,anime_title,episode,audio,provider,category,details,device_info,status,created_at").order("created_at", { ascending: false }).limit(100);
+      if (filter !== "all") q = q.eq("status", filter);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as EpisodeReport[];
+    }, retry: 0,
+  });
+  const changeStatus = async (id: string, status: string) => {
+    setUpdating(id);
+    const { error } = await (supabase as any).from("episode_reports").update({ status, updated_at: new Date().toISOString() }).eq("id", id);
+    setUpdating(null);
+    if (error) toast.error(error.message);
+    else { toast.success("Report updated"); qc.invalidateQueries({ queryKey: ["admin-episode-reports"] }); }
+  };
+  return <section className="space-y-4 border-t border-border pt-7">
+    <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-extrabold">Episode reports</h2><p className="text-xs text-muted-foreground">Review viewer playback issues and update their status.</p></div>
+      <select aria-label="Filter reports by status" value={filter} onChange={(e) => setFilter(e.target.value)} className={inputCls + " !w-auto"}>{["open","reviewing","resolved","dismissed","all"].map((v) => <option key={v} value={v}>{v[0].toUpperCase()+v.slice(1)}</option>)}</select></div>
+    {isPending && <p className="text-sm text-muted-foreground">Loading reports…</p>}
+    {error && <p role="alert" className="text-sm text-destructive">Unable to load reports. Apply the episode reports SQL migration in Supabase first.</p>}
+    {!isPending && !error && !data.length && <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">No {filter === "all" ? "" : filter} reports yet.</p>}
+    <div className="grid gap-3">{data.map((report) => <article key={report.id} className="rounded-lg border border-border bg-card/50 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-2"><div><p className="font-bold">{report.anime_title}</p><p className="mt-1 text-xs text-muted-foreground">Episode {report.episode} · {report.audio.toUpperCase()} · {report.provider || "Unknown source"} · {new Date(report.created_at).toLocaleString()}</p></div><span className="rounded border border-primary/30 px-2 py-1 text-xs font-bold text-primary">{report.status}</span></div>
+      <p className="mt-3 text-sm font-semibold">{report.category.replaceAll("_"," ")}</p>
+      {report.details && <p className="mt-1 whitespace-pre-wrap break-words text-sm text-muted-foreground">{report.details}</p>}
+      {report.device_info && <p className="mt-2 text-xs text-muted-foreground">Device: {report.device_info}</p>}
+      <div className="mt-4 flex flex-wrap gap-2">{(["open","reviewing","resolved","dismissed"] as const).filter((status) => status !== report.status).map((status) => <Button key={status} type="button" size="sm" variant="outline" disabled={updating === report.id} onClick={() => void changeStatus(report.id,status)}>{status === "reviewing" ? "Mark reviewing" : status === "resolved" ? "Resolve" : status === "dismissed" ? "Dismiss" : "Reopen"}</Button>)}</div>
+    </article>)}</div>
+  </section>;
+}
+
 function Admin() {
   const { user, isAdmin, loading, openAuth } = useAuth();
   const qc = useQueryClient();
@@ -356,6 +394,7 @@ function Admin() {
   return (
     <main className="mx-auto max-w-6xl space-y-8 px-4 pb-20 pt-40 sm:px-6 md:pt-28">
       <h1 className="border-l-4 border-primary pl-3 text-3xl font-extrabold">Admin dashboard</h1>
+      <ReportManager />
       <ImportPanel />
       <SeriesForm onDone={() => qc.invalidateQueries({ queryKey: ["series"] })} />
       <div className="min-w-0">
