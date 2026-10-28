@@ -33,7 +33,7 @@ function WatchAnime() {
   const id = Number(Route.useParams().id);
   const { ep, audio, provider } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
-  const { user, username, openAuth } = useAuth();
+  const { user, username, isAdmin, openAuth } = useAuth();
   const info = useQuery(animeQuery(id));
   const eps = useQuery(episodesQuery(id));
   const [loadingSeconds, setLoadingSeconds] = useState(0);
@@ -108,6 +108,18 @@ function WatchAnime() {
     if (!user) { openAuth("signin"); return; }
     updateComments([...comments, { id: crypto.randomUUID(), author: username || "Viewer", body, created: Date.now(), parent: replyTo || undefined, likes: 0, dislikes: 0, spoiler: commentSpoiler }]);
     setCommentText(""); setReplyTo(null); setCommentSpoiler(false);
+  };
+  const deleteComment = (commentId: string) => {
+    if (!isAdmin || !window.confirm("Delete this comment and its replies from this browser?")) return;
+    const removed = new Set([commentId]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const comment of comments) {
+        if (comment.parent && removed.has(comment.parent) && !removed.has(comment.id)) { removed.add(comment.id); changed = true; }
+      }
+    }
+    updateComments(comments.filter((comment) => !removed.has(comment.id)));
   };
   const voteComment = (commentId: string, direction: "likes" | "dislikes") => {
     updateComments(comments.map((c) => c.id === commentId ? { ...c, [direction]: c[direction] + 1 } : c));
@@ -296,7 +308,7 @@ function WatchAnime() {
           <div className="mt-5 space-y-5">
             {comments.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">No comments yet. Be the first to share your thoughts.</p>}
             {[...comments].sort((a,b) => commentSort === "newest" ? b.created - a.created : a.created - b.created).map((comment) => <article key={comment.id} className={`border-b border-border/50 pb-4 ${comment.parent ? "ml-7 border-l-2 border-l-primary/40 pl-3" : ""}`}>
-              <div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">{comment.author.slice(0,1).toUpperCase()}</span><strong className="text-xs">{comment.author}</strong><span className="text-[11px] text-muted-foreground">{new Date(comment.created).toLocaleDateString()}</span></div>
+              <div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">{comment.author.slice(0,1).toUpperCase()}</span><strong className="text-xs">{comment.author}</strong><span className="text-[11px] text-muted-foreground">{new Date(comment.created).toLocaleDateString()}</span>{isAdmin && <button type="button" onClick={() => deleteComment(comment.id)} className="ml-auto rounded px-2 py-1 text-xs text-red-400 hover:bg-red-500/10" aria-label={`Delete comment by ${comment.author}`}>Delete</button>}</div>
               {comment.parent && <p className="mt-1 text-xs text-primary">Reply to {comments.find((c) => c.id === comment.parent)?.author || "comment"}</p>}
               {comment.spoiler && !revealedSpoilers.includes(comment.id) ? <button type="button" className="relative mt-2 w-full overflow-hidden rounded-lg border border-primary/30 bg-muted/60 p-3 text-left text-sm" onClick={() => setRevealedSpoilers((current) => [...current, comment.id])} aria-label="Reveal spoiler comment"><span className="pointer-events-none select-none blur-md">{comment.body}</span><span className="absolute inset-0 flex items-center justify-center bg-background/40 font-bold text-primary"><EyeOff className="mr-2 h-4 w-4" /> Spoiler · Click to reveal</span></button> : <div className="mt-2 whitespace-pre-wrap break-words text-sm">{formatBold(comment.body).map((part, i) => part.bold ? <strong key={i}>{part.text}</strong> : <span key={i}>{part.text}</span>)}{comment.spoiler && <button type="button" className="ml-3 text-xs text-primary underline" onClick={() => setRevealedSpoilers((current) => current.filter((id) => id !== comment.id))}>Hide spoiler</button>}</div>}
               <div className="mt-2 flex gap-4 text-xs text-muted-foreground"><button onClick={() => voteComment(comment.id, "likes")} className="flex items-center gap-1 hover:text-primary"><ThumbsUp className="h-3.5 w-3.5" /> {comment.likes}</button><button onClick={() => voteComment(comment.id, "dislikes")} className="flex items-center gap-1 hover:text-primary"><ThumbsDown className="h-3.5 w-3.5" /> {comment.dislikes}</button><button onClick={() => { setReplyTo(comment.id); document.querySelector("textarea")?.focus(); }} className="flex items-center gap-1 hover:text-primary"><Reply className="h-3.5 w-3.5" /> Reply</button></div>
