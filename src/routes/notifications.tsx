@@ -1,0 +1,3 @@
+import { createFileRoute } from "@tanstack/react-router";
+export const Route = createFileRoute("/notifications")({ component: Notifications });
+function Notifications() { return <main className="mx-auto max-w-3xl px-5 pb-20 pt-32"><h1 className="mb-5 border-l-4 border-primary pl-3 text-3xl font-bold">Notifications</h1><div className="rounded-xl border border-border bg-card p-6"><h2 className="text-xl font-bold">All caught up!</h2><p className="mt-2 text-sm text-muted-foreground">No notifications to show. Automatic notifications are not enabled yet.</p></div></main>; }
