@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getAccountIdentity, updateAccountIdentity } from "@/lib/accounts.functions";
 import { usernameSchema, passwordSchema } from "@/lib/account-schema";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { AccountAvatar } from "@/components/AccountAvatar";
@@ -67,6 +67,7 @@ export const Route = createFileRoute("/settings")({ component: Settings, head: (
 function Settings() {
   const { preference, setPreference } = useAudioPreference();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [uiSounds, setUiSounds] = useState(() => typeof window !== "undefined" && localStorage.getItem("streamly-ui-sounds") === "on");
   const [bannerUrl, setBannerUrl] = useState(() => typeof user?.user_metadata?.profile_banner_url === "string" ? user.user_metadata.profile_banner_url : "");
   const [bannerMessage, setBannerMessage] = useState("");
@@ -205,6 +206,7 @@ function Settings() {
                 const name = usernameSchema.parse(accountName);
                 const saved = await updateIdentity({ data: { username: name, email: accountEmail.trim() } });
                 setAccountName(saved.username); setAccountEmail(saved.email ?? "");
+                await queryClient.invalidateQueries({ queryKey: ["account-identity", user?.id] });
                 setIdentityStatus("Account details saved. Your new username is ready to use. Refresh if the header hasn't updated yet.");
               } catch (error) { setIdentityStatus(error instanceof Error ? error.message : "Couldn't save changes."); }
               finally { setIdentityBusy(false); }
