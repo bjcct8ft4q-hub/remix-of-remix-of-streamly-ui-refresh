@@ -75,7 +75,7 @@ function Settings() {
   const saveBanner = async () => {
     if (!user) return;
     const value = bannerUrl.trim();
-    if (value && (!/^https:\\/\\//i.test(value) || value.length > 2000)) { setBannerMessage("Enter a valid HTTPS image URL (maximum 2,000 characters)."); return; }
+    if (value && (!value.startsWith("https://") || value.length > 2000)) { setBannerMessage("Enter a valid HTTPS image URL (maximum 2,000 characters)."); return; }
     setBannerSaving(true);
     const { error } = await supabase.auth.updateUser({ data: { profile_banner_url: value || null } });
     setBannerSaving(false);
