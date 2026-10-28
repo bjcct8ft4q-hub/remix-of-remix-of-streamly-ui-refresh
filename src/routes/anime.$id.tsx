@@ -88,7 +88,7 @@ function AnimePage() {
                     </Link>
                   </DropdownMenuItem>)}
                 </DropdownMenuContent>
-              </DropdownMenu>
+              </DropdownMenu>}
             </div>
             {a.description && <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted-foreground">{a.description.replace(/<[^>]+>/g, "")}</p>}
           </div>
