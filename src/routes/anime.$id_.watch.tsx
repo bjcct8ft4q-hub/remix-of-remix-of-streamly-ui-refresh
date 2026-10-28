@@ -54,6 +54,8 @@ function WatchAnime() {
   const [autoSkip, setAutoSkip] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [rating, setRating] = useState(0);
+  useEffect(() => { try { setRating(Number(localStorage.getItem(`streamly-rating-${id}`)) || 0); } catch { setRating(0); } }, [id]);
+  const saveRating = (value: number) => { setRating(value); try { localStorage.setItem(`streamly-rating-${id}`, String(value)); } catch { toast.error("Could not save rating on this device"); } };
   const [autoPlay, setAutoPlay] = useState(true);
   const [commentText, setCommentText] = useState("");
   const [commentSpoiler, setCommentSpoiler] = useState(false);
@@ -197,9 +199,9 @@ function WatchAnime() {
           <div className="mt-5 rounded-lg border border-border/60 bg-background/50 p-3 text-center">
             <p className="text-[10px] font-bold uppercase tracking-wider text-primary">Rate this anime</p>
             <div className="mt-2 flex justify-center gap-1" role="group" aria-label="Rate this anime locally">
-              {[1,2,3,4,5].map((n) => <button key={n} type="button" onClick={() => setRating(n)} aria-label={`Rate ${n} out of 5`} aria-pressed={rating === n} className="text-muted-foreground transition hover:scale-110 hover:text-primary"><Star className={`h-5 w-5 ${n <= rating ? "fill-primary text-primary" : ""}`} /></button>)}
+              {[1,2,3,4,5].map((n) => <button key={n} type="button" onClick={() => saveRating(n)} aria-label={`Rate ${n} out of 5`} aria-pressed={rating === n} className="text-muted-foreground transition hover:scale-110 hover:text-primary"><Star className={`h-5 w-5 ${n <= rating ? "fill-primary text-primary" : ""}`} /></button>)}
             </div>
-            <p className="mt-2 text-[10px] text-muted-foreground">{rating ? `Your selection: ${rating}/5 (not submitted)` : "Select your rating"}</p>
+            <p className="mt-2 text-[10px] text-muted-foreground">{rating ? `Your rating: ${rating}/5 (saved on this device)` : "Select your rating"}</p>
           </div>
         </aside>
         <div className="min-w-0">
@@ -262,7 +264,6 @@ function WatchAnime() {
                   </div>
                 </div>;
               })}
-              {(streams.data?.length ?? 0) > 1 && <div className="grid grid-cols-[48px_minmax(0,1fr)] items-center gap-3 border-t border-border/40 pt-3"><span className="text-xs font-bold text-muted-foreground">Stream:</span><div className="flex min-w-0 flex-wrap gap-2">{streams.data!.map((item, i) => <Button key={i} size="sm" variant={i === server ? "default" : "outline"} onClick={() => setServer(i)}>{item.label || `Stream ${i + 1}`}</Button>)}</div></div>}
             </div>
           </div>
           <div className="mt-3 flex items-center gap-2">
