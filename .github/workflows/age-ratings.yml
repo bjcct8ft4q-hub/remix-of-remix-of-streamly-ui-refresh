@@ -1,0 +1,42 @@
+name: Populate anime age ratings
+
+on:
+  schedule:
+    - cron: "*/20 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: streamly-age-rating-import
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Import next catalogue page
+        env:
+          STREAMLY_URL: ${{ secrets.STREAMLY_URL }}
+          LOVABLE_CRON_SECRET: ${{ secrets.LOVABLE_CRON_SECRET }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$STREAMLY_URL" || -z "$LOVABLE_CRON_SECRET" ]]; then
+            echo "::error::Configure STREAMLY_URL and LOVABLE_CRON_SECRET repository secrets."
+            exit 1
+          fi
+          # Use a repository variable as the cursor, persisted across scheduled runs.
+          page="${{ vars.AGE_RATINGS_NEXT_PAGE }}"
+          page="${page:-1}"
+          [[ "$page" =~ ^[0-9]+$ ]] || page=1
+          response=$(curl --fail-with-body --silent --show-error --max-time 90 \
+            -X POST "${STREAMLY_URL%/}/api/public/jobs/age-ratings?page=$page" \
+            -H "Authorization: Bearer $LOVABLE_CRON_SECRET")
+          echo "$response" | jq '{page,nextPage,saved,skipped,failed,total}'
+          next=$(echo "$response" | jq -r '.nextPage // 1')
+          gh variable set AGE_RATINGS_NEXT_PAGE --body "$next" --repo "$GH_REPOSITORY"
