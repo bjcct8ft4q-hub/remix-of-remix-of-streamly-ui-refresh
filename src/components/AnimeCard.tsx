@@ -13,7 +13,7 @@ export function AnimeCard({ a }: { a: AnimeSummary }) {
         <span className="absolute left-2 top-2 flex items-center gap-1 rounded bg-overlay/80 px-1.5 py-0.5 text-xs font-bold">
           <Star className="h-3 w-3 fill-star text-star" /> {a.averageScore ? (a.averageScore / 10).toFixed(1) : "N/A"}
         </span>
-        <span className="absolute right-2 top-2 rounded bg-overlay/85 px-1.5 py-0.5 text-[10px] font-bold">{a.isAdult ? "18+ adult" : "Unrated"}</span>
+        <span className="absolute right-2 top-2 rounded bg-overlay/85 px-1.5 py-0.5 text-[10px] font-bold" title="AniList only provides an adult-content flag, not an official age rating">{a.isAdult ? "18+ content" : "Age N/A"}</span>
         {a.episodes ? <span className="absolute bottom-2 left-2 rounded bg-overlay/80 px-1.5 py-0.5 text-xs font-bold">EP {a.episodes}</span> : null}
       </div>
       <p className="mt-3 flex items-start gap-1.5 text-sm font-semibold leading-relaxed">
