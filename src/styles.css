@@ -491,3 +491,7 @@ html.halloween #root::before,html.halloween #root::after {
 html.halloween #root::before {left:0;transform:scaleY(-1)}
 html.halloween #root::after {right:0;transform:scale(-1)}
 @media(max-width:600px){html.halloween body::before,html.halloween body::after{top:60px;opacity:.28}html.halloween #root::before,html.halloween #root::after{opacity:.17}}
+
+/* The registration button follows the active seasonal palette. */
+:not(.halloween) .streamly-auth-submit { background: var(--primary) !important; color: var(--primary-foreground) !important; }
+:not(.halloween) .streamly-auth-submit:hover { background: color-mix(in oklab, var(--primary) 85%, white) !important; }
