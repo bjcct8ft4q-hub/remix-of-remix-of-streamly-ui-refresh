@@ -32,3 +32,31 @@ export const animeCatalogQuery = () => queryOptions({
   staleTime: 10 * 60 * 1000,
   retry: 1,
 });
+/** Dedicated JoJo collection, including individual parts, specials, OVAs and films.
+ * Unlike the general catalog, don't collapse related seasons into one card. */
+export const jojoCollectionQuery = () => queryOptions({
+  queryKey: ["anime-jojo-full-collection"],
+  queryFn: async (): Promise<CatalogAnime[]> => {
+    const response = await fetch("https://graphql.anilist.co", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        query: `query {
+          Page(page: 1, perPage: 50) {
+            media(type: ANIME, search: "JoJo", isAdult: false, sort: START_DATE) { ${fields} }
+          }
+        }`,
+      }),
+    });
+    if (!response.ok) throw new Error("JoJo collection is temporarily unavailable.");
+    const json = await response.json() as { data?: { Page?: { media?: CatalogAnime[] } }; errors?: unknown[] };
+    if (json.errors?.length) throw new Error("JoJo collection is temporarily unavailable.");
+    return (json.data?.Page?.media ?? []).filter((anime) =>
+      !anime.isAdult && /jojo|jo jo|rohan kishibe|kishibe rohan/i.test(
+        [anime.title.english, anime.title.romaji].filter(Boolean).join(" ")
+      )
+    );
+  },
+  staleTime: 60 * 60 * 1000,
+  retry: 1,
+});
