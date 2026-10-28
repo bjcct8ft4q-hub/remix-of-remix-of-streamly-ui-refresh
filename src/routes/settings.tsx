@@ -64,6 +64,19 @@ export const Route = createFileRoute("/settings")({ component: Settings, head: (
 function Settings() {
   const { preference, setPreference } = useAudioPreference();
   const { user } = useAuth();
+  const [uiSounds, setUiSounds] = useState(() => typeof window !== "undefined" && localStorage.getItem("streamly-ui-sounds") === "on");
+  const [bannerUrl, setBannerUrl] = useState(() => typeof user?.user_metadata?.profile_banner_url === "string" ? user.user_metadata.profile_banner_url : "");
+  const [bannerMessage, setBannerMessage] = useState("");
+  const [bannerSaving, setBannerSaving] = useState(false);
+  const saveBanner = async () => {
+    if (!user) return;
+    const value = bannerUrl.trim();
+    if (value && (!/^https:\\/\\//i.test(value) || value.length > 2000)) { setBannerMessage("Enter a valid HTTPS image URL (maximum 2,000 characters)."); return; }
+    setBannerSaving(true);
+    const { error } = await supabase.auth.updateUser({ data: { profile_banner_url: value || null } });
+    setBannerSaving(false);
+    setBannerMessage(error ? error.message : "Profile banner saved.");
+  };
   const [settingsTab, setSettingsTab] = useState<"profile" | "playback" | "security">("profile");
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteCode, setDeleteCode] = useState("");
@@ -119,6 +132,15 @@ function Settings() {
       </nav>
       <div className="min-w-0">
         {settingsTab === "profile" && <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+          <div className="mb-7 rounded-xl border border-border bg-background/50 p-4">
+            <h2 className="text-lg font-bold">Profile banner</h2>
+            <p className="mt-1 text-xs text-muted-foreground">Add an HTTPS image URL for the banner at the top of your profile. Wide images work best.</p>
+            {bannerUrl.trim().startsWith("https://") && <img src={bannerUrl.trim()} alt="Banner preview" className="mt-3 h-32 w-full rounded-lg object-cover" onError={() => setBannerMessage("Could not preview this image. Check the URL.")} />}
+            <label htmlFor="profile-banner-url" className="mt-3 block text-xs font-semibold">Banner image URL</label>
+            <input id="profile-banner-url" type="url" value={bannerUrl} onChange={(e) => { setBannerUrl(e.target.value); setBannerMessage(""); }} placeholder="https://example.com/banner.jpg" className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+            <div className="mt-3 flex items-center gap-3"><button type="button" onClick={() => void saveBanner()} disabled={!user || bannerSaving} className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50">{bannerSaving ? "Saving…" : "Save banner"}</button><button type="button" onClick={() => { setBannerUrl(""); setBannerMessage(""); }} className="text-xs text-muted-foreground hover:text-primary">Clear</button></div>
+            {bannerMessage && <p role="status" className="mt-2 text-xs text-muted-foreground">{bannerMessage}</p>}
+          </div>
           <h2 className="text-xl font-bold">Profile picture</h2>
           <p className="mt-1 text-sm text-muted-foreground">Choose a character or upload a picture of your own.</p>
           {user ? <>
