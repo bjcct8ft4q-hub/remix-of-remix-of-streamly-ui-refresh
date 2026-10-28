@@ -128,6 +128,9 @@ function WatchAnime() {
     void saveProgress({ userId: user.id, anilistId: id, episode: ep, audio, title, cover, progress: v.currentTime, duration: v.duration });
   };
   const playerRef = useRef<HTMLVideoElement | null>(null);
+  // Restore saved progress only once per episode/source, not when controls rerender.
+  const restoredSourceRef = useRef<string | null>(null);
+  useEffect(() => { restoredSourceRef.current = null; }, [id, ep, audio]);
   useEffect(() => {
     const v = playerRef.current; if (!v) return;
     const t = () => save(v);
@@ -190,7 +193,7 @@ function WatchAnime() {
               : !current ? <div role="alert" className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center text-sm text-muted-foreground"><p>{eps.isError ? "Episode catalogue is unavailable or timed out." : sources.length ? "None of the sources had a working video for this episode." : `No ${audio} version found for this episode.`}</p><Button variant="outline" onClick={() => { setFailed([]); void eps.refetch(); }}>Retry episodes</Button></div>
               : streams.isError ? <div role="alert" className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">{providerLabel(current.provider)} has no video for this episode right now. Pick another source.</div>
               : stream ? <VideoPlayer key={stream.src} ref={playerRef} kind={stream.kind} src={stream.src} subtitles={stream.subtitles} intro={stream.intro} poster={episode?.image ?? undefined} autoSkip={autoSkip} fileName={`${title} - ${ep}`} autoPlay={autoPlay}
-                  onLoaded={(v) => { if (resumeAt > 5 && resumeAt < v.duration - 30) v.currentTime = resumeAt; }}
+                  onLoaded={(v) => { if (restoredSourceRef.current === stream.src) return; restoredSourceRef.current = stream.src; if (resumeAt > 5 && resumeAt < v.duration - 30 && v.currentTime < 1) v.currentTime = resumeAt; }}
                   onEnded={() => { if (playerRef.current) save(playerRef.current, true); if (autoNext && next) go({ ep: next.number }); }}
                   onError={() => { if (streams.data && server < streams.data.length - 1) setServer(server + 1); }} /> : null}
           </div>
