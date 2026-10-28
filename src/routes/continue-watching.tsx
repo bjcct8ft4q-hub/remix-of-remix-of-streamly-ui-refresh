@@ -1,6 +1,12 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
-import { historyQuery } from "@/lib/library";
+import { ContinueWatchingShelf } from "@/components/ContinueWatchingShelf";
 export const Route = createFileRoute("/continue-watching")({ component: ContinueWatching });
-function ContinueWatching() { const { user } = useAuth(); const q = useQuery(historyQuery(user?.id)); const seen = new Set<number>(); const items = (q.data ?? []).filter((a) => { if (seen.has(a.anilist_id)) return false; seen.add(a.anilist_id); return true; }); return <main className="mx-auto max-w-5xl px-5 pb-20 pt-32"><h1 className="mb-6 border-l-4 border-primary pl-3 text-3xl font-bold">Continue watching</h1>{!user ? <p>Sign in to view your watch history.</p> : q.isPending ? <p>Loading…</p> : q.isError ? <p>Could not load your watch history.</p> : items.length ? <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 md:grid-cols-5">{items.map((a) => <Link key={a.id} to="/anime/$id/watch" params={{ id: String(a.anilist_id) }} search={{ ep: a.episode, audio: a.audio === "dub" ? "dub" : "sub" }} className="hover:text-primary">{a.cover_url && <img src={a.cover_url} alt="" className="aspect-[2/3] w-full rounded-md object-cover" />}<p className="mt-2 text-sm font-semibold">{a.title}</p><p className="text-xs text-muted-foreground">Episode {a.episode} · {a.audio.toUpperCase()}</p></Link>)}</div> : <p className="text-muted-foreground">Your watch history is empty.</p>}</main>; }
+function ContinueWatching() {
+  const { user } = useAuth();
+  return <main className="mx-auto max-w-6xl px-5 pb-20 pt-32">
+    <h1 className="mb-3 border-l-4 border-primary pl-3 text-3xl font-bold">Continue Watching</h1>
+    <p className="mb-8 text-sm text-muted-foreground">Your most recently watched shows, with episode progress saved to your account.</p>
+    {user ? <ContinueWatchingShelf /> : <p className="text-muted-foreground">Sign in to see your watch history.</p>}
+  </main>;
+}
