@@ -71,7 +71,7 @@ function Settings() {
   const { preference, setPreference } = useAudioPreference();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [uiSounds, setUiSounds] = useState(() => typeof window !== "undefined" && localStorage.getItem("streamly-ui-sounds") === "on");
+
   const [bannerUrl, setBannerUrl] = useState(() => typeof user?.user_metadata?.profile_banner_url === "string" ? user.user_metadata.profile_banner_url : "");
   const [bannerMessage, setBannerMessage] = useState("");
   const [bannerSaving, setBannerSaving] = useState(false);
@@ -170,14 +170,14 @@ function Settings() {
   const selectedAvatar = avatarChoice ?? (typeof user?.user_metadata?.avatar_url === "string" ? user.user_metadata.avatar_url : "");
   return <main className="mx-auto max-w-5xl px-4 pb-24 pt-32 sm:px-6 md:pt-28">
     <div className="mb-7"><p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Your Streamly account</p><h1 className="mt-2 text-3xl font-extrabold sm:text-4xl">Settings</h1><p className="mt-2 text-sm text-muted-foreground">Personalise your profile and watching experience.</p></div>
-    <div className="grid gap-6 md:grid-cols-[220px_minmax(0,1fr)]">
-      <nav aria-label="Settings categories" className="flex h-fit gap-2 overflow-x-auto rounded-xl border border-border bg-card p-2 md:sticky md:top-28 md:flex-col">
+    <div className="grid gap-6 md:grid-cols-[230px_minmax(0,1fr)]">
+      <nav aria-label="Settings categories" className="flex h-fit gap-2 overflow-x-auto rounded-2xl border border-border bg-card/80 p-2 shadow-xl shadow-black/10 md:sticky md:top-28 md:flex-col">
         <button type="button" onClick={() => setSettingsTab("profile")} aria-current={settingsTab === "profile" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "profile" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Profile & avatar</button>
         <button type="button" onClick={() => setSettingsTab("playback")} aria-current={settingsTab === "playback" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "playback" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Language & playback</button>
         <button type="button" onClick={() => setSettingsTab("security")} aria-current={settingsTab === "security" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "security" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Account & security</button>
       </nav>
       <div className="min-w-0">
-        {settingsTab === "profile" && <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+        {settingsTab === "profile" && <section className="rounded-2xl border border-border bg-card/90 p-4 shadow-xl shadow-black/10 sm:p-7">
           <div className="mb-7 rounded-xl border border-border bg-background/50 p-4">
             <h2 className="text-lg font-bold">Profile banner</h2>
             <p className="mt-1 text-xs text-muted-foreground">Add an HTTPS image URL for the banner at the top of your profile. Wide images work best.</p>
@@ -219,10 +219,6 @@ function Settings() {
           </> : <p className="mt-5 text-sm text-muted-foreground">Sign in to customise your avatar.</p>}
         </section>}
         {settingsTab === "playback" && <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
-          <div className="mb-6 flex items-center justify-between gap-4 rounded-lg border border-border p-4">
-            <div><h2 className="text-base font-bold">Interface sounds</h2><p className="mt-1 text-xs text-muted-foreground">Play a quiet click when you use buttons and links. Off by default.</p></div>
-            <input type="checkbox" aria-label="Enable interface sounds" checked={uiSounds} onChange={(e) => { setUiSounds(e.target.checked); localStorage.setItem("streamly-ui-sounds", e.target.checked ? "on" : "off"); }} className="h-5 w-5 accent-primary" />
-          </div>
           <h2 className="text-xl font-bold">Preferred audio language</h2>
           <p className="mt-2 text-sm text-muted-foreground">Choose the audio Streamly selects automatically. You can still change it for individual episodes.</p>
           <div className="mt-5 space-y-3">{choices.map((choice) => <label key={choice.value} className={"flex cursor-pointer gap-3 rounded-lg border p-4 " + (preference === choice.value ? "border-primary bg-primary/10" : "border-border")}>
