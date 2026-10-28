@@ -50,6 +50,7 @@ function WatchAnime() {
   const [episodeAudioFilter, setEpisodeAudioFilter] = useState<"all" | "sub" | "dub">("all");
   const [showEpisodeImages, setShowEpisodeImages] = useState(true);
   const [autoNext, setAutoNext] = useState(true);
+  const [nextCountdown, setNextCountdown] = useState<number | null>(null);
   const [theaterMode, setTheaterMode] = useState(false);
   const [autoSkip, setAutoSkip] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -150,6 +151,13 @@ function WatchAnime() {
   const recommended = (info.data?.recommendations?.nodes ?? []).map((n) => n.mediaRecommendation).filter((item) => !!item && item.id !== id).slice(0, 6);
   const idx = list.findIndex((e) => e.number === ep);
   const prev = list[idx - 1], next = list[idx + 1];
+  useEffect(() => { setNextCountdown(null); }, [id, ep, audio]);
+  useEffect(() => {
+    if (nextCountdown === null || !autoNext || !next) return;
+    if (nextCountdown <= 0) { setNextCountdown(null); void navigate({ search: (current) => ({ ...current, ep: next.number, provider: undefined }) }); return; }
+    const timer = window.setTimeout(() => setNextCountdown((count) => count === null ? null : count - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [nextCountdown, autoNext, next?.number, navigate]);
   const hasDub = !!episode?.sources.some((s) => s.audio === "dub");
   const [watchingCount] = useState<number | null>(null); // Only show a viewer count when real presence data is connected.
   const createRoom = async () => {
@@ -200,9 +208,10 @@ function WatchAnime() {
               : streams.isError ? <div role="alert" className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">{providerLabel(current.provider)} has no video for this episode right now. Pick another source.</div>
               : stream ? <VideoPlayer key={stream.src} ref={playerRef} kind={stream.kind} src={stream.src} subtitles={stream.subtitles} intro={stream.intro} poster={episode?.image ?? undefined} autoSkip={autoSkip} fileName={`${title} - ${ep}`} autoPlay={autoPlay}
                   onLoaded={(v) => { if (restoredSourceRef.current === stream.src) return; restoredSourceRef.current = stream.src; if (resumeAt > 5 && resumeAt < v.duration - 30 && v.currentTime < 1) v.currentTime = resumeAt; }}
-                  onEnded={() => { if (playerRef.current) save(playerRef.current, true); if (autoNext && next) go({ ep: next.number }); }}
+                  onEnded={() => { if (playerRef.current) save(playerRef.current, true); if (autoNext && next) setNextCountdown(10); }}
                   onError={() => { if (streams.data && server < streams.data.length - 1) setServer(server + 1); }} /> : null}
           </div>
+          {nextCountdown !== null && next && <div role="status" className="mt-2 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/50 bg-card p-4"><div><p className="font-bold">Next episode starts in {nextCountdown}s</p><p className="text-xs text-muted-foreground">Episode {next.number} · You can cancel autoplay.</p></div><div className="flex gap-2"><Button size="sm" variant="outline" onClick={() => setNextCountdown(null)}>Cancel</Button><Button size="sm" onClick={() => { setNextCountdown(null); go({ ep: next.number }); }}>Play now</Button></div></div>}
           <div className="mt-2 flex items-center gap-2 rounded-md border border-primary/30 bg-primary/15 px-3 py-2 text-xs font-medium text-foreground">
             <Flag className="h-4 w-4 shrink-0" /> If an episode is not working, please report it and we will look into it.
           </div>
