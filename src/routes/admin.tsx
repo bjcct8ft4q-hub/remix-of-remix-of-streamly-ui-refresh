@@ -333,6 +333,7 @@ type EpisodeReport = { id: string; anime_id: number; anime_title: string; episod
 function ReportManager() {
   const qc = useQueryClient();
   const [filter, setFilter] = useState("open");
+  const [reportSearch, setReportSearch] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const filterMenuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -351,6 +352,7 @@ function ReportManager() {
       return (data ?? []) as EpisodeReport[];
     }, retry: 0,
   });
+  const visibleReports = data.filter((report) => [report.anime_title, report.category, report.provider ?? "", report.details, report.device_info ?? ""].some((value) => value.toLowerCase().includes(reportSearch.trim().toLowerCase())));
   const changeStatus = async (id: string, status: string) => {
     setUpdating(id);
     const { error } = await (supabase as any).from("episode_reports").update({ status, updated_at: new Date().toISOString() }).eq("id", id);
@@ -368,10 +370,11 @@ function ReportManager() {
           {(["open","reviewing","resolved","dismissed","all"] as const).map((v) => <button key={v} type="button" role="option" aria-selected={filter === v} onClick={() => { setFilter(v); setFilterOpen(false); }} className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${filter === v ? "bg-primary text-primary-foreground font-bold" : "text-foreground hover:bg-primary/10 hover:text-primary"}`}><span>{v[0].toUpperCase() + v.slice(1)}</span>{filter === v && <Check size={15} />}</button>)}
         </div>}
       </div></div>
+    <label className="block max-w-lg"><span className="mb-1.5 block text-xs font-semibold text-muted-foreground">Search reports</span><input type="search" className={inputCls} placeholder="Search anime, issue, source or device…" value={reportSearch} onChange={(event) => setReportSearch(event.target.value)} /></label>
     {isPending && <p className="text-sm text-muted-foreground">Loading reports…</p>}
     {error && <p role="alert" className="text-sm text-destructive">Unable to load reports. Apply the episode reports SQL migration in Supabase first.</p>}
-    {!isPending && !error && !data.length && <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">No {filter === "all" ? "" : filter} reports yet.</p>}
-    <div className="grid gap-3">{data.map((report) => <article key={report.id} className="rounded-lg border border-border bg-card/50 p-4">
+    {!isPending && !error && !visibleReports.length && <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">{reportSearch ? "No reports match your search." : `No ${filter === "all" ? "" : filter} reports yet.`}</p>}
+    <div className="grid gap-3">{visibleReports.map((report) => <article key={report.id} className="rounded-lg border border-border bg-card/50 p-4">
       <div className="flex flex-wrap items-start justify-between gap-2"><div><p className="font-bold">{report.anime_title}</p><p className="mt-1 text-xs text-muted-foreground">Episode {report.episode} · {report.audio.toUpperCase()} · {report.provider || "Unknown source"} · {new Date(report.created_at).toLocaleString()}</p></div><span className="rounded border border-primary/30 px-2 py-1 text-xs font-bold text-primary">{report.status}</span></div>
       <p className="mt-3 text-sm font-semibold">{report.category.replaceAll("_"," ")}</p>
       {report.details && <p className="mt-1 whitespace-pre-wrap break-words text-sm text-muted-foreground">{report.details}</p>}
