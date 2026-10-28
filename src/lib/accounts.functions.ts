@@ -10,12 +10,18 @@ export const createUsernameAccount = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { checkLimit, issueCodes } = await import("@/lib/accounts.server");
     await checkLimit(supabaseAdmin, `signup:${getRequestHeader("cf-connecting-ip") || "local"}`, 10);
+    if (!data.email) throw new Error("An email address is required for new accounts.");
     const { data: user, error } = await supabaseAdmin.auth.admin.createUser({
       email: usernameEmail(data.username), password: data.password, email_confirm: true,
       user_metadata: { username: data.username },
     });
     if (error || !user.user) throw new Error("Account couldn’t be created. Try a different username or password.");
     const id = user.user.id;
+    const duplicateEmail = await supabaseAdmin.from("account_credentials").select("user_id").ilike("recovery_email", data.email).maybeSingle();
+    if (duplicateEmail.error || duplicateEmail.data) {
+      await supabaseAdmin.auth.admin.deleteUser(id);
+      throw new Error("This email address is already registered or cannot be verified.");
+    }
     const stored = await supabaseAdmin.from("account_credentials").insert({ user_id: id, username: data.username, recovery_email: data.email || null });
     if (stored.error) {
       await supabaseAdmin.auth.admin.deleteUser(id);
@@ -23,6 +29,26 @@ export const createUsernameAccount = createServerFn({ method: "POST" })
     }
     // The auth trigger grants only the ordinary user role, including the first signup.
     return { codes: await issueCodes(supabaseAdmin, id) };
+  });
+
+
+// Resolve an email to the internal Supabase Auth login address without exposing
+// the credentials table to the browser. Unknown emails return a dummy address.
+export const resolveLoginIdentifier = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => {
+    if (typeof input !== "string" || input.trim().length < 3 || input.length > 254) throw new Error("Invalid login.");
+    return input.trim();
+  })
+  .handler(async ({ data }) => {
+    setResponseHeader("Cache-Control", "no-store");
+    if (!data.includes("@")) return { email: usernameEmail(data) };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { checkLimit } = await import("@/lib/accounts.server");
+    await checkLimit(supabaseAdmin, "email-lookup:" + (getRequestHeader("x-vercel-forwarded-for")?.split(",")[0] || getRequestHeader("x-real-ip") || "unknown"), 30);
+    const { data: row, error } = await supabaseAdmin.from("account_credentials")
+      .select("username").ilike("recovery_email", data.replace(/[\\%_]/g, "\\export const recoverUsernameAccount =")).maybeSingle();
+    if (error) throw new Error("Sign in is temporarily unavailable.");
+    return { email: row ? usernameEmail(row.username) : "nonexistent@username.streamly.invalid" };
   });
 
 export const recoverUsernameAccount = createServerFn({ method: "POST" })
