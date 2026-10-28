@@ -15,6 +15,7 @@ import { AuthProvider } from "@/lib/auth";
 import { ThemeProvider, useTheme } from "@/lib/theme";
 import { Header } from "@/components/Header";
 import { AuthDialog } from "@/components/AuthDialog";
+import { supabase } from "@/integrations/supabase/client";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -129,6 +130,23 @@ function HalloweenEffects() {
   );
 }
 
+function TrafficTracker() {
+  const router = useRouter();
+  useEffect(() => {
+    let previous = "";
+    const record = () => {
+      const path = window.location.pathname;
+      if (path === previous || path.startsWith("/admin")) return;
+      previous = path;
+      void (supabase as any).rpc("record_page_view", { page_path: path }).then(() => {}, () => {});
+    };
+    record();
+    const unsubscribe = router.subscribe("onResolved", record);
+    return () => unsubscribe();
+  }, [router]);
+  return null;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
@@ -137,6 +155,7 @@ function RootComponent() {
         <AuthProvider>
           <div className="relative min-h-screen">
             <HalloweenEffects />
+            <TrafficTracker />
             <Header />
             <Outlet />
             <Footer />
