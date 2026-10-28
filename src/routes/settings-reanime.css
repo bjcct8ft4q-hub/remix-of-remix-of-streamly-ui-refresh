@@ -84,3 +84,11 @@ html:not(.halloween) .streamly-settings-nav::after,html:not(.halloween) .streaml
 .streamly-settings-nav > button[aria-current="page"] {background:hsl(var(--primary)/.13)!important;color:hsl(var(--primary))!important;border-color:hsl(var(--primary)/.22)!important;box-shadow:inset 3px 0 0 hsl(var(--primary))!important}
 .streamly-settings-nav > button:focus-visible {outline:2px solid hsl(var(--primary));outline-offset:2px}
 @media(max-width:767px){.streamly-settings-nav{gap:5px!important;padding:12px!important}.streamly-settings-nav > button{min-height:42px!important;width:auto!important;flex-shrink:0}}
+
+/* Fix: a full-height sticky sidebar inside a block layout pushed all panels below the clipped viewport. */
+@media (min-width:768px) {
+  .streamly-settings {height:calc(100dvh - 54px)!important;overflow:hidden!important;padding-top:88px!important;}
+  .streamly-settings-grid {display:block!important;height:auto!important;min-height:0!important;}
+  .streamly-settings-nav {position:fixed!important;top:125px!important;left:0!important;bottom:0!important;height:calc(100dvh - 125px)!important;width:207px!important;}
+  .streamly-settings-content {display:block!important;position:relative!important;height:calc(100dvh - 142px)!important;max-height:calc(100dvh - 142px)!important;overflow-y:auto!important;overflow-x:hidden!important;}
+}
