@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         supabase.from("profiles").select("username").eq("id", u.id).maybeSingle(),
       ]);
       setIsAdmin(!!roles?.some((r) => r.role === "admin"));
-      setUsername(prof?.username ?? u.email ?? null);
+      setUsername(prof?.username ?? (typeof u.user_metadata?.username === "string" ? u.user_metadata.username : null) ?? "Guest");
       setLoading(false);
     };
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
