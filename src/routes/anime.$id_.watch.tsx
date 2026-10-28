@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
-import { ChevronLeft, ChevronRight, LoaderCircle, Search, Play, MonitorPlay, ListVideo, SkipForward, RefreshCw, Star, CalendarDays, Film, Keyboard, AlertTriangle, Eye, EyeOff } from "lucide-react";
+import { ChevronLeft, ChevronRight, LoaderCircle, Search, Play, MonitorPlay, ListVideo, SkipForward, RefreshCw, Star, Keyboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { WatchlistButton } from "@/components/WatchlistButton";
@@ -140,7 +140,7 @@ function WatchAnime() {
           </div>
         </div>
         <aside className={`${theaterMode ? "hidden" : ""} min-w-0 rounded-xl border border-border bg-card/40 p-3 xl:sticky xl:top-20`}>
-          <h2 className="mb-3 flex items-center justify-between text-lg font-extrabold"><span>Episodes <span className="rounded bg-muted px-2 py-1 text-xs text-muted-foreground">{list.length}</span></span><span className="text-[10px] font-semibold text-primary">{audio.toUpperCase()}</span></h2><div className="hidden">Episodes <span className="rounded bg-muted px-2 py-1 text-xs text-muted-foreground">{list.length}</span></div>
+          <h2 className="mb-3 flex items-center justify-between text-lg font-extrabold"><span>Episodes <span className="rounded bg-muted px-2 py-1 text-xs text-muted-foreground">{list.length}</span></span><span className="text-[10px] font-semibold text-primary">{audio.toUpperCase()}</span></h2>
           <label className="relative block"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input value={episodeSearch} onChange={(e) => setEpisodeSearch(e.target.value)} placeholder="Search episodes..." aria-label="Search episodes" className="w-full rounded-md border border-border bg-background py-2 pl-9 pr-3 text-sm outline-none focus:border-primary" /></label>
           <div className="mt-3 max-h-[72vh] space-y-2 overflow-y-auto pr-1">
             {filteredEpisodes.map((e) => <button key={e.number} type="button" onClick={() => go({ ep: e.number })} className={`flex w-full items-center gap-3 rounded-lg border p-2 text-left transition hover:border-primary/70 hover:bg-muted/50 ${e.number === ep ? "border-primary bg-primary/10" : "border-border/40"}`}>
