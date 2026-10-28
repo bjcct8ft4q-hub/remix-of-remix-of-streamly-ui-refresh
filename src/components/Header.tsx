@@ -2,7 +2,9 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Search, LogOut, Shield, UserRound, Menu, Home, Library, ChevronDown, X, Settings, CalendarDays, Users, Bell, History, Bookmark, AtSign, type LucideIcon } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useEffect, useState, type ReactNode } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getAccountIdentity } from "@/lib/accounts.functions";
 import { Logo } from "./Logo";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
@@ -26,6 +28,10 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const fetchIdentity = useServerFn(getAccountIdentity);
+  const identity = useQuery({ queryKey: ["account-identity", user?.id], queryFn: () => fetchIdentity(), enabled: !!user, staleTime: 30_000 });
+  const displayUsername = identity.data?.username || username || "Guest";
+  const displayEmail = identity.data?.email || "Guest";
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const home = pathname === "/";
 
@@ -83,12 +89,12 @@ export function Header() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-11 gap-2 px-1.5 text-sm hover:text-foreground" aria-label="Account menu">
                 <AccountAvatar />
-                <span className="hidden max-w-28 truncate font-semibold sm:inline">{username}</span>
+                <span className="hidden max-w-28 truncate font-semibold sm:inline">{displayUsername}</span>
                 <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" sideOffset={8} className="max-h-[min(85vh,700px)] w-[min(21rem,calc(100vw-1.5rem))] overflow-y-auto rounded-xl border border-border bg-background/95 p-2 shadow-2xl backdrop-blur-xl">
-              <DropdownMenuLabel className="mb-2 flex items-center gap-3 rounded-lg bg-primary/10 p-3"><AccountAvatar size="lg" /><span className="min-w-0"><strong className="block truncate text-base text-foreground">{username}</strong><span className="block truncate text-xs font-normal text-muted-foreground">{user.email}</span>{user.created_at && <span className="mt-1 flex items-center gap-1 text-xs font-normal text-primary"><CalendarDays className="h-3 w-3" />Joined {new Date(user.created_at).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}</span>}</span></DropdownMenuLabel>
+              <DropdownMenuLabel className="mb-2 flex items-center gap-3 rounded-lg bg-primary/10 p-3"><AccountAvatar size="lg" /><span className="min-w-0"><strong className="block truncate text-base text-foreground">{displayUsername}</strong><span className="block truncate text-xs font-normal text-muted-foreground">{displayEmail}</span>{user.created_at && <span className="mt-1 flex items-center gap-1 text-xs font-normal text-primary"><CalendarDays className="h-3 w-3" />Joined {new Date(user.created_at).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}</span>}</span></DropdownMenuLabel>
               <DropdownMenuSeparator />
               {isAdmin && (
                 <DropdownMenuItem asChild><Link to="/admin"><Shield /> Admin dashboard</Link></DropdownMenuItem>
