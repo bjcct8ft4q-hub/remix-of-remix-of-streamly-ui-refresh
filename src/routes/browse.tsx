@@ -113,7 +113,7 @@ async function fetchFilteredAnime(f: Filters): Promise<{ media: AnimeSummary[]; 
   for (const stem of [...new Set(attempts)].slice(0, 3)) {
     const fallbackResponse = await fetch("https://graphql.anilist.co", {
       method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ query: `query ($search: String) { Page(page: 1, perPage: 48) { media(type: ANIME, search: $search, isAdult: false, sort: SEARCH_MATCH) { id title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore isAdult } } }`, variables: { search: stem } }),
+      body: JSON.stringify({ query: `query ($search: String) { Page(page: 1, perPage: 48) { media(type: ANIME, search: $search, isAdult: false, sort: SEARCH_MATCH) { id idMal title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore isAdult } } }`, variables: { search: stem } }),
     });
     if (!fallbackResponse.ok) continue;
     const fallbackJson = await fallbackResponse.json();
