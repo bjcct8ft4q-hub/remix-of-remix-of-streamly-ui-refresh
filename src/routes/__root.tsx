@@ -176,13 +176,14 @@ function ThemeToggle() {
   const audio = useRef<AudioContext | null>(null);
   useEffect(() => () => {
     timers.current.forEach(window.clearTimeout);
+    document.documentElement.classList.remove("streamly-screen-glitch");
     if (audio.current) void audio.current.close();
   }, []);
   const playStatic = () => {
     try {
       const ctx = new AudioContext();
       audio.current = ctx;
-      const duration = 0.55;
+      const duration = 0.72;
       const length = Math.floor(ctx.sampleRate * duration);
       const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
       const samples = buffer.getChannelData(0);
@@ -200,8 +201,8 @@ function ThemeToggle() {
       const gain = ctx.createGain();
       gain.gain.setValueAtTime(0.0001, ctx.currentTime);
       gain.gain.linearRampToValueAtTime(0.075, ctx.currentTime + 0.025);
-      gain.gain.setValueAtTime(0.055, ctx.currentTime + 0.27);
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.54);
+      gain.gain.setValueAtTime(0.055, ctx.currentTime + 0.38);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.7);
       source.connect(filter).connect(gain).connect(ctx.destination);
       source.start();
       source.onended = () => { if (audio.current === ctx) audio.current = null; void ctx.close(); };
@@ -214,17 +215,19 @@ function ThemeToggle() {
       return;
     }
     busy.current = true;
+    document.documentElement.classList.add("streamly-screen-glitch");
     setGlitch(true);
     playStatic();
-    timers.current.push(window.setTimeout(() => toggleHalloween(), 280));
+    timers.current.push(window.setTimeout(() => toggleHalloween(), 390));
     timers.current.push(window.setTimeout(() => {
       setGlitch(false);
+      document.documentElement.classList.remove("streamly-screen-glitch");
       busy.current = false;
       timers.current = [];
-    }, 680));
+    }, 900));
   };
   return <>
-    {glitch && <div className="streamly-glitch-overlay" aria-hidden="true"><div className="streamly-glitch-noise" /><div className="streamly-glitch-scanlines" /><div className="streamly-glitch-tear streamly-glitch-tear-one" /><div className="streamly-glitch-tear streamly-glitch-tear-two" /></div>}
+    {glitch && <div className="streamly-glitch-overlay" aria-hidden="true"><div className="streamly-glitch-noise" /><div className="streamly-glitch-scanlines" /><div className="streamly-glitch-tear streamly-glitch-tear-one" /><div className="streamly-glitch-tear streamly-glitch-tear-two" /><div className="streamly-glitch-blocks" /><div className="streamly-glitch-color" /></div>}
     <button type="button" onClick={changeTheme}
       className="streamly-theme-toggle fixed bottom-5 right-5 z-[100] flex h-12 w-12 items-center justify-center border-0 bg-transparent p-0 text-3xl shadow-none transition-transform hover:scale-110 focus-visible:rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:bottom-6 sm:right-6"
       aria-label={halloween ? "Switch to normal blue theme" : "Switch to Halloween orange theme"}
