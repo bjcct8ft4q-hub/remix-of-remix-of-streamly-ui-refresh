@@ -121,7 +121,10 @@ function AnimePage() {
               <Button size="sm" variant={audio === "dub" ? "default" : "outline"} disabled={!hasDub} onClick={() => setManualAudio("dub")}>Dub</Button>
             </div>
           </div>
-          {eps.isPending ? <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><LoaderCircle className="h-4 w-4 animate-spin" />Finding episodes across sources… this can take up to a minute.</p>
+          {eps.isPending ? <div aria-busy="true">
+            <p role="status" className="mb-4 flex items-center gap-2 text-sm text-muted-foreground"><LoaderCircle className="h-4 w-4 animate-spin" />Checking episode playback availability in the background…</p>
+            {a.episodes != null && a.episodes > 0 ? <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-7 xl:grid-cols-10">{Array.from({ length: Math.min(a.episodes, 500) }, (_, i) => <div key={i} className="rounded-md border border-border bg-muted/30 p-3 text-sm" title="Checking playback sources"><span className="font-bold">EP {i + 1}</span><span className="mt-1 block text-[10px] text-muted-foreground">Checking…</span></div>)}</div> : <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-7 xl:grid-cols-10">{Array.from({ length: 12 }, (_, i) => <div key={i} className="h-14 animate-pulse rounded-md bg-muted" />)}</div>}
+          </div>
             : eps.isError ? <div role="alert" className="text-sm text-muted-foreground">Episodes couldn’t be loaded. <Button variant="link" onClick={() => void eps.refetch()}>Try again</Button></div>
             : !list.length ? <p className="text-sm text-muted-foreground">No {audio} episodes found yet.</p>
             : <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8">
