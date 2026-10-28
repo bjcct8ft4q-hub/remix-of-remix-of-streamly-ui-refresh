@@ -87,9 +87,8 @@ export type SourceEpisode = { number: number; title: string | null; image: strin
 type RawEpisode = { id: string; number: number; title?: string | null; image?: string | null; description?: string | null };
 
 export async function getSourceEpisodes(anilistId: number): Promise<SourceEpisode[]> {
-  // First try a small set of preferred providers. The full twelve-provider
-  // aggregation can block on the slowest provider for a minute or longer.
-  const fastProviders = ["anikoto", "kaa", "anizone"];
+  // Request the complete provider catalogue so a successful Anikoto response
+  // doesn't prevent discovery of other subtitle/dub providers.
   const fetchEpisodes = async (path: string, timeoutMs: number) => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -106,11 +105,11 @@ export async function getSourceEpisodes(anilistId: number): Promise<SourceEpisod
     });
   let data: Record<string, { episodes?: Partial<Record<string, RawEpisode[]>> } | unknown>;
   try {
-    data = await fetchEpisodes(`/api/public/kitsune/episodes/${fastProviders.join("/")}/${anilistId}?map=false`, 12000);
-    if (!hasEpisodes(data)) throw new Error("No episodes found in preferred sources");
-  } catch {
-    // Preserve coverage when the fast providers do not have this series.
     data = await fetchEpisodes(`/api/public/kitsune/episodes/${anilistId}`, 35000);
+    if (!hasEpisodes(data)) throw new Error("No episodes found across providers");
+  } catch {
+    // Fall back to quicker providers when the complete catalogue is unavailable.
+    data = await fetchEpisodes(`/api/public/kitsune/episodes/anikoto/kaa/anizone/${anilistId}?map=false`, 12000);
   }
   const byNumber = new Map<number, SourceEpisode>();
   for (const provider of PROVIDER_ORDER) {
