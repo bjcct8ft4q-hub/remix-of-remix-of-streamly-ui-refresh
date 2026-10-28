@@ -87,9 +87,31 @@ export type SourceEpisode = { number: number; title: string | null; image: strin
 type RawEpisode = { id: string; number: number; title?: string | null; image?: string | null; description?: string | null };
 
 export async function getSourceEpisodes(anilistId: number): Promise<SourceEpisode[]> {
-  const res = await fetch(`/api/public/kitsune/episodes/${anilistId}`);
-  if (!res.ok) throw new Error("Episodes couldn’t be loaded from any source.");
-  const data = (await res.json()) as Record<string, { episodes?: Partial<Record<string, RawEpisode[]>> } | unknown>;
+  // First try a small set of preferred providers. The full twelve-provider
+  // aggregation can block on the slowest provider for a minute or longer.
+  const fastProviders = ["anikoto", "kaa", "anizone"];
+  const fetchEpisodes = async (path: string, timeoutMs: number) => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(path, { signal: controller.signal });
+      if (!res.ok) throw new Error("Episode provider unavailable");
+      return await res.json() as Record<string, { episodes?: Partial<Record<string, RawEpisode[]>> } | unknown>;
+    } finally { clearTimeout(timeout); }
+  };
+  const hasEpisodes = (result: Record<string, unknown>) =>
+    PROVIDER_ORDER.some((name) => {
+      const entry = result[name] as { episodes?: Partial<Record<string, RawEpisode[]>> } | undefined;
+      return Boolean(entry?.episodes?.sub?.length || entry?.episodes?.dub?.length);
+    });
+  let data: Record<string, { episodes?: Partial<Record<string, RawEpisode[]>> } | unknown>;
+  try {
+    data = await fetchEpisodes(`/api/public/kitsune/episodes/${fastProviders.join("/")}/${anilistId}?map=false`, 12000);
+    if (!hasEpisodes(data)) throw new Error("No episodes found in preferred sources");
+  } catch {
+    // Preserve coverage when the fast providers do not have this series.
+    data = await fetchEpisodes(`/api/public/kitsune/episodes/${anilistId}`, 35000);
+  }
   const byNumber = new Map<number, SourceEpisode>();
   for (const provider of PROVIDER_ORDER) {
     const entry = data[provider] as { episodes?: Partial<Record<string, RawEpisode[]>> } | undefined;
