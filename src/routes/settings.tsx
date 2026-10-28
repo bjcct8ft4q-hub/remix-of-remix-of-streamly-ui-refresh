@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { getAccountIdentity, updateAccountIdentity } from "@/lib/accounts.functions";
+import { usernameSchema, passwordSchema } from "@/lib/account-schema";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -77,6 +80,22 @@ function Settings() {
     setBannerSaving(false);
     setBannerMessage(error ? error.message : "Profile banner saved.");
   };
+  const fetchIdentity = useServerFn(getAccountIdentity);
+  const updateIdentity = useServerFn(updateAccountIdentity);
+  const [accountName, setAccountName] = useState("");
+  const [accountEmail, setAccountEmail] = useState("");
+  const [identityStatus, setIdentityStatus] = useState("");
+  const [identityBusy, setIdentityBusy] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [passwordStatus, setPasswordStatus] = useState("");
+  const [passwordBusy, setPasswordBusy] = useState(false);
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    void fetchIdentity().then((value) => { if (active) { setAccountName(value.username); setAccountEmail(value.email); } }).catch(() => {});
+    return () => { active = false; };
+  }, [user?.id]);
   const [settingsTab, setSettingsTab] = useState<"profile" | "playback" | "security">("profile");
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteCode, setDeleteCode] = useState("");
@@ -176,7 +195,49 @@ function Settings() {
           </label>)}</div>
           <p className="mt-4 text-xs text-muted-foreground">Saved on this device. Audio and subtitle availability varies by anime and episode.</p>
         </section>}
-        {settingsTab === "security" && <section className="rounded-xl border border-red-500/30 bg-card p-4 sm:p-6">
+        {settingsTab === "security" && <div className="space-y-6">
+          <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+            <h2 className="text-xl font-bold">Account details</h2>
+            <p className="mt-2 text-sm text-muted-foreground">Change your Streamly username or optional recovery email. Your username is what other people see and use to sign in.</p>
+            <form className="mt-5 space-y-4" onSubmit={async (event) => {
+              event.preventDefault(); setIdentityStatus(""); setIdentityBusy(true);
+              try {
+                const name = usernameSchema.parse(accountName);
+                const saved = await updateIdentity({ data: { username: name, email: accountEmail.trim() } });
+                setAccountName(saved.username); setAccountEmail(saved.email ?? "");
+                setIdentityStatus("Account details saved. Your new username is ready to use. Refresh if the header hasn't updated yet.");
+              } catch (error) { setIdentityStatus(error instanceof Error ? error.message : "Couldn't save changes."); }
+              finally { setIdentityBusy(false); }
+            }}>
+              <label className="block text-sm font-semibold">Username<input required minLength={3} maxLength={24} pattern="[a-zA-Z0-9_]+" autoComplete="username" value={accountName} onChange={(e) => setAccountName(e.target.value)} className="mt-2 block w-full rounded-lg border border-border bg-background p-3" /></label>
+              <label className="block text-sm font-semibold">Recovery email (optional)<input type="email" autoComplete="email" value={accountEmail} onChange={(e) => setAccountEmail(e.target.value)} placeholder="you@example.com" className="mt-2 block w-full rounded-lg border border-border bg-background p-3" /></label>
+              <p className="text-xs text-muted-foreground">Recovery email is optional. Streamly still uses your username to sign in. Changing these details doesn't require your old password, but you must be signed in.</p>
+              <button disabled={identityBusy || !accountName} className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50">{identityBusy ? "Saving…" : "Save account details"}</button>
+              {identityStatus && <p role="status" className="text-sm text-muted-foreground">{identityStatus}</p>}
+            </form>
+          </section>
+          <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+            <h2 className="text-xl font-bold">Change password</h2>
+            <p className="mt-2 text-sm text-muted-foreground">Choose a new password of at least 12 characters. No old password is needed while signed in.</p>
+            <form className="mt-4 space-y-4" onSubmit={async (event) => {
+              event.preventDefault(); setPasswordStatus("");
+              if (newPassword !== confirmNewPassword) { setPasswordStatus("Passwords don't match."); return; }
+              setPasswordBusy(true);
+              try {
+                passwordSchema.parse(newPassword);
+                const { error } = await supabase.auth.updateUser({ password: newPassword });
+                if (error) throw error;
+                setNewPassword(""); setConfirmNewPassword(""); setPasswordStatus("Password updated successfully.");
+              } catch (error) { setPasswordStatus(error instanceof Error ? error.message : "Couldn't change password."); }
+              finally { setPasswordBusy(false); }
+            }}>
+              <label className="block text-sm font-semibold">New password<input required type="password" autoComplete="new-password" minLength={12} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="mt-2 block w-full rounded-lg border border-border bg-background p-3" /></label>
+              <label className="block text-sm font-semibold">Confirm new password<input required type="password" autoComplete="new-password" minLength={12} value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} className="mt-2 block w-full rounded-lg border border-border bg-background p-3" /></label>
+              <button disabled={passwordBusy} className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50">{passwordBusy ? "Updating…" : "Update password"}</button>
+              {passwordStatus && <p role="status" className="text-sm text-muted-foreground">{passwordStatus}</p>}
+            </form>
+          </section>
+          <section className="rounded-xl border border-red-500/30 bg-card p-4 sm:p-6">
           <h2 className="text-xl font-bold">Delete your account</h2>
           <p className="mt-2 text-sm text-muted-foreground">Permanently delete your Streamly account. This cannot be undone. You must enter your password, one unused account recovery code and type DELETE to confirm.</p>
           {!user ? <p className="mt-5 text-sm">Sign in to manage your account.</p> : <form className="mt-6 space-y-4" onSubmit={async (event) => {
@@ -199,7 +260,7 @@ function Settings() {
             {deleteError && <p role="alert" className="text-sm text-red-400">{deleteError}</p>}
             <button type="submit" disabled={deleteBusy || deleteConfirmation !== "DELETE"} className="rounded-lg bg-red-600 px-5 py-3 text-sm font-bold text-white disabled:opacity-40">{deleteBusy ? "Deleting account…" : "Permanently delete account"}</button>
           </form>}
-        </section>}
+        </section></div>}
       </div>
     </div>
   </main>;
