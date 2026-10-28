@@ -7,6 +7,7 @@ import { seriesListQuery } from "@/lib/queries";
 import { SeriesCard } from "@/components/SeriesCard";
 import { AnimeCard } from "@/components/AnimeCard";
 import type { AnimeSummary } from "@/lib/kitsune";
+import { matchesAnimeTitle, resolveAnimeSearch } from "@/lib/anime-search";
 
 export const Route = createFileRoute("/browse")({
   validateSearch: z.object({ q: z.string().optional() }),
@@ -72,7 +73,7 @@ function FilterPicker({ label, value, options, onChange }: { label: string; valu
 
 async function fetchFilteredAnime(f: Filters): Promise<{ media: AnimeSummary[]; total: number }> {
   const variables = {
-    search: f.q || undefined,
+    search: resolveAnimeSearch(f.q) || undefined,
     genre: anilistGenres.has(f.genre) ? f.genre : undefined,
     // For tag-based categories, use the AniList tag filter. A demographic takes precedence.
     tag: f.demographic || (!anilistGenres.has(f.genre) ? f.genre : "") || f.tag || undefined,
@@ -96,7 +97,24 @@ async function fetchFilteredAnime(f: Filters): Promise<{ media: AnimeSummary[]; 
   if (!response.ok) throw new Error(response.status === 429 ? "Too many searches. Please try again shortly." : "Anime search is temporarily unavailable.");
   const json = await response.json();
   if (json.errors?.length) throw new Error("Unable to apply those filters.");
-  return { media: json.data?.Page?.media ?? [], total: json.data?.Page?.pageInfo?.total ?? 0 };
+  const found: AnimeSummary[] = json.data?.Page?.media ?? [];
+  if (found.length || !f.q.trim() || f.q.trim().length < 5) {
+    return { media: found, total: json.data?.Page?.pageInfo?.total ?? 0 };
+  }
+  // Retry a word stem when AniList's exact search finds no titles.
+  const words = resolveAnimeSearch(f.q).split(/\s+/);
+  const longest = [...words].sort((a, b) => b.length - a.length)[0];
+  const stem = longest.slice(0, Math.max(3, longest.length - 2));
+  if (stem.length < 3) return { media: [], total: 0 };
+  const fallbackResponse = await fetch("https://graphql.anilist.co", {
+    method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ query: `query ($search: String) { Page(page: 1, perPage: 48) { media(type: ANIME, search: $search, isAdult: false, sort: SEARCH_MATCH) { id title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore } } }`, variables: { search: stem } }),
+  });
+  if (!fallbackResponse.ok) return { media: [], total: 0 };
+  const fallbackJson = await fallbackResponse.json();
+  const candidates: AnimeSummary[] = fallbackJson.data?.Page?.media ?? [];
+  const media = candidates.filter((anime) => matchesAnimeTitle(anime.title.english || "", f.q) || matchesAnimeTitle(anime.title.romaji, f.q));
+  return { media, total: media.length };
 }
 
 function Browse() {
@@ -108,7 +126,7 @@ function Browse() {
   const results = useQuery({ queryKey: ["filtered-anime", applied], queryFn: () => fetchFilteredAnime(applied), staleTime: 5 * 60 * 1000, retry: 1 });
   const imported = series.filter((s) => {
     const term = applied.q.trim().toLowerCase();
-    return (!term || s.title.toLowerCase().includes(term) || s.genres.some((g) => g.toLowerCase().includes(term)))
+    return (!term || matchesAnimeTitle(s.title, term) || s.genres.some((g) => g.toLowerCase().includes(term)))
       && (!applied.genre || s.genres.some((g) => g.toLowerCase() === applied.genre.toLowerCase()))
       && (!applied.year || s.premiered?.includes(applied.year))
       && (!applied.format || s.type?.toUpperCase().replaceAll(" ", "_") === applied.format)
