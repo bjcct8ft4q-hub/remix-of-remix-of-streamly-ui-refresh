@@ -182,7 +182,19 @@ function WatchAnime() {
       anime_cover: cover, episode: ep, audio, status: "waiting", is_public: true
     }).select("id").single();
     setCreatingRoom(false);
-    if (error || !data) { setRoomError("Could not create room. Watch Together may need database setup."); return; }
+    if (error || !data) {
+      // A second tab may have created the room after our initial lookup.
+      if (error?.code === "23505") {
+        const { data: latest } = await (supabase as any).from("watch_rooms").select("id")
+          .eq("host_id", user.id).eq("anime_id", id).eq("episode", ep)
+          .eq("audio", audio).in("status", ["waiting", "live"]).limit(1);
+        if (latest?.[0]?.id) {
+          void navigate({ to: "/watch-together/$roomId" as any, params: { roomId: latest[0].id } as any });
+          return;
+        }
+      }
+      setRoomError(error?.message || "Could not create room. Please try again."); return;
+    }
     void navigate({ to: "/watch-together/$roomId" as any, params: { roomId: data.id } as any });
   };
   const go = (search: { ep?: number; audio?: "sub" | "dub"; provider?: string | undefined }) => void navigate({ search: (s) => ({ ...s, provider: undefined, ...search }) });
