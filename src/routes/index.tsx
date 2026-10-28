@@ -6,11 +6,14 @@ import { animeCatalogQuery, type CatalogAnime } from "@/lib/anime-catalog";
 import { animeTitle } from "@/lib/kitsune";
 import { AnimeCard } from "@/components/AnimeCard";
 import { Button } from "@/components/ui/button";
+import { ContinueWatchingShelf } from "@/components/ContinueWatchingShelf";
+import { PersonalizedRecommendations } from "@/components/PersonalizedRecommendations";
+import { EpisodeCountdown } from "@/components/EpisodeCountdown";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Streamly — Watch the latest series episodes" },
+      { title: "Streamly | Discover Anime" },
       { name: "description", content: "Watch the newest episodes, trending series and fresh uploads on Streamly." },
       { property: "og:title", content: "Streamly — Watch the latest series episodes" },
       { property: "og:description", content: "Watch the newest episodes, trending series and fresh uploads on Streamly." },
@@ -99,7 +102,7 @@ function Schedule() {
         : isError ? <div className="py-3 text-sm text-muted-foreground">Schedule could not be loaded. <button className="text-primary underline" onClick={() => void refetch()}>Retry</button></div>
         : items.length ? items.map((item) => <Link key={item.media.id + "-" + item.airingAt} to="/anime/$id" params={{ id: String(item.media.id) }} className="flex items-center gap-3 rounded-md border border-border/70 bg-background/60 p-3 hover:border-primary">
           {item.media.coverImage.large && <img src={item.media.coverImage.large} alt="" className="h-14 w-10 shrink-0 rounded object-cover" />}
-          <div className="min-w-0"><p className="line-clamp-2 text-sm font-semibold">{animeTitle(item.media)}</p><p className="mt-1 text-xs text-muted-foreground">Episode {item.episode} · {new Date(item.airingAt * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} local time</p></div>
+          <div className="min-w-0"><p className="line-clamp-2 text-sm font-semibold">{animeTitle(item.media)}</p><p className="mt-1 text-xs text-muted-foreground"><EpisodeCountdown airingAt={item.airingAt} episode={item.episode} /> · {new Date(item.airingAt * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} local time</p></div>
         </Link>) : <p className="py-3 text-sm text-muted-foreground">No scheduled episodes found for this date.</p>}
     </div>
     <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground">Planned AniList airing times, shown in your local time zone. Dates may change and do not guarantee streaming availability.</p>
@@ -195,6 +198,8 @@ function Index() {
 
       <div className="mx-auto grid max-w-[1900px] items-start gap-6 px-4 pb-20 pt-3 sm:px-6 lg:grid-cols-[minmax(0,1fr)_400px]">
         <div className="min-w-0 space-y-12">
+          <ContinueWatchingShelf compact />
+          <PersonalizedRecommendations />
           <Grid title="Currently Airing" items={latestEpisodes} loading={isLoading} filters />
           <Grid title="Trending Anime" items={catalog.data?.trending ?? []} loading={isLoading} />
           <Grid title="Popular Anime" items={popularAnime} loading={isLoading} filters />
