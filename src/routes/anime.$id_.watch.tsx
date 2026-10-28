@@ -37,6 +37,8 @@ function WatchAnime() {
   const [roomError, setRoomError] = useState("");
   const info = useQuery(animeQuery(id));
   const eps = useQuery(episodesQuery(id));
+  const [loadingSeconds, setLoadingSeconds] = useState(0);
+  useEffect(() => { setLoadingSeconds(0); const timer = window.setInterval(() => setLoadingSeconds((n) => n + 1), 1000); return () => window.clearInterval(timer); }, [id, ep]);
   const ageRating = useAnimeAgeRating(info.data?.idMal, info.data?.isAdult);
   const hist = useQuery(historyQuery(user?.id, id));
   const episode = eps.data?.find((e) => e.number === ep);
@@ -184,8 +186,8 @@ function WatchAnime() {
         </aside>
         <div className="min-w-0">
           <div className="aspect-video overflow-hidden rounded-md bg-black">
-            {eps.isPending || (current && streams.isPending) ? <div role="status" className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground"><LoaderCircle className="h-5 w-5 animate-spin" />{eps.isPending ? "Finding episode…" : `Loading ${providerLabel(current!.provider)}…`}</div>
-              : !current ? <div role="alert" className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center text-sm text-muted-foreground"><p>{sources.length ? "None of the sources had a working video for this episode." : `No ${audio} version found for this episode.`}</p>{sources.length > 0 && <Button variant="outline" onClick={() => setFailed([])}>Try again</Button>}</div>
+            {eps.isPending || (current && streams.isPending) ? <div role="status" className="flex h-full flex-col items-center justify-center gap-3 p-5 text-center text-sm text-muted-foreground"><div className="flex items-center gap-2"><LoaderCircle className="h-5 w-5 animate-spin" />{eps.isPending ? "Finding episodes…" : `Loading ${providerLabel(current!.provider)}…`}</div>{loadingSeconds >= 8 && <p className="max-w-xs text-xs">This source is responding slowly. You can retry without refreshing the page.</p>}{loadingSeconds >= 8 && <Button size="sm" variant="outline" onClick={() => { setLoadingSeconds(0); if (eps.isPending) void eps.refetch(); else void streams.refetch(); }}>Retry loading</Button>}</div>
+              : !current ? <div role="alert" className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center text-sm text-muted-foreground"><p>{eps.isError ? "Episode catalogue is unavailable or timed out." : sources.length ? "None of the sources had a working video for this episode." : `No ${audio} version found for this episode.`}</p><Button variant="outline" onClick={() => { setFailed([]); void eps.refetch(); }}>Retry episodes</Button></div>
               : streams.isError ? <div role="alert" className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">{providerLabel(current.provider)} has no video for this episode right now. Pick another source.</div>
               : stream ? <VideoPlayer key={stream.src} ref={playerRef} kind={stream.kind} src={stream.src} subtitles={stream.subtitles} intro={stream.intro} poster={episode?.image ?? undefined} autoSkip={autoSkip} fileName={`${title} - ${ep}`} autoPlay={autoPlay}
                   onLoaded={(v) => { if (resumeAt > 5 && resumeAt < v.duration - 30) v.currentTime = resumeAt; }}
