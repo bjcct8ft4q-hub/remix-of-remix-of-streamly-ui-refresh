@@ -1,0 +1,6 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/lib/auth";
+import { watchlistQuery } from "@/lib/library";
+export const Route = createFileRoute("/watchlist")({ component: Watchlist });
+function Watchlist() { const { user } = useAuth(); const q = useQuery(watchlistQuery(user?.id)); return <main className="mx-auto max-w-5xl px-5 pb-20 pt-32"><h1 className="mb-6 border-l-4 border-primary pl-3 text-3xl font-bold">Watchlist</h1>{!user ? <p>Sign in to see your watchlist.</p> : q.isPending ? <p>Loading your watchlist…</p> : q.isError ? <p>Could not load your watchlist.</p> : q.data?.length ? <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 md:grid-cols-5">{q.data.map((a) => <Link key={a.id} to="/anime/$id" params={{ id: String(a.anilist_id) }} className="hover:text-primary">{a.cover_url && <img src={a.cover_url} alt="" className="aspect-[2/3] w-full rounded-md object-cover" />}<p className="mt-2 text-sm font-semibold">{a.title}</p></Link>)}</div> : <p className="text-muted-foreground">No saved anime yet. <Link to="/browse" className="text-primary">Browse anime</Link>.</p>}</main>; }
