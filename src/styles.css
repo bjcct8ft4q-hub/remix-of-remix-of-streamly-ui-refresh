@@ -220,3 +220,35 @@ html { scrollbar-width: thin; scrollbar-color: var(--primary) var(--background);
   text-transform: uppercase;
 }
 .streamly-auth-submit:hover { background: color-mix(in oklab, var(--primary) 86%, white); }
+
+
+/* Smooth blue <-> Halloween palette morph; enabled only after client hydration. */
+html.streamly-theme-ready,
+html.streamly-theme-ready body,
+html.streamly-theme-ready .halloween-theme-toggle {
+  transition: background-color 650ms ease, color 650ms ease, border-color 650ms ease, box-shadow 650ms ease, filter 650ms ease;
+}
+html.streamly-theme-ready :where(header, nav, aside, main, footer, section, article, button, a, input, textarea, [role="dialog"], [role="tab"]) {
+  transition-property: background-color, color, border-color, box-shadow;
+  transition-duration: 650ms;
+  transition-timing-function: ease;
+}
+.streamly-theme-wipe {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none;
+  background: radial-gradient(circle at 100% 100%, color-mix(in oklab, var(--primary) 22%, transparent) 0%, color-mix(in oklab, var(--primary) 9%, transparent) 38%, transparent 72%);
+  opacity: 0;
+  animation: streamly-theme-reveal 850ms ease-out forwards;
+}
+@keyframes streamly-theme-reveal {
+  0% { opacity: 0; transform: scale(.94); }
+  35% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.05); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.streamly-theme-ready, html.streamly-theme-ready body,
+  html.streamly-theme-ready :where(header, nav, aside, main, footer, section, article, button, a, input, textarea, [role="dialog"], [role="tab"]) { transition-duration: 0ms; }
+  .streamly-theme-wipe { display: none; }
+}
