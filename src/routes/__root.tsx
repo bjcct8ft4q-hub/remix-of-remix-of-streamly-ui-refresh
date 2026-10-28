@@ -105,30 +105,83 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
-function InteractionSounds() {
+function InteractionEffects() {
   useEffect(() => {
     let context: AudioContext | null = null;
-    const click = (event: MouseEvent) => {
-      if (localStorage.getItem("streamly-ui-sounds") !== "on") return;
-      const target = event.target;
-      if (!(target instanceof Element) || !target.closest("button, a, [role=button], [role=tab]")) return;
+    let lastKeyAt = 0;
+    const play = (frequency: number, volume: number, duration: number) => {
       try {
         context ??= new AudioContext();
         if (context.state === "suspended") void context.resume();
         const oscillator = context.createOscillator();
         const gain = context.createGain();
         oscillator.type = "sine";
-        oscillator.frequency.setValueAtTime(540, context.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(360, context.currentTime + 0.045);
-        gain.gain.setValueAtTime(0.015, context.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.055);
+        oscillator.frequency.setValueAtTime(frequency, context.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(frequency * 0.7, context.currentTime + duration);
+        gain.gain.setValueAtTime(volume, context.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + duration);
         oscillator.connect(gain).connect(context.destination);
         oscillator.start();
-        oscillator.stop(context.currentTime + 0.06);
-      } catch { /* Sound is optional and must never block interaction. */ }
+        oscillator.stop(context.currentTime + duration + 0.005);
+      } catch { /* Sound must never interfere with interaction. */ }
+    };
+    const enabled = () => { try { return localStorage.getItem("streamly-ui-sounds") === "on"; } catch { return false; } };
+    const click = (event: MouseEvent) => {
+      if (!enabled()) return;
+      const target = event.target;
+      if (target instanceof Element && target.closest("button, a, [role=button], [role=tab], select, input[type=checkbox], input[type=radio]")) play(510, 0.012, 0.045);
+    };
+    const typing = (event: KeyboardEvent) => {
+      if (!enabled() || event.repeat || event.ctrlKey || event.altKey || event.metaKey || event.key.length !== 1) return;
+      const target = event.target;
+      if (!(target instanceof Element) || !target.closest("input:not([type=password]), textarea, [contenteditable=true]")) return;
+      const now = performance.now();
+      if (now - lastKeyAt < 45) return;
+      lastKeyAt = now;
+      play(660, 0.005, 0.022);
     };
     document.addEventListener("click", click);
-    return () => { document.removeEventListener("click", click); if (context) void context.close(); };
+    document.addEventListener("keydown", typing);
+    return () => {
+      document.removeEventListener("click", click);
+      document.removeEventListener("keydown", typing);
+      if (context) void context.close();
+    };
+  }, []);
+  return null;
+}
+
+function CustomCursor() {
+  useEffect(() => {
+    const fine = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (!fine.matches || reduced.matches) return;
+    const cursor = document.createElement("div");
+    cursor.className = "streamly-custom-cursor";
+    cursor.setAttribute("aria-hidden", "true");
+    document.body.appendChild(cursor);
+    let frame = 0;
+    const move = (event: PointerEvent) => {
+      if (event.pointerType !== "mouse") return;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        cursor.style.transform = `translate3d(${event.clientX}px, ${event.clientY}px, 0)`;
+        cursor.classList.add("streamly-cursor-visible");
+        const el = event.target;
+        cursor.classList.toggle("streamly-cursor-active", el instanceof Element && !!el.closest("a, button, [role=button], [role=tab], input, textarea, select"));
+      });
+    };
+    const hide = () => cursor.classList.remove("streamly-cursor-visible");
+    document.addEventListener("pointermove", move, { passive: true });
+    document.addEventListener("pointerleave", hide);
+    window.addEventListener("blur", hide);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerleave", hide);
+      window.removeEventListener("blur", hide);
+      cursor.remove();
+    };
   }, []);
   return null;
 }
@@ -157,7 +210,8 @@ function RootComponent() {
       <ThemeProvider>
         <AuthProvider>
           <div className="relative min-h-screen">
-            <InteractionSounds />
+            <InteractionEffects />
+            <CustomCursor />
             <TrafficTracker />
             <Header />
             <Outlet />
