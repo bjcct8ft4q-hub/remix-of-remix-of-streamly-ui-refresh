@@ -17,7 +17,7 @@ function MenuLabel({ children }: { children: ReactNode }) {
   return <div className="flex items-center gap-2 px-3 pb-2 pt-3 text-xs font-bold uppercase tracking-wider text-muted-foreground"><span className="h-3 w-0.5 bg-primary" />{children}<span className="flex-1 border-t border-dashed border-border" /></div>;
 }
 
-function MenuLink({ to, icon: Icon, active, onClick, children }: { to: "/" | "/browse" | "/admin" | "/my-list" | "/settings"; icon: LucideIcon; active: boolean; onClick: () => void; children: ReactNode }) {
+function MenuLink({ to, icon: Icon, active, onClick, children }: { to: "/" | "/browse" | "/admin" | "/my-list" | "/settings" | "/schedule" | "/news"; icon: LucideIcon; active: boolean; onClick: () => void; children: ReactNode }) {
   return <Button asChild variant="ghost" className={`h-11 w-full justify-start gap-3 ${active ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}><Link to={to} onClick={onClick} aria-current={active ? "page" : undefined}><span className="flex h-6 w-6 items-center justify-center border border-border bg-muted/40"><Icon className="h-4 w-4" /></span>{children}</Link></Button>;
 }
 
@@ -65,8 +65,8 @@ export function Header() {
               <MenuLink to="/browse" icon={Search} active={pathname === "/browse"} onClick={() => setMenuOpen(false)}>Search</MenuLink>
               <MenuLink to="/browse" icon={Library} active={pathname === "/browse"} onClick={() => setMenuOpen(false)}>All series</MenuLink>
               <MenuLabel>More</MenuLabel>
-              <Link to="/schedule" onClick={() => setMenuOpen(false)} className={`flex h-11 items-center gap-3 rounded px-3 text-sm hover:bg-primary/10 hover:text-primary ${pathname === "/schedule" ? "text-primary" : "text-muted-foreground"}`}><CalendarDays className="h-4 w-4" />Weekly Schedule</Link>
-              <Link to="/news" onClick={() => setMenuOpen(false)} className={`flex h-11 items-center gap-3 rounded px-3 text-sm hover:bg-primary/10 hover:text-primary ${pathname === "/news" ? "text-primary" : "text-muted-foreground"}`}><Bell className="h-4 w-4" />News & Updates</Link>
+              <MenuLink to="/schedule" icon={CalendarDays} active={pathname === "/schedule"} onClick={() => setMenuOpen(false)}>Weekly Schedule</MenuLink>
+              <MenuLink to="/news" icon={Bell} active={pathname === "/news"} onClick={() => setMenuOpen(false)}>News & Updates</MenuLink>
               <MenuLink to="/my-list" icon={Library} active={pathname === "/my-list"} onClick={() => setMenuOpen(false)}>My list</MenuLink>
               <MenuLink to="/settings" icon={Settings} active={pathname === "/settings"} onClick={() => setMenuOpen(false)}>Settings</MenuLink>
               {isAdmin && (
