@@ -151,41 +151,6 @@ function InteractionEffects() {
   return null;
 }
 
-function CustomCursor() {
-  useEffect(() => {
-    const fine = window.matchMedia("(hover: hover) and (pointer: fine)");
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (!fine.matches || reduced.matches) return;
-    const cursor = document.createElement("div");
-    cursor.className = "streamly-custom-cursor";
-    cursor.setAttribute("aria-hidden", "true");
-    document.body.appendChild(cursor);
-    let frame = 0;
-    const move = (event: PointerEvent) => {
-      if (event.pointerType !== "mouse") return;
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        cursor.style.transform = `translate3d(${event.clientX}px, ${event.clientY}px, 0)`;
-        cursor.classList.add("streamly-cursor-visible");
-        const el = event.target;
-        cursor.classList.toggle("streamly-cursor-active", el instanceof Element && !!el.closest("a, button, [role=button], [role=tab], input, textarea, select"));
-      });
-    };
-    const hide = () => cursor.classList.remove("streamly-cursor-visible");
-    document.addEventListener("pointermove", move, { passive: true });
-    document.addEventListener("pointerleave", hide);
-    window.addEventListener("blur", hide);
-    return () => {
-      cancelAnimationFrame(frame);
-      document.removeEventListener("pointermove", move);
-      document.removeEventListener("pointerleave", hide);
-      window.removeEventListener("blur", hide);
-      cursor.remove();
-    };
-  }, []);
-  return null;
-}
-
 function TrafficTracker() {
   const router = useRouter();
   useEffect(() => {
@@ -211,7 +176,6 @@ function RootComponent() {
         <AuthProvider>
           <div className="relative min-h-screen">
             <InteractionEffects />
-            <CustomCursor />
             <TrafficTracker />
             <Header />
             <Outlet />
