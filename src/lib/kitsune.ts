@@ -81,7 +81,7 @@ export async function getAnime(id: number): Promise<AnimeDetails | null> {
     `query ($id: Int) { Media(id: $id, type: ANIME) { ${SUMMARY} description(asHtml: false) status season genres countryOfOrigin duration synonyms tags { name rank isMediaSpoiler } startDate { year month day } studios(isMain: true) { nodes { name } } characters(sort: [ROLE, RELEVANCE], perPage: 24) { edges { role node { id name { full } image { medium } } voiceActors(language: JAPANESE, sort: [RELEVANCE, ID]) { id name { full } image { medium } } } } relations { edges { relationType node { ${SUMMARY} } } } recommendations(sort: RATING_DESC, perPage: 25) { nodes { rating mediaRecommendation { ${SUMMARY} } } } } }`,
     { id },
   );
-  return data.Media;
+  return data.Media?.isAdult ? null : data.Media;
 }
 
 export type SourceRef = { provider: string; audio: Audio; watchId: string };
