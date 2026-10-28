@@ -81,7 +81,7 @@ export async function fetchSeasonChain(id: number): Promise<AnimeSummary[]> {
       }
     }
   }
-  const anchor = found.get(id);
+  // AniList may treat the second Edgerunners production as a standalone entry.\n  // Keep both instalments available from either series page.\n  if (id === 120377 || id === 195539) {\n    for (const relatedId of [120377, 195539]) {\n      if (found.has(relatedId)) continue;\n      try {\n        const data = await request(`query ($id: Int) { Media(id: $id, type: ANIME) { ${fields} } }`, { id: relatedId });\n        if (data?.Media && tv(data.Media)) found.set(relatedId, data.Media as SeasonEntry);\n      } catch { /* Show any successfully retrieved seasons. */ }\n    }\n  }\n  const anchor = found.get(id);
   if (!anchor) return [];
   // AniList sometimes lists a numbered sequel without a PREQUEL/SEQUEL edge.
   // Search only for the anchor's base title, then require a matching base title
