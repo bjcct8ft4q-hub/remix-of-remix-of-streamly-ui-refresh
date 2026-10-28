@@ -25,3 +25,25 @@
 html.halloween .streamly-settings-nav::after {content:"";position:absolute;inset:0 auto auto 0;width:116px;height:116px;pointer-events:none;opacity:.5;background-repeat:no-repeat;background-size:contain;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120' fill='none' stroke='%23958a85' stroke-width='1.1'%3E%3Cpath d='M0 0H120M0 0V120M0 0L120 120M0 0L120 60M0 0L60 120M0 0L120 25M0 0L25 120'/%3E%3Cpath d='M25 0Q26 25 0 25M50 0Q51 50 0 50M75 0Q76 75 0 75M100 0Q101 100 0 100M0 110Q110 110 110 0'/%3E%3C/svg%3E")}
 html.halloween .streamly-settings-heading::after {content:"";position:fixed;top:75px;right:0;width:130px;height:130px;pointer-events:none;opacity:.45;background-size:contain;transform:scaleX(-1);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120' fill='none' stroke='%23958a85' stroke-width='1.1'%3E%3Cpath d='M0 0H120M0 0V120M0 0L120 120M0 0L120 60M0 0L60 120M0 0L120 25M0 0L25 120'/%3E%3Cpath d='M25 0Q26 25 0 25M50 0Q51 50 0 50M75 0Q76 75 0 75M100 0Q101 100 0 100'/%3E%3C/svg%3E")}
 @media(max-width:767px){html.halloween .streamly-settings-nav::after{display:none}html.halloween .streamly-settings-heading::after{width:75px;height:75px}}
+
+
+/* Re:ANIME-inspired spacing and controls; Streamly branding and features remain intact. */
+.streamly-settings { --settings-orange:#168fff; padding-top:108px!important; padding-left:clamp(240px,31vw,520px)!important; padding-right:clamp(20px,4vw,70px)!important; }
+html.halloween .streamly-settings { --settings-orange:#ff7900; }
+.streamly-settings-heading,.streamly-settings-grid {max-width:825px!important;margin-left:0!important;margin-right:auto!important}
+.streamly-settings-heading {margin-bottom:35px!important}
+.streamly-settings-heading h1 {font-size:clamp(40px,3.1vw,50px)!important}
+.streamly-settings-nav {top:125px!important;width:207px!important;padding:20px 17px!important}
+.streamly-settings-nav button {padding:9px 13px!important;font-size:13px!important}
+.streamly-settings-nav button[aria-current="page"] {background:color-mix(in srgb,var(--settings-orange) 15%,#050505)!important;color:var(--settings-orange)!important}
+.streamly-settings-content {max-width:825px!important}
+.streamly-settings-content section {background:transparent!important;border-color:#1b1b1b!important;box-shadow:none!important}
+.streamly-settings-content button.bg-primary,.streamly-settings-content .bg-primary {background:var(--settings-orange)!important;color:#080808!important}
+.streamly-settings-content input[type="checkbox"],.streamly-settings-content input[type="radio"] {accent-color:var(--settings-orange)!important}
+.streamly-settings-content input:focus,.streamly-settings-content textarea:focus {outline-color:var(--settings-orange)!important}
+.streamly-settings-content :is(.text-primary,.border-primary) {color:var(--settings-orange)}
+.streamly-settings-content :is(.bg-primary\/10,.bg-primary\/15) {background:color-mix(in srgb,var(--settings-orange) 12%,transparent)!important}
+.streamly-settings-content input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),.streamly-settings-content textarea,.streamly-settings-content select {background:#090909!important}
+html:not(.halloween) .streamly-settings-nav::after,html:not(.halloween) .streamly-settings-heading::after {content:none!important}
+@media(max-width:1100px){.streamly-settings{padding-left:250px!important}}
+@media(max-width:767px){.streamly-settings{padding:100px 16px 65px!important}.streamly-settings-nav{position:relative!important;width:100%!important;top:auto!important}.streamly-settings-heading,.streamly-settings-grid{max-width:100%!important}}
