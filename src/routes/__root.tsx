@@ -171,12 +171,15 @@ function TrafficTracker() {
 function ThemeToggle() {
   const { halloween, toggleHalloween } = useTheme();
   const [glitch, setGlitch] = useState(false);
+  const [scare, setScare] = useState(false);
+  const scareVideo = useRef<HTMLVideoElement | null>(null);
   const busy = useRef(false);
   const timers = useRef<number[]>([]);
   const audio = useRef<AudioContext | null>(null);
   useEffect(() => () => {
     timers.current.forEach(window.clearTimeout);
     document.documentElement.classList.remove("streamly-screen-glitch", "streamly-theme-swap-hidden");
+    scareVideo.current?.pause();
     if (audio.current) void audio.current.close();
   }, []);
   // Two different glitch bursts, timed to the supplied reference:
@@ -218,6 +221,9 @@ function ThemeToggle() {
       return;
     }
     busy.current = true;
+    // Only occasionally scare users when entering Halloween mode, never on the way out.
+    // Honour reduced motion, muted preference, and the explicit sound setting.
+    const shouldScare = !halloween && Math.random() < 0.12 && (() => { try { return localStorage.getItem("streamly-halloween-jumpscares") !== "off"; } catch { return true; } })();
     document.documentElement.classList.add("streamly-screen-glitch");
     setGlitch(true);
     playStatic(halloween);
@@ -226,14 +232,21 @@ function ThemeToggle() {
       document.documentElement.classList.add("streamly-theme-swap-hidden");
       toggleHalloween();
     }, halloween ? 190 : 390));
+    if (shouldScare) timers.current.push(window.setTimeout(() => {
+      setScare(true);
+      const video = scareVideo.current;
+      if (video) { video.currentTime = 0; video.muted = (() => { try { return localStorage.getItem("streamly-ui-sounds") === "off"; } catch { return false; } })(); void video.play().catch(() => {}); }
+    }, 550));
     timers.current.push(window.setTimeout(() => {
       setGlitch(false);
       document.documentElement.classList.remove("streamly-screen-glitch", "streamly-theme-swap-hidden");
       busy.current = false;
       timers.current = [];
-    }, halloween ? 500 : 900));
+    }, halloween ? 500 : shouldScare ? 1750 : 900));
+    if (shouldScare) timers.current.push(window.setTimeout(() => { setScare(false); scareVideo.current?.pause(); }, 1750));
   };
   return <>
+    {scare && <div role="presentation" className="fixed inset-0 z-[10000] overflow-hidden bg-black" onClick={() => { setScare(false); scareVideo.current?.pause(); }}><video ref={scareVideo} className="h-full w-full object-contain" playsInline preload="none" src="/halloween/jumpscare.mp4" onError={() => { /* Fall back to the CSS scare when the video has not been uploaded. */ }} /><div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/30 text-center text-8xl font-black text-red-500 mix-blend-screen animate-pulse" aria-hidden="true">☠</div></div>}
     {glitch && <div className="streamly-glitch-overlay" aria-hidden="true"><div className="streamly-glitch-noise" /><div className="streamly-glitch-scanlines" /><div className="streamly-glitch-tear streamly-glitch-tear-one" /><div className="streamly-glitch-tear streamly-glitch-tear-two" /><div className="streamly-glitch-blocks" /><div className="streamly-glitch-color" /></div>}
     <button type="button" onClick={changeTheme}
       className="streamly-theme-toggle fixed bottom-5 right-5 z-[100] flex h-12 w-12 items-center justify-center border-0 bg-transparent p-0 text-3xl shadow-none transition-transform hover:scale-110 focus-visible:rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:bottom-6 sm:right-6"
