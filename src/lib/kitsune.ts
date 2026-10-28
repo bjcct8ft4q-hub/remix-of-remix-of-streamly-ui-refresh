@@ -16,6 +16,7 @@ export type AnimeSummary = {
   seasonYear: number | null;
   episodes: number | null;
   averageScore: number | null;
+  isAdult?: boolean;
 };
 
 export type AnimeDetails = AnimeSummary & {
@@ -28,7 +29,7 @@ export type AnimeDetails = AnimeSummary & {
   startDate: { year: number | null; month: number | null; day: number | null };
 };
 
-const SUMMARY = "id title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore";
+const SUMMARY = "id title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore isAdult";
 
 async function anilist<T>(query: string, variables: Record<string, unknown>): Promise<T> {
   const res = await fetch("https://graphql.anilist.co", {
