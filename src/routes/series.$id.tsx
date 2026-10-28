@@ -34,6 +34,7 @@ function SeriesPage() {
   const [audioFilter, setAudioFilter] = useState<"all" | "sub" | "dub">("all");
   const { data: s, isLoading } = useQuery(seriesQuery(id));
   const { data: catalogue = [] } = useQuery(seriesListQuery());
+  const { data: adultFlag } = useQuery({ queryKey: ["anilist-age-flag", s?.anilist_id], enabled: !!s?.anilist_id, staleTime: 60 * 60 * 1000, queryFn: async () => { const response = await fetch("https://graphql.anilist.co", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: "query ($id: Int) { Media(id: $id, type: ANIME) { isAdult } }", variables: { id: s!.anilist_id } }) }); if (!response.ok) return null; const json = await response.json(); return json.data?.Media?.isAdult ?? null; } });
   const { data: franchiseRelations = [] } = useQuery({
     queryKey: ["anilist-relations", s?.anilist_id],
     enabled: !!s?.anilist_id,
@@ -100,6 +101,7 @@ function SeriesPage() {
             <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">
               <span className="flex items-center gap-1 rounded bg-primary px-2 py-1 text-primary-foreground"><Star className="h-3 w-3 fill-current" />{s.score ?? "N/A"}</span>
               <span className="rounded bg-secondary px-2 py-1">{s.type}</span>
+              <span className="rounded bg-secondary px-2 py-1">{adultFlag === true ? "Adult content (18+)" : "Age rating: Not classified"}</span>
               <span className="rounded bg-secondary px-2 py-1">{Math.max(s.episodes.length, s.total_episodes ?? 0, s.episode_catalog.length)} episodes</span>
               {s.episodes.length === 0 && s.episode_catalog.length > 0 && <span className="rounded bg-muted px-2 py-1 text-muted-foreground">No videos yet</span>}
             </div>
