@@ -71,63 +71,39 @@ function Grid({ title, items, loading, filters }: { title: string; items: S[]; l
   );
 }
 
-function Schedule() {
-  const days = Array.from({ length: 7 }, (_, k) => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() + k);
-    return d;
+type AiringItem = { airingAt: number; episode: number; media: { id: number; title: { english: string | null; romaji: string }; coverImage: { large: string | null } } };
+async function fetchUpcoming(): Promise<AiringItem[]> {
+  const now = Math.floor(Date.now() / 1000);
+  const response = await fetch("https://graphql.anilist.co", {
+    method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ query: `query ($start: Int, $end: Int) { Page(page: 1, perPage: 50) { airingSchedules(airingAt_greater: $start, airingAt_lesser: $end, sort: TIME) { airingAt episode media { id title { english romaji } coverImage { large } isAdult } } } }`, variables: { start: now - 1, end: now + 8 * 86400 } }),
   });
+  if (!response.ok) throw new Error("Release schedule unavailable");
+  const json = await response.json();
+  if (json.errors?.length) throw new Error("Release schedule unavailable");
+  return (json.data?.Page?.airingSchedules ?? []).filter((item: AiringItem & { media: { isAdult?: boolean } }) => item.media && !item.media.isAdult);
+}
+function Schedule() {
   const [sel, setSel] = useState(0);
-  const dateKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  const releases: Record<string, { title: string; detail: string; status?: "delayed" | "scheduled" }[]> = {
-    "2026-10-28": [
-      { title: "Yu-Gi-Oh! GO RUSH!!", detail: "Episode delayed · new date TBA", status: "delayed" },
-      { title: "Reincarnated as a Sword", detail: "Season 2 · Episode 5", status: "scheduled" },
-    ],
-    "2026-10-30": [
-      { title: "The Apothecary Diaries", detail: "Season 3 · Episode 5", status: "scheduled" },
-      { title: "Tokyo Revengers", detail: "Season 4 · Episode 5", status: "scheduled" },
-      { title: "TOUGEN ANKI", detail: "Nikko Kegon Falls Arc · Episode 5", status: "scheduled" },
-      { title: "JoJo's Bizarre Adventure: Steel Ball Run", detail: "Episode 7", status: "scheduled" },
-    ],
-    "2026-10-31": [
-      { title: "Black Clover", detail: "Season 2 · Episode 5", status: "scheduled" },
-    ],
-  };
-  const selectedDate = days[sel] ?? new Date();
-  const items = releases[dateKey(selectedDate)] ?? [];
-  return (
-    <aside className="rounded-lg border border-border bg-card p-4">
-      <div className="mb-4 flex items-center justify-between gap-2">
-        <h2 className="text-xl font-extrabold">Upcoming Anime</h2>
-        <span className="text-xs text-muted-foreground">Next 7 days</span>
-      </div>
-      <div className="grid grid-cols-7 gap-1.5 border-b border-border pb-4">
-        {days.map((d, k) => (
-          <button key={dateKey(d)} onClick={() => setSel(k)} aria-pressed={sel === k} className="flex flex-col items-center gap-1">
-            <span className={`text-[10px] font-bold uppercase ${sel === k ? "text-primary" : "text-muted-foreground"}`}>{d.toLocaleDateString("en-GB", { weekday: "short" })}</span>
-            <span className={`grid h-9 w-full place-items-center rounded text-sm font-extrabold ${sel === k ? "bg-primary text-primary-foreground" : "bg-muted"}`}>{d.getDate()}</span>
-          </button>
-        ))}
-      </div>
-      <p className="mt-3 text-xs font-semibold text-muted-foreground">{selectedDate.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</p>
-      <div className="mt-2 space-y-2">
-        {items.length ? items.map((item) => (
-          <div key={item.title} className="rounded-md border border-border/70 bg-background/60 p-3">
-            <div className="flex items-start justify-between gap-2">
-              <p className="text-sm font-semibold leading-snug">{item.title}</p>
-              {item.status === "delayed" && <span className="shrink-0 rounded-full bg-destructive/15 px-2 py-1 text-[10px] font-bold uppercase text-destructive">Delayed</span>}
-            </div>
-            <p className={`mt-1 text-xs ${item.status === "delayed" ? "text-destructive" : "text-muted-foreground"}`}>{item.detail}</p>
-          </div>
-        )) : (
-          <p className="py-3 text-sm text-muted-foreground">No confirmed releases listed for this date yet.</p>
-        )}
-      </div>
-      <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground">Release dates can change by region and streaming service. Delayed titles stay marked until a new date is confirmed.</p>
-    </aside>
-  );
+  const { data, isPending, isError, refetch } = useQuery({ queryKey: ["anilist-airing-schedule"], queryFn: fetchUpcoming, staleTime: 15 * 60 * 1000, refetchInterval: 30 * 60 * 1000 });
+  const days = Array.from({ length: 7 }, (_, k) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + k); return d; });
+  const key = (d: Date) => d.toLocaleDateString("en-CA");
+  const selectedDate = days[sel] ?? days[0];
+  const items = (data ?? []).filter((item) => key(new Date(item.airingAt * 1000)) === key(selectedDate));
+  return <aside className="rounded-lg border border-border bg-card p-4">
+    <div className="mb-4 flex items-center justify-between gap-2"><h2 className="text-xl font-extrabold">Upcoming Anime</h2><span className="text-xs text-muted-foreground">Next 7 days</span></div>
+    <div className="grid grid-cols-7 gap-1.5 border-b border-border pb-4">{days.map((d, k) => <button key={key(d)} onClick={() => setSel(k)} aria-pressed={sel === k} className="flex flex-col items-center gap-1"><span className={`text-[10px] font-bold uppercase ${sel === k ? "text-primary" : "text-muted-foreground"}`}>{d.toLocaleDateString("en-GB", { weekday: "short" })}</span><span className={`grid h-9 w-full place-items-center rounded text-sm font-extrabold ${sel === k ? "bg-primary text-primary-foreground" : "bg-muted"}`}>{d.getDate()}</span></button>)}</div>
+    <p className="mt-3 text-xs font-semibold text-muted-foreground">{selectedDate.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</p>
+    <div className="mt-2 max-h-80 space-y-2 overflow-y-auto">
+      {isPending ? <p className="py-3 text-sm text-muted-foreground">Loading upcoming episodes…</p>
+        : isError ? <div className="py-3 text-sm text-muted-foreground">Schedule could not be loaded. <button className="text-primary underline" onClick={() => void refetch()}>Retry</button></div>
+        : items.length ? items.map((item) => <Link key={item.media.id + "-" + item.airingAt} to="/anime/$id" params={{ id: String(item.media.id) }} className="flex items-center gap-3 rounded-md border border-border/70 bg-background/60 p-3 hover:border-primary">
+          {item.media.coverImage.large && <img src={item.media.coverImage.large} alt="" className="h-14 w-10 shrink-0 rounded object-cover" />}
+          <div className="min-w-0"><p className="line-clamp-2 text-sm font-semibold">{animeTitle(item.media)}</p><p className="mt-1 text-xs text-muted-foreground">Episode {item.episode} · {new Date(item.airingAt * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} local time</p></div>
+        </Link>) : <p className="py-3 text-sm text-muted-foreground">No scheduled episodes found for this date.</p>}
+    </div>
+    <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground">Planned AniList airing times, shown in your local time zone. Dates may change and do not guarantee streaming availability.</p>
+  </aside>;
 }
 
 function SectionTitle({ title, children }: { title: string; children?: React.ReactNode }) {
