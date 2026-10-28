@@ -1,3 +1,4 @@
+import "./settings-reanime.css";
 import { useState, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getAccountIdentity, updateAccountIdentity } from "@/lib/accounts.functions";
@@ -100,7 +101,7 @@ function Settings() {
     void fetchIdentity().then((value) => { if (active) { setAccountName(value.username); setAccountEmail(value.email); } }).catch(() => {});
     return () => { active = false; };
   }, [user?.id]);
-  const [settingsTab, setSettingsTab] = useState<"profile" | "playback" | "security" | "display" | "titles">("profile");
+  const [settingsTab, setSettingsTab] = useState<"profile" | "playback" | "security" | "display" | "titles" | "sync">("profile");
   const titleDefaults: Record<string, { main: string[]; supporting: string[] }> = {
     Default: { main: ["English", "Romaji", "Native"], supporting: ["Romaji"] },
     Japanese: { main: ["English", "Romaji", "Native"], supporting: ["Romaji"] },
@@ -192,17 +193,19 @@ function Settings() {
   ];
   const visibleCharacters = animeAvatars?.characters.filter((character) => character.name.toLowerCase().includes(avatarSearch.trim().toLowerCase())) ?? [];
   const selectedAvatar = avatarChoice ?? (typeof user?.user_metadata?.avatar_url === "string" ? user.user_metadata.avatar_url : "");
-  return <main className="mx-auto max-w-5xl px-4 pb-24 pt-32 sm:px-6 md:pt-28">
-    <div className="mb-7"><p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Your Streamly account</p><h1 className="mt-2 text-3xl font-extrabold sm:text-4xl">Settings</h1><p className="mt-2 text-sm text-muted-foreground">Personalise your profile and watching experience.</p></div>
-    <div className="grid gap-6 md:grid-cols-[230px_minmax(0,1fr)]">
-      <nav aria-label="Settings categories" className="flex h-fit gap-2 overflow-x-auto rounded-2xl border border-border bg-card/80 p-2 shadow-xl shadow-black/10 md:sticky md:top-28 md:flex-col">
-        <button type="button" onClick={() => setSettingsTab("profile")} aria-current={settingsTab === "profile" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "profile" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Profile & avatar</button>
-        <button type="button" onClick={() => setSettingsTab("playback")} aria-current={settingsTab === "playback" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "playback" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Language & playback</button>
+  return <main className="streamly-settings mx-auto max-w-5xl px-4 pb-24 pt-32 sm:px-6 md:pt-28">
+    <div className="streamly-settings-heading"><span>STREAMLY / SETTINGS</span><h1>{settingsTab === "profile" ? "Account" : settingsTab === "playback" || settingsTab === "display" || settingsTab === "titles" ? "Preferences" : settingsTab === "sync" ? "Sync" : "Security"}</h1></div>
+    <div className="streamly-settings-grid grid gap-6 md:grid-cols-[230px_minmax(0,1fr)]">
+      <nav aria-label="Settings categories" className="streamly-settings-nav flex h-fit gap-2 overflow-x-auto rounded-2xl border border-border bg-card/80 p-2 shadow-xl shadow-black/10 md:sticky md:top-28 md:flex-col">
+        <button type="button" onClick={() => setSettingsTab("profile")} aria-current={settingsTab === "profile" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "profile" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Account</button>
+        <button type="button" onClick={() => setSettingsTab("playback")} aria-current={settingsTab === "playback" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "playback" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Preferences</button>
+        <button type="button" onClick={() => setSettingsTab("sync")} aria-current={settingsTab === "sync" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "sync" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Sync</button>
         <button type="button" onClick={() => setSettingsTab("titles")} aria-current={settingsTab === "titles" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "titles" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Title preferences</button>
-        <button type="button" onClick={() => setSettingsTab("security")} aria-current={settingsTab === "security" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "security" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Account & security</button>
+        <button type="button" onClick={() => setSettingsTab("security")} aria-current={settingsTab === "security" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "security" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Security</button>
         <button type="button" onClick={() => setSettingsTab("display")} aria-current={settingsTab === "display" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "display" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Display & preferences</button>
       </nav>
-      <div className="min-w-0">
+      <div className="streamly-settings-content min-w-0">
+        {settingsTab === "sync" && <section className="space-y-6"><div className="rounded-xl border border-border bg-card p-6"><h2 className="text-xl font-bold">AniList Sync</h2><p className="mt-3 text-sm text-muted-foreground">Streamly uses AniList for anime information. Connecting your personal AniList account and syncing watch progress is not available yet.</p><p className="mt-4 text-sm text-muted-foreground">Your Streamly watch history is not being sent to AniList.</p><button type="button" disabled className="mt-5 rounded-lg border border-border px-5 py-2 text-sm opacity-50">Connect — Coming soon</button></div><div className="rounded-xl border border-border bg-card p-6"><h2 className="text-lg font-bold">Data Management</h2><p className="mt-2 text-sm text-muted-foreground">Watchlist import and export are not available yet. These controls will appear when secure data transfer is implemented.</p></div></section>}
         {settingsTab === "titles" && <section className="space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-2xl font-extrabold">Title preferences</h2><p className="mt-1 text-sm text-muted-foreground">Choose your preferred language order for main and supporting anime titles.</p></div><div className="flex gap-2"><button type="button" className="rounded-lg border border-border px-4 py-2 text-sm font-semibold" onClick={() => { setTitlePrefs(titleDefaults); setTitleSaved(false); }}>Reset</button><button type="button" className="rounded-lg bg-primary px-5 py-2 text-sm font-bold text-primary-foreground" onClick={() => { localStorage.setItem("streamly-title-preferences", JSON.stringify(titlePrefs)); setTitleSaved(true); }}>Save</button></div></div>
           <p className="text-xs text-muted-foreground">Preferences are saved on this device. Applying these choices throughout search results and anime pages requires a separate integration.</p>
