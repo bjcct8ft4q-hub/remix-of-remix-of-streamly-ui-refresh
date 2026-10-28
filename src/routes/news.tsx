@@ -4,7 +4,7 @@ import { Newspaper, ExternalLink } from "lucide-react";
 export const Route = createFileRoute("/news")({ component: News });
 type Anime={id:number;title:{english?:string;romaji?:string};coverImage:{extraLarge?:string;large:string};description?:string;seasonYear?:number;format?:string;startDate?:{year?:number;month?:number;day?:number}};
 async function getUpdates():Promise<Anime[]>{
- const response=await fetch("https://graphql.anilist.co",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({query:"query{Page(page:1,perPage:20){media(type:ANIME,sort:UPDATED_AT_DESC){id title{english romaji} coverImage{extraLarge large} description(asHtml:false) seasonYear format startDate{year month day}}}}"} )});
+ const response=await fetch("https://graphql.anilist.co",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({query:"query{Page(page:1,perPage:20){media(type:ANIME,sort:UPDATED_AT_DESC,isAdult:false){id title{english romaji} coverImage{extraLarge large} description(asHtml:false) seasonYear format startDate{year month day}}}}"} )});
  if(!response.ok)throw Error("Updates unavailable");
  const json=await response.json();if(json.errors)throw Error("Updates unavailable");
  return json.data?.Page?.media??[];
