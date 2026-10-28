@@ -129,6 +129,7 @@ function Browse() {
   const [draft, setDraft] = useState<Filters>({ ...empty, q });
   const [applied, setApplied] = useState<Filters>({ ...empty, q });
   const [expanded, setExpanded] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const { data: series = [] } = useQuery(seriesListQuery());
   const results = useQuery({ queryKey: ["filtered-anime", applied], queryFn: () => fetchFilteredAnime(applied), staleTime: 5 * 60 * 1000, retry: 1 });
   const imported = series.filter((s) => {
@@ -143,12 +144,12 @@ function Browse() {
   const field = (label: string, key: keyof Filters, options: [string, string][]) =>
     <FilterPicker label={label} value={draft[key]} options={options} onChange={(v) => set(key, v)} />;
   return (
-    <main className="mx-auto max-w-[1600px] px-4 pb-24 pt-36 sm:px-6 md:px-8 md:pt-28">
-      <div className="mb-5 flex items-center justify-between gap-3"><h1 className="border-l-4 border-primary pl-3 text-2xl font-extrabold sm:text-3xl">Search Anime</h1><span className="hidden text-xs font-semibold uppercase tracking-wider text-muted-foreground lg:inline">Explore the anime catalogue</span></div>
-      <form onSubmit={(e) => { e.preventDefault(); setApplied({ ...draft }); }} className="space-y-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
-          <label className="relative block min-w-0 flex-1"><span className="mb-2 block text-sm font-semibold">Search</span><Search className="pointer-events-none absolute bottom-3.5 left-4 h-5 w-5 text-muted-foreground" /><input aria-label="Search anime" placeholder="Search by anime title or abbreviation…" value={draft.q} onChange={(e) => set("q", e.target.value)} className="w-full rounded-md border border-border bg-card py-3 pl-12 pr-4 text-sm outline-none focus:border-primary" /></label>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 lg:flex-[3]">
+    <main className="mx-auto w-full max-w-none px-4 pb-24 pt-24 sm:px-5 md:px-6 md:pt-24">
+      <div className="mb-4 flex items-center justify-between gap-3"><h1 className="border-l-4 border-primary pl-3 text-xl font-extrabold sm:text-2xl">Search Anime</h1><span className="hidden text-xs font-semibold uppercase tracking-wider text-muted-foreground lg:inline">Explore the anime catalogue</span></div>
+      <form onSubmit={(e) => { e.preventDefault(); setApplied({ ...draft }); }} className="space-y-3">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-7 lg:items-end">
+          <label className="relative col-span-2 block min-w-0 lg:col-span-1"><span className="mb-2 block text-sm font-semibold">Search</span><Search className="pointer-events-none absolute bottom-3.5 left-4 h-5 w-5 text-muted-foreground" /><input aria-label="Search anime" placeholder="Search by anime title or abbreviation…" value={draft.q} onChange={(e) => set("q", e.target.value)} className="w-full rounded-md border border-border bg-card py-3 pl-12 pr-4 text-sm outline-none focus:border-primary" /></label>
+          <div className="col-span-2 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:col-span-6 lg:grid-cols-6">
             {field("Genres", "genre", genreOptions)}
             {field("Year", "year", years.map((y) => [y, y]))}
             {field("Tags", "tag", tagOptions)}
@@ -164,8 +165,8 @@ function Browse() {
         </div>
         {expanded && <div className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-card/60 p-4 sm:grid-cols-4">{field("Demographics", "demographic", demographics)}{field("Season", "season", seasons)}{field("Origin", "origin", origins)}<p className="col-span-2 self-end text-xs text-muted-foreground sm:col-span-1">AniList age flags are not official age classifications.</p></div>}
       </form>
-      <div className="mt-7 flex flex-col gap-6 border-t border-border pt-5 lg:flex-row">
-        <aside className="hidden w-52 shrink-0 space-y-4 lg:block xl:w-60">
+      <div className="mt-4 flex flex-col gap-4 border-t border-border pt-4 lg:flex-row">
+        {sidebarOpen && <aside className="w-full shrink-0 space-y-3 lg:w-44 xl:w-48">
           {([
             ["Season", "season", seasons],
             ["Format", "format", formats as [string, string][]],
@@ -173,11 +174,11 @@ function Browse() {
             ["Origin", "origin", origins],
           ] as [string, keyof Filters, [string, string][]][]).map(([label, key, options]) => <fieldset key={key} className="overflow-hidden rounded-lg border border-border bg-card/70 p-3"><legend className="sr-only">{label}</legend><h2 className="mb-3 border-l-2 border-primary pl-2 text-sm font-bold">{label}</h2><div className="space-y-2">{options.map(([value, name]) => <label key={value} className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground hover:text-foreground"><input type="radio" name={key} checked={draft[key] === value} onChange={() => set(key, draft[key] === value ? "" : value)} className="accent-primary" />{name}</label>)}<button type="button" onClick={() => set(key, "")} className="text-xs text-primary underline">Any {label.toLowerCase()}</button></div></fieldset>)}
           <button type="button" onClick={() => setApplied({ ...draft })} className="w-full rounded bg-primary py-2 text-sm font-bold text-primary-foreground">Apply sidebar filters</button>
-        </aside>
+        </aside>}
         <div className="min-w-0 flex-1">
-          <p className="mb-5 text-sm text-muted-foreground">{results.isLoading ? "Searching anime…" : results.isError ? "Search unavailable" : `${(results.data?.total ?? 0).toLocaleString()} anime results found`}</p>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><p className="text-sm text-muted-foreground">{results.isLoading ? "Searching anime…" : results.isError ? "Search unavailable" : `${(results.data?.total ?? 0).toLocaleString()} anime results found`}</p><button type="button" onClick={() => setSidebarOpen(!sidebarOpen)} className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-primary">{sidebarOpen ? "Hide sidebar" : "Show sidebar"}</button></div>
           {results.isError && <div role="alert" className="mb-5 text-sm text-destructive">{results.error.message} <button className="ml-2 underline" onClick={() => void results.refetch()}>Retry</button></div>}
-          {!!imported.length && <section className="mb-8"><h2 className="mb-4 text-lg font-bold">Available on Streamly</h2><div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7">{imported.map((series) => <SeriesCard key={series.id} s={series} />)}</div></section>}
+          {!!imported.length && <section className="mb-8"><h2 className="mb-4 text-lg font-bold">Available on Streamly</h2><div className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-9">{imported.map((series) => <SeriesCard key={series.id} s={series} />)}</div></section>}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7">{results.data?.media.map((anime) => <AnimeCard key={anime.id} a={anime} />)}</div>
           {!results.isLoading && !results.isError && !results.data?.media.length && !imported.length && <p className="py-12 text-center text-muted-foreground">No anime matched your filters. Try resetting them.</p>}
         </div>
