@@ -134,7 +134,7 @@ export function QuickSearch({ open, onOpenChange }: { open: boolean; onOpenChang
                         <Link to="/anime/$id" params={{ id: String(anime.id) }} onClick={() => onOpenChange(false)}>
                           <span className="w-4 shrink-0 text-[10px] font-bold text-primary">{String(index + 1).padStart(2, "0")}</span>
                           {anime.coverImage.large ? <img src={anime.coverImage.large} alt="" className="h-12 w-9 shrink-0 rounded-sm object-cover" /> : <span className="flex h-12 w-9 shrink-0 items-center justify-center rounded-sm bg-muted"><Film className="text-muted-foreground" /></span>}
-                          <span className="min-w-0 flex-1"><span className="line-clamp-2 text-xs font-bold">{title}</span><span className="mt-1 block text-[10px] text-muted-foreground">{subtitle ? `${subtitle} · Not on Streamly yet` : "Trending on AniList · Not on Streamly yet"}</span></span>
+                          <span className="min-w-0 flex-1"><span className="line-clamp-2 text-xs font-bold">{title}</span><span className="mt-1 block text-[10px] text-muted-foreground">{subtitle ? `${subtitle}` : "Trending on AniList"}</span></span>
                           <ChevronRight className="shrink-0 text-muted-foreground" />
                         </Link>
                       )}
