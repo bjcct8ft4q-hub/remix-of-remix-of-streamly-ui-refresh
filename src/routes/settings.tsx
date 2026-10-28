@@ -37,6 +37,10 @@ export const Route = createFileRoute("/settings")({ component: Settings, head: (
 function Settings() {
   const { preference, setPreference } = useAudioPreference();
   const { user } = useAuth();
+  const [settingsTab, setSettingsTab] = useState<"profile" | "playback">("profile");
+  const [avatarTab, setAvatarTab] = useState<"anime" | "upload">("anime");
+  const [selectedShow, setSelectedShow] = useState(113415);
+  const [avatarSearch, setAvatarSearch] = useState("");
   const [avatarMessage, setAvatarMessage] = useState("");
   const [avatarSaving, setAvatarSaving] = useState(false);
   const [avatarChoice, setAvatarChoice] = useState<string | null>(null);
@@ -70,17 +74,50 @@ function Settings() {
     { value: "sub", label: "Japanese (Sub)", detail: "Prefer Japanese audio with subtitles." },
     { value: "dub", label: "English (Dub)", detail: "Prefer English dubbed audio when available; otherwise use subtitles." },
   ];
-  return <main className="mx-auto max-w-3xl px-5 pb-20 pt-36 md:pt-28">
-    <h1 className="mb-6 border-l-4 border-primary pl-3 text-3xl font-extrabold">Settings</h1>
-    {user && <section className="mb-6 rounded-xl border border-border bg-card p-5"><h2 className="text-xl font-bold">Profile avatar</h2><p className="mt-2 text-sm text-muted-foreground">Choose an anime character portrait, upload your own image, or use your initial. Your choice appears on your profile and account menu.</p><div className="mt-4 flex items-center gap-3"><AccountAvatar size="lg" /><span className="text-sm text-muted-foreground">Your current avatar</span></div><h3 className="mt-6 text-sm font-bold uppercase tracking-wide text-primary">Anime character avatars</h3>{avatarsLoading && <p className="mt-3 text-sm text-muted-foreground">Loading anime characters…</p>}{avatarsError && <p className="mt-3 text-sm text-muted-foreground">Character portraits are unavailable right now. <button type="button" onClick={() => void retryAvatars()} className="text-primary underline">Retry</button></p>}{animeAvatars?.map((collection) => <div key={collection.mediaId} className="mt-4"><h4 className="mb-3 text-sm font-semibold">{collection.title}</h4><div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">{collection.characters.map((character) => <button type="button" key={character.id} disabled={avatarSaving} onClick={() => void saveAvatar("", character.image)} aria-label={`Choose ${character.name} from ${collection.title}`} title={character.name} className="group min-w-0 text-center"><span className={`mx-auto block aspect-square w-full max-w-24 overflow-hidden rounded-full border-[3px] bg-muted transition group-hover:scale-105 group-hover:border-primary ${avatarChoice === character.image || (!avatarChoice && user.user_metadata?.avatar_url === character.image) ? "border-primary" : "border-border"}`}><img src={character.image} alt="" loading="lazy" className="h-full w-full object-cover" /></span><span className="mt-1 block truncate text-xs text-muted-foreground group-hover:text-foreground">{character.name}</span></button>)}</div></div>)}<div className="mt-7 rounded-lg border border-border bg-muted/20 p-4"><h3 className="text-sm font-bold uppercase tracking-wide text-primary">Upload your own avatar</h3><p className="mt-2 text-sm text-muted-foreground">JPG, PNG or WebP, up to 5 MB. Your image will appear as a circular profile picture.</p><label className="mt-3 inline-flex cursor-pointer rounded-md bg-primary px-4 py-2 text-sm font-bold text-primary-foreground"><input type="file" accept="image/jpeg,image/png,image/webp" disabled={avatarSaving} className="sr-only" onChange={(event) => { void uploadAvatar(event.currentTarget.files?.[0]); event.currentTarget.value = ""; }} />{avatarSaving ? "Saving…" : "Choose image"}</label></div><button type="button" disabled={avatarSaving} onClick={() => void saveAvatar("")} className="mt-4 text-sm text-primary underline">Use my initial instead</button>{avatarMessage && <p role="status" className="mt-3 text-sm text-muted-foreground">{avatarMessage}</p>}</section>}
-    <section className="rounded-xl border border-border bg-card p-5">
-      <h2 className="text-xl font-bold">Preferred audio language</h2>
-      <p className="mt-2 text-sm text-muted-foreground">Choose the audio to select automatically when opening anime. You can still change it for individual episodes.</p>
-      <div className="mt-5 space-y-3">{choices.map((choice) => <label key={choice.value} className={"flex cursor-pointer gap-3 rounded-lg border p-4 " + (preference === choice.value ? "border-primary bg-primary/10" : "border-border")}>
-        <input type="radio" name="audio" value={choice.value} checked={preference === choice.value} onChange={() => setPreference(choice.value)} className="accent-primary" />
-        <span><strong className="block">{choice.label}</strong><span className="mt-1 block text-sm text-muted-foreground">{choice.detail}</span></span>
-      </label>)}</div>
-      <p className="mt-4 text-xs text-muted-foreground">Saved on this device. Audio and subtitle availability varies by anime and episode.</p>
-    </section>
+  const currentCollection = animeAvatars?.find((collection) => collection.mediaId === selectedShow);
+  const visibleCharacters = currentCollection?.characters.filter((character) => character.name.toLowerCase().includes(avatarSearch.trim().toLowerCase())) ?? [];
+  const selectedAvatar = avatarChoice ?? (typeof user?.user_metadata?.avatar_url === "string" ? user.user_metadata.avatar_url : "");
+  return <main className="mx-auto max-w-5xl px-4 pb-24 pt-32 sm:px-6 md:pt-28">
+    <div className="mb-7"><p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Your Streamly account</p><h1 className="mt-2 text-3xl font-extrabold sm:text-4xl">Settings</h1><p className="mt-2 text-sm text-muted-foreground">Personalise your profile and watching experience.</p></div>
+    <div className="grid gap-6 md:grid-cols-[220px_minmax(0,1fr)]">
+      <nav aria-label="Settings categories" className="flex h-fit gap-2 overflow-x-auto rounded-xl border border-border bg-card p-2 md:sticky md:top-28 md:flex-col">
+        <button type="button" onClick={() => setSettingsTab("profile")} aria-current={settingsTab === "profile" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "profile" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Profile & avatar</button>
+        <button type="button" onClick={() => setSettingsTab("playback")} aria-current={settingsTab === "playback" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "playback" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Language & playback</button>
+      </nav>
+      <div className="min-w-0">
+        {settingsTab === "profile" && <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+          <h2 className="text-xl font-bold">Profile picture</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Choose a character or upload a picture of your own.</p>
+          {user ? <>
+            <div className="mt-5 flex items-center gap-4 rounded-xl border border-border bg-muted/30 p-4"><AccountAvatar size="lg" /><div className="min-w-0"><p className="font-semibold">Your current avatar</p><p className="mt-1 text-xs text-muted-foreground">Displayed across Streamly</p><button type="button" disabled={avatarSaving} onClick={() => void saveAvatar("")} className="mt-2 text-xs font-semibold text-primary hover:underline">Reset to username initial</button></div></div>
+            <div className="mt-6 flex gap-2 border-b border-border pb-2" role="tablist" aria-label="Avatar options">
+              <button role="tab" aria-selected={avatarTab === "anime"} onClick={() => setAvatarTab("anime")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${avatarTab === "anime" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>Anime characters</button>
+              <button role="tab" aria-selected={avatarTab === "upload"} onClick={() => setAvatarTab("upload")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${avatarTab === "upload" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>Upload your own</button>
+            </div>
+            {avatarTab === "anime" && <div className="pt-5">
+              <h3 className="mb-3 text-sm font-bold">Choose an anime</h3>
+              <div className="flex gap-2 overflow-x-auto pb-3" role="group" aria-label="Anime series">
+                {avatarShows.map((show) => <button type="button" key={show.mediaId} onClick={() => { setSelectedShow(show.mediaId); setAvatarSearch(""); }} aria-pressed={selectedShow === show.mediaId} className={`shrink-0 rounded-full border px-4 py-2 text-xs font-semibold transition ${selectedShow === show.mediaId ? "border-primary bg-primary/15 text-primary" : "border-border bg-muted/30 hover:border-primary"}`}>{show.title}</button>)}
+              </div>
+              <label className="mt-2 block"><span className="sr-only">Search characters</span><input type="search" value={avatarSearch} onChange={(event) => setAvatarSearch(event.target.value)} placeholder="Find a character…" className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" /></label>
+              {avatarsLoading && <p className="py-8 text-center text-sm text-muted-foreground">Loading character avatars…</p>}
+              {avatarsError && <div className="py-8 text-center text-sm text-muted-foreground">Could not load characters. <button type="button" onClick={() => void retryAvatars()} className="text-primary underline">Retry</button></div>}
+              {!avatarsLoading && !avatarsError && <div className="mt-4 grid max-h-[430px] grid-cols-3 gap-3 overflow-y-auto rounded-lg border border-border bg-background/40 p-3 sm:grid-cols-4 lg:grid-cols-5">{visibleCharacters.map((character) => <button type="button" key={character.id} disabled={avatarSaving} onClick={() => void saveAvatar("", character.image)} aria-label={`Choose ${character.name}`} title={character.name} className="group min-w-0 text-center"><span className={`mx-auto block aspect-square w-full max-w-24 overflow-hidden rounded-full border-[3px] transition group-hover:scale-105 group-hover:border-primary ${selectedAvatar === character.image ? "border-primary" : "border-border"}`}><img src={character.image} alt="" loading="lazy" className="h-full w-full object-cover" /></span><span className="mt-1.5 block truncate text-xs text-muted-foreground group-hover:text-foreground">{character.name}</span></button>)}{!visibleCharacters.length && <p className="col-span-full py-6 text-center text-sm text-muted-foreground">No matching characters found.</p>}</div>}
+            </div>}
+            {avatarTab === "upload" && <div className="mt-5 rounded-xl border border-dashed border-primary/50 bg-primary/5 p-6 text-center"><div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-2xl">↑</div><h3 className="font-bold">Upload a custom avatar</h3><p className="mt-2 text-sm text-muted-foreground">JPG, PNG or WebP, up to 5 MB. Images are displayed as circles.</p><label className="mt-4 inline-flex cursor-pointer rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground"><input type="file" accept="image/jpeg,image/png,image/webp" disabled={avatarSaving} className="sr-only" onChange={(event) => { void uploadAvatar(event.currentTarget.files?.[0]); event.currentTarget.value = ""; }} />{avatarSaving ? "Saving…" : "Choose image"}</label></div>}
+            {avatarMessage && <p role="status" className="mt-4 rounded-lg bg-muted p-3 text-sm">{avatarMessage}</p>}
+          </> : <p className="mt-5 text-sm text-muted-foreground">Sign in to customise your avatar.</p>}
+        </section>}
+        {settingsTab === "playback" && <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+          <h2 className="text-xl font-bold">Preferred audio language</h2>
+          <p className="mt-2 text-sm text-muted-foreground">Choose the audio Streamly selects automatically. You can still change it for individual episodes.</p>
+          <div className="mt-5 space-y-3">{choices.map((choice) => <label key={choice.value} className={"flex cursor-pointer gap-3 rounded-lg border p-4 " + (preference === choice.value ? "border-primary bg-primary/10" : "border-border")}>
+            <input type="radio" name="audio" value={choice.value} checked={preference === choice.value} onChange={() => setPreference(choice.value)} className="accent-primary" />
+            <span><strong className="block">{choice.label}</strong><span className="mt-1 block text-sm text-muted-foreground">{choice.detail}</span></span>
+          </label>)}</div>
+          <p className="mt-4 text-xs text-muted-foreground">Saved on this device. Audio and subtitle availability varies by anime and episode.</p>
+        </section>}
+      </div>
+    </div>
   </main>;
 }
