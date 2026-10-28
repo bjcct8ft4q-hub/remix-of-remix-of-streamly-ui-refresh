@@ -1,11 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
-import { Play, Info, Star, ChevronLeft, ChevronRight } from "lucide-react";
-import { seriesListQuery, type SeriesRow } from "@/lib/queries";
-import { useSignedUrl } from "@/lib/media";
-import { SeriesCard } from "@/components/SeriesCard";
-import { useAuth } from "@/lib/auth";
+import { useEffect, useState } from "react";
+import { Play, Info, Star, ChevronLeft, ChevronRight, LoaderCircle } from "lucide-react";
+import { animeCatalogQuery, type CatalogAnime } from "@/lib/anime-catalog";
+import { animeTitle } from "@/lib/kitsune";
+import { AnimeCard } from "@/components/AnimeCard";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
@@ -22,52 +21,25 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type S = SeriesRow;
-
-// Homepage features recent releases first, with a current-year fallback.
-function releaseDate(series: S) {
-  return series.start_date ? new Date(series.start_date) : null;
-}
-
-function isRecentRelease(series: S, days = 30) {
-  const date = releaseDate(series);
-  if (!date || Number.isNaN(date.getTime())) return false;
-  const age = Date.now() - date.getTime();
-  return age >= 0 && age <= days * 24 * 60 * 60 * 1000;
-}
-
-function is2026Release(series: S) {
-  const date = releaseDate(series);
-  return !!date && !Number.isNaN(date.getTime()) && date.getFullYear() === 2026;
-}
+type S = CatalogAnime;
 
 function Hero({ s }: { s: S }) {
-  const img = useSignedUrl(s.banner_url || s.cover_url);
+  const img = s.bannerImage || s.coverImage.extraLarge || s.coverImage.large;
   return (
-    <div className="grid h-full min-h-[390px] grid-cols-1 overflow-hidden rounded-2xl border border-border bg-card md:grid-cols-[0.9fr_1.1fr]">
-      <div className="relative z-10 flex flex-col justify-center px-6 py-10 sm:px-9 md:px-12">
-
-        <div className="flex flex-wrap gap-2 text-xs font-semibold text-muted-foreground">
-          <span className="rounded-full border border-border px-3 py-1">{s.type ?? "Anime"}</span>
-          {s.start_date && <span className="rounded-full border border-border px-3 py-1">{new Date(s.start_date).getFullYear()}</span>}
-          <span className="flex items-center gap-1 rounded-full border border-border px-3 py-1"><Star className="h-3 w-3 fill-primary text-primary" />{s.score ?? "N/A"}</span>
+    <div className="relative flex min-h-[430px] items-end overflow-hidden bg-muted md:min-h-[490px]">
+      {img && <img src={img} alt="" className="absolute inset-0 h-full w-full object-cover" />}
+      <div className="absolute inset-0 bg-gradient-to-t from-background via-overlay/60 to-transparent" />
+      <div className="relative z-10 min-w-0 px-6 pb-10 pt-24 sm:px-9 md:px-12">
+        <div className="flex flex-wrap gap-3 text-xs font-semibold text-foreground">
+          <span>{s.format?.replaceAll("_", " ") ?? "Anime"}</span>
+          {s.seasonYear && <span>{s.seasonYear}</span>}
+          {s.averageScore != null && <span className="flex items-center gap-1"><Star className="h-3 w-3 fill-star text-star" />{(s.averageScore / 10).toFixed(1)}</span>}
         </div>
-        <h1 className="mt-5 max-w-xl break-words text-3xl font-black leading-tight tracking-tight sm:text-4xl lg:text-5xl">{s.title}</h1>
-        <p className="mt-4 line-clamp-3 max-w-lg text-sm leading-7 text-muted-foreground">{s.description}</p>
-        <div className="mt-7 flex flex-wrap gap-3">
-          <Button asChild className="h-11 rounded-full px-6 text-sm font-bold"><Link to="/series/$id" params={{ id: s.id }}>
-            <Play className="h-4 w-4 fill-current" /> Watch now
-          </Link></Button>
-          <Button asChild variant="outline" className="h-11 rounded-full px-6 text-sm font-bold"><Link to="/series/$id" params={{ id: s.id }}>
-            <Info className="h-4 w-4" /> View details
-          </Link></Button>
-        </div>
-      </div>
-      <div className="relative min-h-[250px] overflow-hidden bg-muted md:min-h-[440px]">
-        {img && <img src={img} alt="" className="absolute inset-0 h-full w-full object-cover" />}
-        <div className="absolute inset-0 bg-gradient-to-r from-card via-card/20 to-transparent md:from-card/80 md:via-transparent" />
-        <div className="absolute bottom-5 right-5 rounded-full border border-white/20 bg-black/50 px-4 py-2 text-xs font-semibold text-white backdrop-blur">
-          Discover on Streamly
+        <h1 className="mt-4 max-w-3xl break-words text-3xl font-black leading-tight sm:text-4xl lg:text-5xl">{animeTitle(s)}</h1>
+        {s.description && <p className="mt-4 line-clamp-3 max-w-2xl text-sm leading-7 text-foreground">{s.description.replace(/<[^>]+>/g, "")}</p>}
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Button asChild className="h-11 px-6 font-bold"><Link to="/anime/$id" params={{ id: String(s.id) }}><Play className="h-4 w-4 fill-current" /> Watch now</Link></Button>
+          <Button asChild variant="outline" className="h-11 bg-background/70 px-6 font-bold"><Link to="/anime/$id" params={{ id: String(s.id) }}><Info className="h-4 w-4" /> View details</Link></Button>
         </div>
       </div>
     </div>
@@ -76,24 +48,24 @@ function Hero({ s }: { s: S }) {
 
 function Grid({ title, items, loading, filters }: { title: string; items: S[]; loading?: boolean; filters?: boolean }) {
   const [f, setF] = useState<"all" | "series" | "movies">("all");
-  const shown = items.filter((s) => f === "all" || (f === "movies" ? s.type === "Movie" : s.type !== "Movie"));
+  const shown = items.filter((s) => f === "all" || (f === "movies" ? s.format === "MOVIE" : s.format !== "MOVIE"));
   return (
     <section>
       <SectionTitle title={title}>
         {filters && (
           <div className="flex gap-4 text-sm font-semibold">
             {(["all", "series", "movies"] as const).map((k) => (
-              <button key={k} onClick={() => setF(k)} className={`capitalize ${f === k ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}>{k}</button>
+              <Button variant="ghost" size="sm" key={k} onClick={() => setF(k)} aria-pressed={f === k} className={`capitalize ${f === k ? "text-primary" : "text-muted-foreground"}`}>{k}</Button>
             ))}
           </div>
         )}
       </SectionTitle>
-      {loading ? null : shown.length ? (
+      {loading ? <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><LoaderCircle className="h-4 w-4 animate-spin motion-reduce:animate-none" />Loading anime…</p> : shown.length ? (
         <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
-          {shown.map((s) => <SeriesCard key={s.id} s={s} />)}
+          {shown.map((s) => <AnimeCard key={s.id} a={s} />)}
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">No series or movies uploaded yet.</p>
+        <p className="text-sm text-muted-foreground">No anime found for this filter.</p>
       )}
     </section>
   );
@@ -123,7 +95,7 @@ function Schedule() {
       { title: "Black Clover", detail: "Season 2 · Episode 5", status: "scheduled" },
     ],
   };
-  const selectedDate = days[sel] ?? days[0]!;
+  const selectedDate = days[sel] ?? new Date();
   const items = releases[dateKey(selectedDate)] ?? [];
   return (
     <aside className="rounded-lg border border-border bg-card p-4">
@@ -167,37 +139,13 @@ function SectionTitle({ title, children }: { title: string; children?: React.Rea
   );
 }
 
-function Row({ title, items }: { title: string; items: S[] }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const scroll = (d: number) => ref.current?.scrollBy({ left: d * ref.current.clientWidth * 0.8, behavior: "smooth" });
-  return (
-    <section>
-      <SectionTitle title={title}>
-        <div className="flex items-center gap-2">
-          <Link to="/browse" className="mr-2 text-xs font-semibold text-muted-foreground hover:text-primary">View all</Link>
-          <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" aria-label={`Scroll ${title} left`} onClick={() => scroll(-1)}><ChevronLeft className="h-4 w-4" /></Button>
-          <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" aria-label={`Scroll ${title} right`} onClick={() => scroll(1)}><ChevronRight className="h-4 w-4" /></Button>
-        </div>
-      </SectionTitle>
-      <div ref={ref} className="flex snap-x gap-4 overflow-x-auto pb-2 [scrollbar-width:none]">
-        {items.map((s) => (
-          <div key={s.id} className="w-[44%] shrink-0 snap-start sm:w-[30%] md:w-[23%] xl:w-[15.5%]"><SeriesCard s={s} /></div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 function Index() {
-  const { data = [], isLoading } = useQuery(seriesListQuery());
-  const { isAdmin, user } = useAuth();
+  const catalog = useQuery(animeCatalogQuery());
+  const isLoading = catalog.isPending;
   const [i, setI] = useState(0);
-  const [period, setPeriod] = useState<"day" | "week" | "month">("day");
-  const recentReleases = [...data].filter((s) => isRecentRelease(s)).sort((a, b) => +new Date(b.start_date ?? 0) - +new Date(a.start_date ?? 0));
-  const currentYearReleases = [...data].filter(is2026Release).sort((a, b) => +new Date(b.start_date ?? 0) - +new Date(a.start_date ?? 0));
-  const featured = (recentReleases.length ? recentReleases : currentYearReleases.length ? currentYearReleases : [...data].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))).slice(0, 8);
-  const popularAnime = currentYearReleases.slice(0, 12);
-  const latestEpisodes = data.filter((s) => is2026Release(s) && ((s.episodes?.length ?? 0) > 0 || ((s as { episodes_count?: number }).episodes_count ?? 0) > 0));
+  const featured = (catalog.data?.trending ?? []).slice(0, 8);
+  const popularAnime = catalog.data?.popular ?? [];
+  const latestEpisodes = catalog.data?.airing ?? [];
   const activeIndex = featured.length ? i % featured.length : 0;
   const current = featured[activeIndex];
 
@@ -229,38 +177,24 @@ function Index() {
         ) : (
           <div className="flex min-h-[390px] flex-col justify-center gap-4 rounded-2xl border border-border bg-card px-6 py-12 sm:px-8 md:px-12">
             <p className="text-sm font-bold uppercase text-primary">Streamly</p>
-            <h1 className="max-w-lg text-4xl font-black">{isLoading ? "Loading..." : "Nothing streaming yet"}</h1>
-            {!isLoading && (
-              <p className="text-muted-foreground">
-                {isAdmin ? <Link to="/admin" className="font-semibold text-primary">Add your first series →</Link> : user ? "An admin hasn't added any series yet." : "Sign in as an admin to add series."}
-              </p>
-            )}
+            <h1 className="max-w-lg text-4xl font-black">{isLoading ? "Loading anime…" : "Anime couldn’t be loaded"}</h1>
+            {catalog.isError && <div role="alert"><p className="text-muted-foreground">{catalog.error.message}</p><Button variant="outline" className="mt-4" onClick={() => void catalog.refetch()}>Try again</Button></div>}
+
           </div>
         )}
       </section>
 
-      <div className="mx-auto max-w-[1900px] px-4 pt-5 sm:px-6">
-        <div role="status" className="flex items-center gap-3 rounded-lg border border-primary/25 bg-card/80 px-4 py-3 text-sm text-muted-foreground">
-          <span className="shrink-0 text-primary" aria-hidden="true">●</span>
-          <p><span className="font-semibold text-foreground">More anime coming soon.</span> New series and seasons are being added. Check back within 24–48 hours for updates.</p>
-        </div>
-      </div>
-
       <div className="mx-auto grid max-w-[1900px] items-start gap-6 px-4 pb-20 pt-3 sm:px-6 lg:grid-cols-[minmax(0,1fr)_400px]">
         <div className="min-w-0 space-y-12">
-          <Grid title="Latest Episodes · 2026 releases" items={latestEpisodes} loading={isLoading} filters />
-          {data.length > 0 && <Grid title="Recently Added" items={[...data].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at)).slice(0, 12)} />}
+          <Grid title="Currently Airing" items={latestEpisodes} loading={isLoading} filters />
+          <Grid title="Trending Anime" items={catalog.data?.trending ?? []} loading={isLoading} />
           <Grid title="Popular Anime" items={popularAnime} loading={isLoading} filters />
         </div>
         <div className="space-y-6">
           <aside className="relative overflow-hidden rounded-lg border border-border bg-card p-4">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <h2 className="text-xl font-extrabold">Top Rated</h2>
-              <div className="flex gap-4 text-[11px] font-bold uppercase tracking-wider">
-                {(["day", "week", "month"] as const).map((p) => (
-                  <button key={p} onClick={() => setPeriod(p)} className={period === p ? "border-b-2 border-primary pb-1 text-primary" : "pb-1 text-muted-foreground hover:text-foreground"}>{p}</button>
-                ))}
-              </div>
+
             </div>
             <div className="mb-5 h-0.5 w-10 bg-primary" />
             <p className="text-sm leading-relaxed text-muted-foreground">No top rated series or movies available yet.</p>
