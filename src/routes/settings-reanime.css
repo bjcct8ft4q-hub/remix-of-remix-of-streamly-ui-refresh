@@ -134,3 +134,9 @@ html.halloween .streamly-settings-nav > button[aria-current="page"] svg{color:#f
  .streamly-settings-content {padding:12px 28px 110px 0!important;scrollbar-gutter:auto!important;}
  .streamly-settings-content > section,.streamly-settings-content > div[id^="settings-section-"] {max-width:790px!important;}
 }
+
+/* Settings is a focused full-height workspace: suppress the site footer on this route only. */
+body:has(main.streamly-settings) footer,
+body:has(main.streamly-settings) [data-site-footer] {
+  display: none !important;
+}
