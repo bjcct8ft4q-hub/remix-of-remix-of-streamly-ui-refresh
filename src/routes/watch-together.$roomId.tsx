@@ -47,8 +47,8 @@ function WatchRoom(){
   const send=async(e:React.FormEvent)=>{
     e.preventDefault();if(!user||!draft.trim()||room?.status==="ended")return;
     const body=draft.trim().slice(0,500);setDraft("");
-    const {error:e}=await db.from("watch_room_messages").insert({room_id:roomId,user_id:user.id,username:username||"Member",body});
-    if(e){setError("Message could not be sent.");setDraft(body);}else void load();
+    const {error:sendError}=await db.from("watch_room_messages").insert({room_id:roomId,user_id:user.id,username:username||"Member",body});
+    if(sendError){setError("Message could not be sent.");setDraft(body);}else void load();
   };
   return <main className="mx-auto max-w-[1800px] px-4 pb-16 pt-4">
     <div className="mb-3 flex gap-2 text-xs text-muted-foreground"><Link to="/watch-together" className="hover:text-primary">← Rooms</Link><span>›</span><span>Watch Party</span></div>
