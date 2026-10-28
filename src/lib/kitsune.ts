@@ -52,14 +52,17 @@ export async function searchAnime(search: string): Promise<AnimeSummary[]> {
   // AniList search is not fuzzy. For misspellings, retry a shortened word stem
   // and rank matches locally instead of requiring an exact spelling.
   if (results.length || resolved.length < 5) return results;
-  const words = resolved.trim().split(/\s+/);
-  const longest = [...words].sort((a, b) => b.length - a.length)[0];
-  const stem = longest.slice(0, Math.max(3, longest.length - 2));
-  if (stem.length < 3 || stem === resolved) return results;
-  const fallback = await anilist<{ Page: { media: AnimeSummary[] } }>(query, { search: stem });
-  return (fallback.Page.media ?? [])
-    .filter((a) => matchesAnimeTitle(a.title.english || "", search) || matchesAnimeTitle(a.title.romaji, search))
-    .slice(0, 24);
+  const words = resolved.trim().split(/\s+/).filter((word) => word.length >= 4);
+  const attempts = [...words].sort((a, b) => a.length - b.length).map((word) => word.slice(0, Math.max(3, word.length - 2)));
+  const found = new Map<number, AnimeSummary>();
+  for (const stem of [...new Set(attempts)].slice(0, 3)) {
+    const fallback = await anilist<{ Page: { media: AnimeSummary[] } }>(query, { search: stem });
+    for (const anime of fallback.Page.media ?? []) {
+      if (matchesAnimeTitle(anime.title.english || "", search) || matchesAnimeTitle(anime.title.romaji, search)) found.set(anime.id, anime);
+    }
+    if (found.size) break;
+  }
+  return [...found.values()].slice(0, 24);
 }
 
 export async function getAnime(id: number): Promise<AnimeDetails | null> {
