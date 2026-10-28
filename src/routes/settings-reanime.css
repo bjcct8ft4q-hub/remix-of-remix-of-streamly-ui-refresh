@@ -92,3 +92,12 @@ html:not(.halloween) .streamly-settings-nav::after,html:not(.halloween) .streaml
   .streamly-settings-nav {position:fixed!important;top:125px!important;left:0!important;bottom:0!important;height:calc(100dvh - 125px)!important;width:207px!important;}
   .streamly-settings-content {display:block!important;position:relative!important;height:calc(100dvh - 142px)!important;max-height:calc(100dvh - 142px)!important;overflow-y:auto!important;overflow-x:hidden!important;}
 }
+
+/* Reliable desktop two-column layout. Override previous conflicting fixed-height rules. */
+@media (min-width:768px) {
+ .streamly-settings {box-sizing:border-box!important;position:relative!important;display:block!important;height:calc(100dvh - 54px)!important;min-height:0!important;margin:0!important;max-width:none!important;padding:0!important;overflow:hidden!important;}
+ .streamly-settings-grid {position:relative!important;display:grid!important;grid-template-columns:207px minmax(0,1fr)!important;column-gap:clamp(28px,5vw,90px)!important;box-sizing:border-box!important;width:100%!important;max-width:1200px!important;height:100%!important;min-height:0!important;margin:0 auto!important;padding:34px 36px 0!important;align-items:stretch!important;}
+ .streamly-settings-nav {position:relative!important;inset:auto!important;top:auto!important;left:auto!important;bottom:auto!important;width:207px!important;height:100%!important;max-height:100%!important;min-height:0!important;overflow-y:auto!important;}
+ .streamly-settings-content {position:relative!important;display:block!important;grid-column:2!important;grid-row:1!important;box-sizing:border-box!important;width:100%!important;max-width:825px!important;height:100%!important;max-height:100%!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;padding:8px 16px 100px 0!important;}
+ .streamly-settings-content > section,.streamly-settings-content > div[id^="settings-section-"] {display:block!important;visibility:visible!important;}
+}
