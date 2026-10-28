@@ -81,7 +81,18 @@ export async function fetchSeasonChain(id: number): Promise<AnimeSummary[]> {
       }
     }
   }
-  // AniList may treat the second Edgerunners production as a standalone entry.\n  // Keep both instalments available from either series page.\n  if (id === 120377 || id === 195539) {\n    for (const relatedId of [120377, 195539]) {\n      if (found.has(relatedId)) continue;\n      try {\n        const data = await request(`query ($id: Int) { Media(id: $id, type: ANIME) { ${fields} } }`, { id: relatedId });\n        if (data?.Media && tv(data.Media)) found.set(relatedId, data.Media as SeasonEntry);\n      } catch { /* Show any successfully retrieved seasons. */ }\n    }\n  }\n  const anchor = found.get(id);
+  // AniList may treat the second Edgerunners production as a standalone entry.
+  // Keep both instalments available from either series page.
+  if (id === 120377 || id === 195539) {
+    for (const relatedId of [120377, 195539]) {
+      if (found.has(relatedId)) continue;
+      try {
+        const data = await request(`query ($id: Int) { Media(id: $id, type: ANIME) { ${fields} } }`, { id: relatedId });
+        if (data?.Media && tv(data.Media)) found.set(relatedId, data.Media as SeasonEntry);
+      } catch { /* Show any successfully retrieved seasons. */ }
+    }
+  }
+  const anchor = found.get(id);
   if (!anchor) return [];
   // AniList sometimes lists a numbered sequel without a PREQUEL/SEQUEL edge.
   // Search only for the anchor's base title, then require a matching base title
@@ -89,13 +100,13 @@ export async function fetchSeasonChain(id: number): Promise<AnimeSummary[]> {
   const anchorBase = baseName(anchor);
   if (anchorBase.length >= 4) {
     try {
-      const search = (anchor.title.english || anchor.title.romaji).replace(/(?:\\s+|^)(?:season|series|part|cour)\\s*(?:[0-9]+|ii|iii|iv|v|vi|vii|viii|ix|x)\\b.*$/i, "").trim();
+      const search = (anchor.title.english || anchor.title.romaji).replace(/(?:\s+|^)(?:season|series|part|cour)\s*(?:[0-9]+|ii|iii|iv|v|vi|vii|viii|ix|x)\b.*$/i, "").trim();
       const data = await request(`query ($search: String) { Page(page: 1, perPage: 30) { media(search: $search, type: ANIME) { ${fields} } } }`, { search });
       const candidates = (data?.Page?.media ?? []) as SeasonEntry[];
       for (const candidate of candidates) {
         if (!tv(candidate) || candidate.id === id || baseName(candidate) !== anchorBase) continue;
         const candidateName = name(candidate);
-        const numbered = /(?:season|series|part|cour)\\s*(?:[2-9]|ii|iii|iv|v|vi|vii|viii|ix|x)\\b|\\b(?:2nd|3rd|4th|5th)\\s+season\\b|\\s(?:ii|iii|iv|v|vi|vii|viii|ix|x|[2-9])$/.test(candidateName);
+        const numbered = /(?:season|series|part|cour)\s*(?:[2-9]|ii|iii|iv|v|vi|vii|viii|ix|x)\b|\b(?:2nd|3rd|4th|5th)\s+season\b|\s(?:ii|iii|iv|v|vi|vii|viii|ix|x|[2-9])$/.test(candidateName);
         if (numbered || [...found.values()].some((entry) => (entry as SeasonEntry).relations?.edges?.some((edge) => edge.node.id === candidate.id && ["PREQUEL", "SEQUEL"].includes(edge.relationType)))) {
           found.set(candidate.id, candidate);
         }
