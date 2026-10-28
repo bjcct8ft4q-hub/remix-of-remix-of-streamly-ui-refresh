@@ -9,7 +9,7 @@ import {
   Scripts,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/lib/auth";
 import { ThemeProvider, useTheme } from "@/lib/theme";
@@ -170,12 +170,58 @@ function TrafficTracker() {
 
 function ThemeToggle() {
   const { halloween, toggleHalloween } = useTheme();
-  return <button type="button" onClick={toggleHalloween}
-    className="streamly-theme-toggle fixed bottom-5 right-5 z-[100] flex h-12 w-12 items-center justify-center border-0 bg-transparent p-0 text-3xl shadow-none transition-transform hover:scale-110 focus-visible:rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:bottom-6 sm:right-6"
-    aria-label={halloween ? "Switch to normal blue theme" : "Switch to Halloween orange theme"}
-    title={halloween ? "Switch to normal theme" : "Switch to Halloween theme"}>
-    <span aria-hidden="true">{halloween ? "🎃" : "🎃"}</span>
-  </button>;
+  const [glitch, setGlitch] = useState(false);
+  const busy = useRef(false);
+  const timers = useRef<number[]>([]);
+  const audio = useRef<AudioContext | null>(null);
+  useEffect(() => () => {
+    timers.current.forEach(window.clearTimeout);
+    if (audio.current) void audio.current.close();
+  }, []);
+  const playStatic = () => {
+    try {
+      const ctx = new AudioContext();
+      audio.current = ctx;
+      const length = Math.floor(ctx.sampleRate * 0.23);
+      const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+      const samples = buffer.getChannelData(0);
+      for (let i = 0; i < length; i++) samples[i] = (Math.random() * 2 - 1) * (1 - i / length);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.045, ctx.currentTime + 0.025);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.22);
+      source.connect(gain).connect(ctx.destination);
+      source.start();
+      source.onended = () => { if (audio.current === ctx) audio.current = null; void ctx.close(); };
+    } catch { /* Audio is optional, including on browsers that block it. */ }
+  };
+  const changeTheme = () => {
+    if (busy.current) return;
+    if (typeof window === "undefined" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      toggleHalloween();
+      return;
+    }
+    busy.current = true;
+    setGlitch(true);
+    playStatic();
+    timers.current.push(window.setTimeout(() => toggleHalloween(), 170));
+    timers.current.push(window.setTimeout(() => {
+      setGlitch(false);
+      busy.current = false;
+      timers.current = [];
+    }, 480));
+  };
+  return <>
+    {glitch && <div className="streamly-glitch-overlay" aria-hidden="true"><div className="streamly-glitch-noise" /><div className="streamly-glitch-scanlines" /></div>}
+    <button type="button" onClick={changeTheme}
+      className="streamly-theme-toggle fixed bottom-5 right-5 z-[100] flex h-12 w-12 items-center justify-center border-0 bg-transparent p-0 text-3xl shadow-none transition-transform hover:scale-110 focus-visible:rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:bottom-6 sm:right-6"
+      aria-label={halloween ? "Switch to normal blue theme" : "Switch to Halloween orange theme"}
+      title={halloween ? "Switch to normal theme" : "Switch to Halloween theme"}>
+      <span aria-hidden="true">🎃</span>
+    </button>
+  </>;
 }
 
 function RootComponent() {
