@@ -1,0 +1,5 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useAuth } from "@/lib/auth";
+import { AccountAvatar } from "@/components/AccountAvatar";
+export const Route = createFileRoute("/public-profile")({ component: PublicProfile });
+function PublicProfile() { const { user, username } = useAuth(); return <main className="mx-auto max-w-3xl px-5 pb-20 pt-32"><h1 className="mb-5 text-3xl font-extrabold">Public profile preview</h1>{user ? <div className="rounded-xl border border-border bg-card p-6"><div className="flex items-center gap-4"><AccountAvatar size="lg" /><div><h2 className="text-2xl font-bold">{username}</h2><p className="text-sm text-muted-foreground">Streamly member</p></div></div><p className="mt-5 text-sm text-muted-foreground">This is how your public profile will look. Public profile sharing and discovery are not enabled yet. Your email address is private.</p><Link to="/settings" className="mt-4 inline-block text-primary underline">Edit avatar</Link></div> : <p className="text-muted-foreground">Sign in to preview your public profile.</p>}</main>; }
