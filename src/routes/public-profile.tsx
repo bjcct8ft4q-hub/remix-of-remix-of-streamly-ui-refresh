@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { historyQuery, watchlistQuery } from "@/lib/library";
 import { AccountAvatar } from "@/components/AccountAvatar";
-import { Trophy, Film, Bookmark, CalendarDays, Settings, Users, Sparkles } from "lucide-react";
+import { Trophy, Film, Bookmark, CalendarDays, Settings, Users, Sparkles, Activity, ShieldCheck } from "lucide-react";
 export const Route = createFileRoute("/public-profile")({ component: PublicProfile, head: () => ({ meta: [{ title: "Public Profile | Streamly" }] }) });
 function PublicProfile() {
   const { user, username, openAuth } = useAuth();
@@ -13,19 +14,49 @@ function PublicProfile() {
   const series = new Set((history.data ?? []).map((r) => r.anilist_id)).size;
   const banner = typeof user?.user_metadata?.profile_banner_url === "string" && user.user_metadata.profile_banner_url.startsWith("https://") ? user.user_metadata.profile_banner_url : "";
   const stats = [{ label: "Episodes watched", value: watched, icon: Film }, { label: "Anime explored", value: series, icon: Sparkles }, { label: "In my list", value: watchlist.data?.length ?? 0, icon: Bookmark }];
-  return <main className="mx-auto max-w-5xl px-4 pb-24 pt-32 sm:px-6">
-    <div className="mb-6"><p className="text-xs font-bold uppercase tracking-[.2em] text-primary">Streamly community</p><h1 className="mt-2 text-3xl font-black sm:text-4xl">Public Profile</h1><p className="mt-2 text-sm text-muted-foreground">A preview of your community profile. Your email and private account details are never displayed here.</p></div>
-    {!user ? <div className="rounded-2xl border border-border bg-card p-8 text-center"><Users className="mx-auto mb-3 text-primary" size={36}/><h2 className="text-xl font-bold">Join the community</h2><button onClick={() => openAuth("signin")} className="mt-4 rounded-xl bg-primary px-5 py-2 font-semibold text-primary-foreground">Sign in</button></div> : <>
-      <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-2xl shadow-black/20">
-        <div className="relative h-44 overflow-hidden bg-gradient-to-br from-primary/50 via-primary/15 to-background sm:h-60">{banner && <img src={banner} alt="" className="h-full w-full object-cover" />}<div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" /></div>
-        <div className="relative px-5 pb-7 sm:px-8"><div className="-mt-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div className="flex items-end gap-4"><div className="rounded-full border-4 border-card bg-card p-1 shadow-xl"><AccountAvatar size="lg" /></div><div className="min-w-0 pb-2"><h2 className="truncate text-2xl font-black sm:text-3xl">{username || "Streamly member"}</h2><p className="text-sm text-primary">Streamly member</p></div></div><Link to="/settings" className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 py-2 text-sm font-semibold hover:border-primary"><Settings size={16}/> Edit profile</Link></div>
-          <div className="mt-5 flex items-center gap-2 text-xs text-muted-foreground"><CalendarDays size={15} /> Joined {new Date(user.created_at).toLocaleDateString("en-GB", { month: "long", year: "numeric" })}</div>
-          <p className="mt-4 max-w-xl text-sm text-muted-foreground">Discovering new stories, collecting favorites, and watching anime on Streamly.</p>
-        </div>
+  const memberSince = user ? new Date(user.created_at) : new Date();
+  const profileBio = typeof user?.user_metadata?.bio === "string" ? user.user_metadata.bio : "";
+  const displayName = typeof user?.user_metadata?.display_name === "string" ? user.user_metadata.display_name : username;
+  const activityDays = Array.from({ length: 364 }, (_, index) => {
+    const day = new Date(); day.setHours(0, 0, 0, 0); day.setDate(day.getDate() - (363 - index));
+    return { date: day, count: (history.data ?? []).filter((entry) => {
+      const dateValue = (entry as Record<string, unknown>).watched_at ?? (entry as Record<string, unknown>).created_at;
+      return typeof dateValue === "string" && new Date(dateValue).toDateString() === day.toDateString();
+    }).length };
+  });
+  const activeDays = activityDays.filter((day) => day.count > 0).length;
+  const [tab, setTab] = useState<"watchlist" | "activity">("watchlist");
+  const [range, setRange] = useState<30 | 90 | 365>(30);
+  const recent = activityDays.slice(-range);
+  return <main className="min-h-screen bg-[#050505] pb-24 pt-16 text-white">
+    {!user ? <div className="mx-auto max-w-4xl px-6 pt-20"><h1 className="text-3xl font-bold">Profile</h1><button onClick={() => openAuth("signin")} className="mt-5 rounded-md bg-primary px-5 py-2 font-semibold">Sign in</button></div> : <>
+    {tab === "watchlist" ? <>
+      <div className="relative h-48 w-full overflow-hidden bg-gradient-to-r from-[#11263a] via-[#121b2a] to-[#050505] sm:h-64">
+        {banner && <img src={banner} alt="Profile banner" className="h-full w-full object-cover" />}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-black/25 to-black/10" />
       </div>
-      <div className="mt-6 grid grid-cols-3 gap-3">{stats.map((stat) => <div key={stat.label} className="rounded-2xl border border-border bg-card p-4 text-center sm:p-6"><stat.icon className="mx-auto mb-2 text-primary" size={20}/><strong className="block text-2xl font-black sm:text-3xl">{stat.value}</strong><span className="text-xs text-muted-foreground">{stat.label}</span></div>)}</div>
-      <section className="mt-7 rounded-2xl border border-border bg-card p-5 sm:p-7"><h3 className="flex items-center gap-2 text-xl font-bold"><Trophy className="text-primary"/> Community highlights</h3><div className="mt-4 grid gap-3 sm:grid-cols-3">{[{ name: "First Steps", earned: watched >= 1, detail: "Watch an episode" },{ name: "Explorer", earned: series >= 5, detail: "Try five series" },{ name: "Collector", earned: (watchlist.data?.length ?? 0) >= 10, detail: "Save ten anime" }].map((badge) => <div key={badge.name} className={`rounded-xl border p-4 ${badge.earned ? "border-primary/40 bg-primary/10" : "border-border bg-background/50 opacity-60"}`}><p className="font-bold">{badge.earned ? "✦" : "◇"} {badge.name}</p><p className="mt-1 text-xs text-muted-foreground">{badge.detail}</p></div>)}</div></section>
-      <p className="mt-5 text-xs text-muted-foreground">This is your own public-profile preview. Viewing other members' profiles requires a separate public-profile endpoint and privacy controls.</p>
+      <div className="relative mx-auto -mt-9 max-w-[920px] px-5 sm:-mt-10">
+        <div className="flex flex-wrap items-end gap-4 border-b border-white/10 pb-7 sm:gap-6">
+          <div className="relative z-10 shrink-0 rounded-full border-4 border-[#050505] bg-[#111] shadow-xl"><AccountAvatar size="lg" /></div>
+          <div className="min-w-0 flex-1 pb-1">
+            <div className="flex flex-wrap items-center gap-2"><h1 className="break-words text-xl font-extrabold sm:text-2xl">{displayName || username}</h1><ShieldCheck size={17} className="text-primary" aria-label="Streamly member" /></div>
+            <p className="text-xs text-gray-400">@{username}</p>
+            {profileBio && <p className="mt-2 text-xs text-gray-200">{profileBio}</p>}
+            <p className="mt-2 flex items-center gap-1.5 text-[11px] text-gray-400"><CalendarDays size={12}/> Joined {memberSince.toLocaleDateString("en-GB", {month:"long",year:"numeric"})}</p>
+          </div>
+          <div className="flex gap-7 pb-2 text-center">{[{label:"COMPLETED",value:series},{label:"EPISODES",value:watched},{label:"PLANNING",value:watchlist.data?.length ?? 0}].map(item=><div key={item.label}><strong className="block text-xl font-black">{item.value}</strong><span className="text-[9px] font-bold tracking-wide text-gray-400">{item.label}</span></div>)}</div>
+        </div>
+        <div className="flex items-center justify-between border-b border-white/10 py-4"><h2 className="flex items-center gap-2 text-sm font-bold"><Bookmark size={16} className="text-primary"/> Watchlist</h2><div className="flex gap-3"><button onClick={()=>setTab("activity")} className="flex items-center gap-1 text-xs text-gray-300 hover:text-primary"><Activity size={14}/> Activity</button><Link to="/settings" className="flex items-center gap-1 text-xs text-gray-300 hover:text-primary"><Settings size={14}/> Edit</Link></div></div>
+        {(watchlist.data?.length ?? 0) === 0 ? <div className="py-28 text-center"><Bookmark size={35} className="mx-auto mb-4 text-primary"/><h3 className="font-bold">No anime in the watchlist yet</h3><p className="mt-2 text-xs text-gray-400">Saved anime will appear here.</p></div> : <div className="grid gap-3 py-6 sm:grid-cols-2"><p className="text-sm text-gray-400">{watchlist.data?.length} anime saved to this account.</p><Link to="/my-list" className="text-sm text-primary hover:underline">Open full watchlist</Link></div>}
+      </div>
+    </> : <div className="mx-auto max-w-[920px] px-5 pt-12">
+      <button onClick={()=>setTab("watchlist")} className="mb-5 text-xs text-gray-400 hover:text-white">← Profile</button>
+      <div className="mb-8 flex flex-wrap items-center gap-4"><AccountAvatar size="lg"/><div className="min-w-0 flex-1"><h1 className="text-2xl font-extrabold">{displayName || username}</h1><p className="text-xs text-gray-400">@{username} · Activity</p></div><div className="text-xs text-gray-400">Member since {memberSince.toLocaleDateString("en-GB",{month:"long",year:"numeric"})}</div></div>
+      <section className="rounded-lg border border-white/10 bg-[#0d0e11] p-4"><h2 className="text-sm font-bold">Past year</h2><p className="mt-1 text-xs text-gray-400">{activeDays} active days</p><div className="mt-5 grid grid-flow-col grid-rows-7 gap-[3px] overflow-x-auto">{activityDays.map((day,i)=><div key={i} title={day.date.toDateString()+": "+day.count+" episodes"} className="h-[10px] w-[10px] rounded-[2px]" style={{background:day.count===0?"#1c1e23":day.count===1?"#123e66":day.count<4?"#0879c5":"#1e9bff"}}/>)}</div><p className="mt-3 text-right text-[10px] text-gray-400">Less ▪ ▪ ▪ More</p></section>
+      <div className="mt-8 flex gap-6 border-b border-white/10">{([30,90,365] as const).map(n=><button key={n} onClick={()=>setRange(n)} className={`border-b-2 pb-3 text-xs ${range===n?"border-primary text-white":"border-transparent text-gray-400"}`}>{n===365?"1 year":n+" days"}</button>)}</div>
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">{[{name:"Episodes",value:recent.reduce((sum,d)=>sum+d.count,0)},{name:"Anime",value:series},{name:"Watchlist",value:watchlist.data?.length??0},{name:"Active days",value:recent.filter(d=>d.count>0).length}].map(stat=><div key={stat.name} className="rounded-lg border border-white/10 bg-[#0d0e11] p-4"><p className="text-xs text-gray-400">{stat.name}</p><p className="mt-3 text-2xl font-black">{stat.value}</p></div>)}</div>
+      <div className="mt-3 grid gap-3 md:grid-cols-2"><section className="min-h-40 rounded-lg border border-white/10 bg-[#0d0e11] p-5"><h2 className="text-sm font-bold">Watch time</h2><p className="mt-9 text-center text-xs text-gray-400">Detailed viewing durations are not available yet.</p></section><section className="min-h-40 rounded-lg border border-white/10 bg-[#0d0e11] p-5"><h2 className="text-sm font-bold">Recent activity</h2><p className="mt-9 text-center text-xs text-gray-400">{activeDays?activeDays+" days with episode activity":"No recorded activity yet"}</p></section></div>
+    </div>}
     </>}
   </main>;
 }
