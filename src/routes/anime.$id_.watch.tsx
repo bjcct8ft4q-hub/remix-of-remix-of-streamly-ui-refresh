@@ -17,9 +17,9 @@ export const Route = createFileRoute("/anime/$id_/watch")({
   validateSearch: z.object({ ep: z.coerce.number().default(1), audio: z.enum(["sub", "dub"]).default("sub"), provider: z.string().optional() }),
   head: () => ({
     meta: [
-      { title: "Now watching — Streamly" },
+      { title: "Now Watching | Streamly" },
       { name: "description", content: "Stream this anime episode in sub or dub on Streamly." },
-      { property: "og:title", content: "Now watching — Streamly" },
+      { property: "og:title", content: "Now Watching | Streamly" },
       { property: "og:description", content: "Stream this anime episode in sub or dub on Streamly." },
       { property: "og:type", content: "video.episode" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -119,6 +119,12 @@ function WatchAnime() {
   const stream = streams.data?.[server];
 
   const title = info.data ? animeTitle(info.data) : "";
+  useEffect(() => {
+    if (!title) return;
+    const pageTitle = `Now Watching: ${title} | Streamly`;
+    document.title = pageTitle;
+    return () => { if (document.title === pageTitle) document.title = "Streamly | Discover Anime"; };
+  }, [title]);
   const cover = info.data?.coverImage.large ?? null;
   const resumeAt = hist.data?.find((h) => h.episode === ep)?.progress_seconds ?? 0;
   const lastSave = useRef(0);
