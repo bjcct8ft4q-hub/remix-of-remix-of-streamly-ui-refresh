@@ -105,29 +105,32 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
-function HalloweenEffects() {
-  const { halloween, toggleHalloween } = useTheme();
-  return (
-    <>
-      <button
-        type="button"
-        className="halloween-theme-toggle"
-        onClick={toggleHalloween}
-        aria-label={halloween ? "Switch to blue theme" : "Switch to Halloween theme"}
-        title={halloween ? "Switch to blue theme" : "Switch to Halloween theme"}
-        aria-pressed={halloween}
-      >🎃</button>
-      {halloween && (
-        <div className="halloween-effects" aria-hidden="true">
-          <span className="halloween-bat halloween-bat-one">🦇</span>
-          <span className="halloween-bat halloween-bat-two">🦇</span>
-          <span className="halloween-bat halloween-bat-three">🦇</span>
-          <span className="halloween-spark halloween-spark-one">✦</span>
-          <span className="halloween-spark halloween-spark-two">✧</span>
-        </div>
-      )}
-    </>
-  );
+function InteractionSounds() {
+  useEffect(() => {
+    let context: AudioContext | null = null;
+    const click = (event: MouseEvent) => {
+      if (localStorage.getItem("streamly-ui-sounds") !== "on") return;
+      const target = event.target;
+      if (!(target instanceof Element) || !target.closest("button, a, [role=button], [role=tab]")) return;
+      try {
+        context ??= new AudioContext();
+        if (context.state === "suspended") void context.resume();
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(540, context.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(360, context.currentTime + 0.045);
+        gain.gain.setValueAtTime(0.015, context.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.055);
+        oscillator.connect(gain).connect(context.destination);
+        oscillator.start();
+        oscillator.stop(context.currentTime + 0.06);
+      } catch { /* Sound is optional and must never block interaction. */ }
+    };
+    document.addEventListener("click", click);
+    return () => { document.removeEventListener("click", click); if (context) void context.close(); };
+  }, []);
+  return null;
 }
 
 function TrafficTracker() {
@@ -154,7 +157,7 @@ function RootComponent() {
       <ThemeProvider>
         <AuthProvider>
           <div className="relative min-h-screen">
-            <HalloweenEffects />
+            <InteractionSounds />
             <TrafficTracker />
             <Header />
             <Outlet />
