@@ -106,31 +106,31 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 function HalloweenEffects() {
-  const { halloween } = useTheme();
-  if (!halloween) return null;
+  const { halloween, toggleHalloween } = useTheme();
   return (
-    <div className="halloween-effects" aria-hidden="true">
-      <span className="halloween-bat halloween-bat-one">🦇</span>
-      <span className="halloween-bat halloween-bat-two">🦇</span>
-      <span className="halloween-bat halloween-bat-three">🦇</span>
-      <span className="halloween-pumpkin">🎃</span>
-      <span className="halloween-spark halloween-spark-one">✦</span>
-      <span className="halloween-spark halloween-spark-two">✧</span>
-    </div>
+    <>
+      <button
+        type="button"
+        className="halloween-theme-toggle"
+        onClick={toggleHalloween}
+        aria-label={halloween ? "Switch to blue theme" : "Switch to Halloween theme"}
+        title={halloween ? "Switch to blue theme" : "Switch to Halloween theme"}
+        aria-pressed={halloween}
+      >🎃</button>
+      {halloween && (
+        <div className="halloween-effects" aria-hidden="true">
+          <span className="halloween-bat halloween-bat-one">🦇</span>
+          <span className="halloween-bat halloween-bat-two">🦇</span>
+          <span className="halloween-bat halloween-bat-three">🦇</span>
+          <span className="halloween-spark halloween-spark-one">✦</span>
+          <span className="halloween-spark halloween-spark-two">✧</span>
+        </div>
+      )}
+    </>
   );
 }
 
-function RootComponent() {
-  const { queryClient } = Route.useRouteContext();
-  return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <AuthProvider>
-          <div className="relative min-h-screen">
-            <HalloweenEffects />
-            <Header />
-            <Outlet />
-            <Footer />
+Footer />
           </div>
           <AuthDialog />
           <Toaster />
