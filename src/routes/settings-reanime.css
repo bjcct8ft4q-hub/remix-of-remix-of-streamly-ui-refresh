@@ -64,3 +64,13 @@ html:not(.halloween) .streamly-settings-nav::after,html:not(.halloween) .streaml
 .streamly-settings-content section input[type="checkbox"]:checked::after {transform:translateX(12px);}
 .streamly-settings-nav:after,.streamly-settings-heading:after {display:none!important;}
 @media(max-width:767px){.streamly-settings {padding-top:92px!important;}.streamly-settings-nav {height:auto!important;}}
+
+/* Keep settings navigation in place and scroll the settings panels independently. */
+@media(min-width:768px){
+ .streamly-settings {height:calc(100dvh - 54px)!important;min-height:0!important;overflow:hidden!important;padding-bottom:0!important;}
+ .streamly-settings-grid {height:100%!important;min-height:0!important;}
+ .streamly-settings-nav {position:sticky!important;top:0!important;height:100%!important;min-height:0!important;display:flex!important;flex-direction:column!important;}
+ .streamly-settings-content {height:100%!important;min-height:0!important;overflow-y:auto!important;overscroll-behavior:contain;padding:0 14px 80px 0;scroll-behavior:smooth;scrollbar-width:thin;}
+ .streamly-settings-heading {display:none!important;}
+}
+.streamly-settings-content > section,.streamly-settings-content > div[id^="settings-section-"] {scroll-margin-top:16px;margin-bottom:60px!important;}
