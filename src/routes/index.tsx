@@ -106,6 +106,46 @@ function Schedule() {
   </aside>;
 }
 
+function TopTrending({ daily, weekly, monthly, loading }: { daily: S[]; weekly: S[]; monthly: S[]; loading: boolean }) {
+  const [period, setPeriod] = useState<"day" | "week" | "month">("day");
+  const lists = { day: daily, week: weekly, month: monthly };
+  const ranked = lists[period].slice(0, 10);
+  return (
+    <aside className="relative overflow-hidden rounded-xl border border-border bg-card/70 p-3.5 shadow-lg sm:p-4">
+      <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-3">
+        <h2 className="shrink-0 text-lg font-black tracking-tight sm:text-xl">Top Trending</h2>
+        <div role="tablist" aria-label="Trending period" className="flex items-center gap-1">
+          {(["day", "week", "month"] as const).map((p) => (
+            <button key={p} type="button" role="tab" aria-selected={period === p} onClick={() => setPeriod(p)} className={`relative px-2 py-2 text-[11px] font-black uppercase tracking-wider transition-colors sm:px-2.5 ${period === p ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+              {p}<span className={`absolute inset-x-2 -bottom-[13px] h-0.5 bg-primary transition-opacity ${period === p ? "opacity-100" : "opacity-0"}`} />
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="mt-4 space-y-3">
+        {loading ? <p className="py-8 text-center text-sm text-muted-foreground">Loading trending anime…</p> : ranked.length ? ranked.map((anime, index) => {
+          const artwork = anime.bannerImage || anime.coverImage.extraLarge || anime.coverImage.large;
+          return <Link key={anime.id} to="/anime/$id" params={{ id: String(anime.id) }} className="group relative flex min-h-[92px] items-center gap-3 overflow-hidden rounded-lg border border-border/40 bg-background transition-colors hover:border-primary/70">
+            {artwork && <img src={artwork} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover object-center opacity-20 grayscale-[35%] transition-all group-hover:opacity-35" />}
+            <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/85 to-background/55" />
+            <span aria-hidden="true" className="absolute left-2 top-1/2 -translate-y-1/2 text-[76px] font-black italic leading-none text-primary/10">{index + 1}</span>
+            <span className="relative z-10 w-16 shrink-0 text-center text-4xl font-black italic text-foreground drop-shadow-md">{index + 1}</span>
+            <div className="relative z-10 min-w-0 flex-1 pr-2">
+              <p className="truncate text-sm font-extrabold text-foreground group-hover:text-primary" title={animeTitle(anime)}>{animeTitle(anime)}</p>
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-bold text-muted-foreground">
+                {anime.averageScore != null && <span className="flex items-center gap-1 text-yellow-400"><Star size={12} fill="currentColor" />{(anime.averageScore / 10).toFixed(1)}</span>}
+                <span>{anime.format?.replaceAll("_", " ") || "ANIME"}</span>
+                {anime.episodes != null && <span className="rounded bg-muted/70 px-1.5 py-0.5">▤ {anime.episodes}</span>}
+              </div>
+            </div>
+          </Link>;
+        }) : <p className="py-8 text-center text-sm text-muted-foreground">Trending anime is unavailable right now.</p>}
+      </div>
+      <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground">Rankings based on available AniList catalog data. Periods use separate catalog lists, not live daily or weekly viewing statistics.</p>
+    </aside>
+  );
+}
+
 function SectionTitle({ title, children }: { title: string; children?: React.ReactNode }) {
   return (
     <div className="mb-4 flex items-center justify-between gap-4">
@@ -167,14 +207,7 @@ function Index() {
           <Grid title="Popular Anime" items={popularAnime} loading={isLoading} filters />
         </div>
         <div className="space-y-6">
-          <aside className="relative overflow-hidden rounded-lg border border-border bg-card p-4">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <h2 className="text-xl font-extrabold">Top Rated</h2>
-
-            </div>
-            <div className="mb-5 h-0.5 w-10 bg-primary" />
-            <p className="text-sm leading-relaxed text-muted-foreground">No top rated series or movies available yet.</p>
-          </aside>
+          <TopTrending daily={catalog.data?.trending ?? []} weekly={catalog.data?.popular ?? []} monthly={catalog.data?.trending ?? []} loading={isLoading} />
           <Schedule />
         </div>
       </div>
