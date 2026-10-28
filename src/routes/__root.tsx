@@ -176,7 +176,7 @@ function ThemeToggle() {
   const audio = useRef<AudioContext | null>(null);
   useEffect(() => () => {
     timers.current.forEach(window.clearTimeout);
-    document.documentElement.classList.remove("streamly-screen-glitch");
+    document.documentElement.classList.remove("streamly-screen-glitch", "streamly-theme-swap-hidden");
     if (audio.current) void audio.current.close();
   }, []);
   // Two different glitch bursts, timed to the supplied reference:
@@ -221,10 +221,14 @@ function ThemeToggle() {
     document.documentElement.classList.add("streamly-screen-glitch");
     setGlitch(true);
     playStatic(halloween);
-    timers.current.push(window.setTimeout(() => toggleHalloween(), halloween ? 190 : 390));
+    timers.current.push(window.setTimeout(() => {
+      // The full-screen signal loss must hide the old theme before changing colours.
+      document.documentElement.classList.add("streamly-theme-swap-hidden");
+      toggleHalloween();
+    }, halloween ? 190 : 390));
     timers.current.push(window.setTimeout(() => {
       setGlitch(false);
-      document.documentElement.classList.remove("streamly-screen-glitch");
+      document.documentElement.classList.remove("streamly-screen-glitch", "streamly-theme-swap-hidden");
       busy.current = false;
       timers.current = [];
     }, halloween ? 500 : 900));
