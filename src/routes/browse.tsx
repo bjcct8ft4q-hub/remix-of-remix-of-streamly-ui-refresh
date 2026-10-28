@@ -8,6 +8,7 @@ import { SeriesCard } from "@/components/SeriesCard";
 import { AnimeCard } from "@/components/AnimeCard";
 import type { AnimeSummary } from "@/lib/kitsune";
 import { matchesAnimeTitle, resolveAnimeSearch } from "@/lib/anime-search";
+import { groupAnimeSeasons } from "@/lib/anime-series";
 
 export const Route = createFileRoute("/browse")({
   validateSearch: z.object({ q: z.string().optional() }),
@@ -93,7 +94,7 @@ async function fetchFilteredAnime(f: Filters): Promise<{ media: AnimeSummary[]; 
         Page(page: 1, perPage: 48) {
           pageInfo { total }
           media(type: ANIME, search: $search, genre: $genre, tag: $tag, seasonYear: $year, status: $status, format: $format, isAdult: $adult, season: $season, countryOfOrigin: $origin, sort: POPULARITY_DESC) {
-            id idMal title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore isAdult
+            id idMal title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore isAdult relations { edges { relationType node { id format } } }
           }
         }
       }`,
@@ -105,7 +106,7 @@ async function fetchFilteredAnime(f: Filters): Promise<{ media: AnimeSummary[]; 
   if (json.errors?.length) throw new Error("Unable to apply those filters.");
   const found: AnimeSummary[] = json.data?.Page?.media ?? [];
   if (found.length || !f.q.trim() || f.q.trim().length < 5 || f.ageRating === "adult") {
-    return { media: found, total: json.data?.Page?.pageInfo?.total ?? 0 };
+    return { media: groupAnimeSeasons(found), total: groupAnimeSeasons(found).length };
   }
   // Retry a word stem when AniList's exact search finds no titles.
   const words = resolveAnimeSearch(f.q).split(/\s+/).filter((word) => word.length >= 4);
@@ -119,7 +120,7 @@ async function fetchFilteredAnime(f: Filters): Promise<{ media: AnimeSummary[]; 
     const fallbackJson = await fallbackResponse.json();
     const candidates: AnimeSummary[] = fallbackJson.data?.Page?.media ?? [];
     const media = candidates.filter((anime) => matchesAnimeTitle(anime.title.english || "", f.q) || matchesAnimeTitle(anime.title.romaji, f.q));
-    if (media.length) return { media, total: media.length };
+    if (media.length) return { media: groupAnimeSeasons(media), total: groupAnimeSeasons(media).length };
   }
   return { media: [], total: 0 };
 }
