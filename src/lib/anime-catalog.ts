@@ -5,7 +5,7 @@ import { groupAnimeSeasons } from "@/lib/anime-series";
 export type CatalogAnime = AnimeSummary & { description: string | null };
 export type AnimeCatalog = { trending: CatalogAnime[]; popular: CatalogAnime[]; airing: CatalogAnime[] };
 
-const fields = `id idMal isAdult title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore description(asHtml: false) relations { edges { relationType node { id format } } }`;
+const fields = `id idMal isAdult title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore genres description(asHtml: false) relations { edges { relationType node { id format } } }`;
 
 async function fetchCatalog(): Promise<AnimeCatalog> {
   const response = await fetch("https://graphql.anilist.co", {
