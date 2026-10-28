@@ -451,3 +451,23 @@ html.streamly-screen-glitch header {
 @media (prefers-reduced-motion: reduce) {
   .streamly-glitch-overlay { display: none; }
 }
+
+/* Theme reveal: never show the colour palette crossfading behind the static.
+   The blackout becomes completely opaque before the theme state changes. */
+html.streamly-screen-glitch *,
+html.streamly-screen-glitch *::before,
+html.streamly-screen-glitch *::after {
+  transition-property: none !important;
+}
+html.streamly-theme-swap-hidden .streamly-glitch-overlay {
+  opacity: 1 !important;
+  background-color: #000 !important;
+  animation: none !important;
+}
+html.streamly-theme-swap-hidden .streamly-glitch-noise,
+html.streamly-theme-swap-hidden .streamly-glitch-scanlines,
+html.streamly-theme-swap-hidden .streamly-glitch-tear,
+html.streamly-theme-swap-hidden .streamly-glitch-blocks,
+html.streamly-theme-swap-hidden .streamly-glitch-color {
+  opacity: 1;
+}
