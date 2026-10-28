@@ -9,6 +9,7 @@ type CharacterAvatar = { id: number; name: string; image: string };
 type AvatarCollection = { title: string; mediaId: number; characters: CharacterAvatar[] };
 const avatarShows = [
   { title: "Jujutsu Kaisen", mediaId: 113415 },
+  { title: "JJK extras", mediaId: -113415 },
   { title: "My Hero Academia", mediaId: 21459 },
   { title: "Demon Slayer", mediaId: 101922 },
   { title: "Attack on Titan", mediaId: 16498 },
@@ -16,7 +17,7 @@ const avatarShows = [
 ];
 async function fetchCharacterAvatars(): Promise<AvatarCollection[]> {
   const query = `query ($id: Int) { Media(id: $id, type: ANIME) { characters(sort: [ROLE, RELEVANCE, ID], perPage: 12) { nodes { id name { full } image { large } } } } }`;
-  const collections = await Promise.all(avatarShows.map(async (show) => {
+  const collections = await Promise.all(avatarShows.filter((show) => show.mediaId > 0).map(async (show) => {
     const response = await fetch("https://graphql.anilist.co", {
       method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({ query, variables: { id: show.mediaId } }),
@@ -31,6 +32,27 @@ async function fetchCharacterAvatars(): Promise<AvatarCollection[]> {
       }));
     return { ...show, characters };
   }));
+  const extraNames = ["Aoi Todo", "Hiromi Higuruma", "Toji Fushiguro"];
+  const extras = await Promise.all(extraNames.map(async (characterName) => {
+    try {
+      const response = await fetch("https://graphql.anilist.co", {
+        method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ query: `query ($search: String) { Character(search: $search) { id name { full } image { large } } }`, variables: { search: characterName } }),
+      });
+      if (!response.ok) return null;
+      const result = await response.json();
+      const character = result.data?.Character;
+      return character?.image?.large ? { id: character.id, name: characterName, image: character.image.large } as CharacterAvatar : null;
+    } catch { return null; }
+  }));
+  const jjk = collections.find((collection) => collection.mediaId === 113415);
+  if (jjk) {
+    // Supplement the original JJK cast list with characters omitted by AniList's 12-character page limit.
+    const additions = extras.filter((character): character is CharacterAvatar => character !== null);
+    const existing = new Set(jjk.characters.map((character) => character.id));
+    jjk.characters.push(...additions.filter((character) => !existing.has(character.id)));
+    collections.unshift({ title: "JJK extras", mediaId: -113415, characters: additions });
+  }
   return collections.filter((collection) => collection.characters.length > 0);
 }
 export const Route = createFileRoute("/settings")({ component: Settings, head: () => ({ meta: [{ title: "Settings — Streamly" }] }) });
@@ -44,7 +66,7 @@ function Settings() {
   const [avatarMessage, setAvatarMessage] = useState("");
   const [avatarSaving, setAvatarSaving] = useState(false);
   const [avatarChoice, setAvatarChoice] = useState<string | null>(null);
-  const { data: animeAvatars, isPending: avatarsLoading, isError: avatarsError, refetch: retryAvatars } = useQuery({ queryKey: ["anime-avatar-collections-v1"], queryFn: fetchCharacterAvatars, staleTime: 60 * 60 * 1000, retry: 1 });
+  const { data: animeAvatars, isPending: avatarsLoading, isError: avatarsError, refetch: retryAvatars } = useQuery({ queryKey: ["anime-avatar-collections-v2"], queryFn: fetchCharacterAvatars, staleTime: 60 * 60 * 1000, retry: 1 });
   const uploadAvatar = async (file?: File) => {
     if (!file || !user) return;
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) { setAvatarMessage("Choose a JPG, PNG or WebP image."); return; }
