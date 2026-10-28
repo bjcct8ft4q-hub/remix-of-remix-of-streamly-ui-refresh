@@ -53,8 +53,8 @@ export function Header() {
     <header className="relative z-30 flex flex-wrap items-center gap-x-2 gap-y-2 bg-background px-3 py-3 sm:gap-x-3 sm:gap-y-3 sm:px-6">
 
       <div className="relative shrink-0">
-        <Button variant="ghost" size="icon" aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-expanded={menuOpen} onClick={() => setMenuOpen((o) => !o)} className="text-muted-foreground hover:text-foreground">
-          {menuOpen ? <X /> : <Menu />}
+        <Button variant="ghost" size="icon" aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-expanded={menuOpen} onClick={() => setMenuOpen((o) => !o)} className="relative h-9 w-9 rounded-sm border border-transparent text-muted-foreground transition-all duration-200 hover:border-primary/30 hover:bg-primary/10 hover:text-primary data-[state=open]:bg-primary/10">
+          {menuOpen ? <X className="h-4 w-4 text-primary transition-transform duration-200" /> : <Menu className="h-4 w-4 transition-colors duration-200" />}
         </Button>
         {menuOpen && (
           <>
