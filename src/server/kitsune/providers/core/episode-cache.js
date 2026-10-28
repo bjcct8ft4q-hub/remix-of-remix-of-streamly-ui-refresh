@@ -53,10 +53,21 @@ function latestEpisodeFromAniZip(anizip) {
 
 function resolveShared(anilistId, freshMedia = false) {
   if (freshMedia) forgetMedia(anilistId);
-  return Promise.all([
+  // Metadata services should never hold the episode endpoint hostage.
+  const fetchAniZip = async () => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3500);
+    try {
+      const response = await fetch(`${ANIZIP}?anilist_id=${anilistId}`, { signal: controller.signal });
+      return response.ok ? await response.json() : null;
+    } catch { return null; }
+    finally { clearTimeout(timer); }
+  };
+  const media = Promise.race([
     getMedia(anilistId).catch(() => null),
-    fetch(`${ANIZIP}?anilist_id=${anilistId}`).then((r) => r.json()).catch(() => null),
+    new Promise((resolve) => setTimeout(() => resolve(null), 3500)),
   ]);
+  return Promise.all([media, fetchAniZip()]);
 }
 
 async function clearProviderCache(anilistId, media) {
