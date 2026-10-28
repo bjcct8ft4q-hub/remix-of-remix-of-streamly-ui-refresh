@@ -9,7 +9,6 @@ type CharacterAvatar = { id: number; name: string; image: string };
 type AvatarCollection = { title: string; mediaId: number; characters: CharacterAvatar[] };
 const avatarShows = [
   { title: "Jujutsu Kaisen", mediaId: 113415 },
-  { title: "JJK extras", mediaId: -113415 },
   { title: "My Hero Academia", mediaId: 21459 },
   { title: "Demon Slayer", mediaId: 101922 },
   { title: "Attack on Titan", mediaId: 16498 },
@@ -58,7 +57,6 @@ async function fetchCharacterAvatars(): Promise<AvatarCollection[]> {
     const additions = extras.filter((character): character is CharacterAvatar => character !== null);
     const existing = new Set(jjk.characters.map((character) => character.id));
     jjk.characters.push(...additions.filter((character) => !existing.has(character.id)));
-    collections.unshift({ title: "JJK extras", mediaId: -113415, characters: additions });
   }
   return collections.filter((collection) => collection.characters.length > 0);
 }
