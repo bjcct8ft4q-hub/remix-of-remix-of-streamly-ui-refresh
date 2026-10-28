@@ -136,9 +136,13 @@ export async function handleHlsProxyRequest(
     }
   }
 
+  if (requestUrl.length > 8192 || targetUrl.length > 4096) return new Response("Request too large", { status: 414, headers: CORS_PNA_HEADERS });
+
   const refererParam = searchParams.get("referer") || "";
   const headersParam = searchParams.get("headers") || "";
   const playlistKey = searchParams.get("playlist_key") || "";
+
+  if (headersParam.length > 2048 || refererParam.length > 2048 || playlistKey.length > 1024) return new Response("Proxy parameters too large", { status: 413, headers: CORS_PNA_HEADERS });
 
   if (!targetUrl) {
     return new Response("Missing url parameter", {
@@ -255,7 +259,10 @@ export async function handleHlsProxyRequest(
 
     const contentType = (response.headers.get("content-type") || "").toLowerCase();
     const urlWithoutQuery = targetUrl.split("?")[0];
+    const contentLength = Number(response.headers.get("content-length") || 0);
+    if (contentLength > 32 * 1024 * 1024) return { status: 413, headers: CORS_PNA_HEADERS, body: new TextEncoder().encode("Upstream response too large") };
     const rawBuffer = Buffer.from(await response.arrayBuffer());
+    if (rawBuffer.byteLength > 32 * 1024 * 1024) return { status: 413, headers: CORS_PNA_HEADERS, body: new TextEncoder().encode("Upstream response too large") };
 
     const isM3u8Candidate =
       Boolean(playlistKey) ||
