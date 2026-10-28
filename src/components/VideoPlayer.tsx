@@ -19,6 +19,9 @@ type Props = {
 
 export const VideoPlayer = forwardRef<HTMLVideoElement | null, Props>(function VideoPlayer({ kind, subtitles = [], intro, src, poster, autoPlay, autoSkip, fileName, onEnded, onError, onLoaded }, ref) {
   const video = useRef<HTMLVideoElement>(null);
+  // Keep the latest callback without tearing down HLS on every parent render.
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
   const wrap = useRef<HTMLDivElement>(null);
   useImperativeHandle(ref, () => video.current as HTMLVideoElement);
   const [playing, setPlaying] = useState(false);
@@ -39,6 +42,8 @@ export const VideoPlayer = forwardRef<HTMLVideoElement | null, Props>(function V
   const [subIndex, setSubIndex] = useState(() => subtitles.findIndex((t) => t.default || /english/i.test(t.label)));
   const hlsRef = useRef<{ currentLevel: number } | null>(null);
   const isEmbed = !isDirectVideo;
+  // Never autoplay again merely because the tab regains focus or layout changes.
+  // Playback should only start from the user or the initial media load.
   useEffect(() => {
     const el = video.current;
     if (!isHls || !el) return;
@@ -48,10 +53,10 @@ export const VideoPlayer = forwardRef<HTMLVideoElement | null, Props>(function V
       if (dead || !Hls.isSupported()) return;
       const h = new Hls(); hls = h; hlsRef.current = h; h.loadSource(src); h.attachMedia(el);
       h.on(Hls.Events.MANIFEST_PARSED, (_e, d) => setLevels(d.levels.map((l) => ({ height: l.height, bitrate: l.bitrate }))));
-      h.on(Hls.Events.ERROR, (_e, d) => { if (d.fatal) onError?.(); });
+      h.on(Hls.Events.ERROR, (_e, d) => { if (d.fatal) onErrorRef.current?.(); });
     });
     return () => { dead = true; hls?.destroy(); hlsRef.current = null; setLevels([]); };
-  }, [src, isHls, onError]);
+  }, [src, isHls]);
 
   useEffect(() => {
     const el = video.current; if (!el) return;
