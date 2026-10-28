@@ -12,6 +12,7 @@ const SELECTIONS = {
 const STATUS: Record<string, string> = { RELEASING: "Airing", FINISHED: "Finished", NOT_YET_RELEASED: "Upcoming" };
 
 type Media = {
+  isAdult?: boolean;
   id: number; title: { english: string | null; romaji: string | null; native: string | null }; description: string | null;
   coverImage: { extraLarge: string | null }; bannerImage: string | null; genres: string[]; averageScore: number | null;
   status: string; episodes: number | null; format: string | null; season: string | null; seasonYear: number | null;
@@ -46,7 +47,7 @@ export async function importCore(data: { selection: keyof typeof SELECTIONS; ani
     let media: Media[];
     if (cached) media = cached.response as unknown as Media[];
     else {
-      const specificQuery = `query ($id: Int) { Media(id: $id, type: ANIME) { id title { english romaji native } description(asHtml: false) coverImage { extraLarge } bannerImage genres averageScore status episodes format season seasonYear startDate { year month day } countryOfOrigin studios(isMain: true) { nodes { name } } nextAiringEpisode { episode } } }`;
+      const specificQuery = `query ($id: Int) { Media(id: $id, type: ANIME) { id isAdult title { english romaji native } description(asHtml: false) coverImage { extraLarge } bannerImage genres averageScore status episodes format season seasonYear startDate { year month day } countryOfOrigin studios(isMain: true) { nodes { name } } nextAiringEpisode { episode } } }`;
       const res = await fetch("https://graphql.anilist.co", { method: "POST", headers: { "content-type": "application/json", accept: "application/json", "user-agent": "Streamly/1.0 (AniList catalog sync; https://streamlyio.vercel.app)" }, body: JSON.stringify(data.selection === "specific" ? { query: specificQuery, variables: { id: data.anilistId } } : { query: QUERY, variables: { sort: SELECTIONS[data.selection].sort, status: SELECTIONS[data.selection].status } }), signal: AbortSignal.timeout(20_000) });
       if (res.status === 429) {
         const wait = Number(res.headers.get("retry-after") ?? 60);
@@ -61,6 +62,7 @@ export async function importCore(data: { selection: keyof typeof SELECTIONS; ani
       if (data.selection !== "specific") await db.from("import_cache").upsert({ key, response: media as never, expires_at: new Date(Date.now() + 3600_000).toISOString() });
     }
     for (const m of media) {
+      if (m.isAdult || (m.genres ?? []).includes("Hentai")) continue;
       const d = m.startDate;
       const fields = {
         title: m.title.english || m.title.romaji || m.title.native || `AniList ${m.id}`,
