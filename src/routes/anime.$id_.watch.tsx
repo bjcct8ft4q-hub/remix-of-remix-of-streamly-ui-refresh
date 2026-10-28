@@ -10,6 +10,7 @@ import { animeTitle, getStreams, PROVIDER_ORDER, providerLabel } from "@/lib/kit
 import { useAuth } from "@/lib/auth";
 import { historyQuery, saveProgress } from "@/lib/library";
 import { animeQuery, episodesQuery } from "@/lib/anime-queries";
+import { useAnimeAgeRating } from "@/lib/age-ratings";
 
 export const Route = createFileRoute("/anime/$id_/watch")({
   validateSearch: z.object({ ep: z.coerce.number().default(1), audio: z.enum(["sub", "dub"]).default("sub"), provider: z.string().optional() }),
@@ -33,6 +34,7 @@ function WatchAnime() {
   const { user } = useAuth();
   const info = useQuery(animeQuery(id));
   const eps = useQuery(episodesQuery(id));
+  const ageRating = useAnimeAgeRating(info.data?.idMal, info.data?.isAdult);
   const hist = useQuery(historyQuery(user?.id, id));
   const episode = eps.data?.find((e) => e.number === ep);
   const sources = useMemo(() => (episode?.sources ?? []).filter((s) => s.audio === audio).sort((a, b) => PROVIDER_ORDER.indexOf(a.provider) - PROVIDER_ORDER.indexOf(b.provider)), [episode, audio]);
@@ -81,12 +83,13 @@ function WatchAnime() {
     <main className="mx-auto max-w-[1900px] px-3 pb-20 pt-3 sm:px-5 md:pt-4">
       <nav className="mb-3 flex items-center gap-2 text-xs text-muted-foreground"><Link to="/" className="hover:text-primary">Home</Link><span>›</span><Link to="/anime/$id" params={{ id: String(id) }} className="max-w-56 truncate hover:text-primary">{title || "Series"}</Link><span>›</span><span className="font-semibold text-primary">Episode {ep}</span></nav>
       <div className={`grid items-start gap-3 ${theaterMode ? "grid-cols-1" : "xl:grid-cols-[270px_minmax(0,1fr)_355px]"}`}>
-        <aside className={`${theaterMode ? "hidden" : "hidden xl:block"} min-w-0 rounded-lg border border-border/60 bg-card/40 p-4`}>
+        <aside ref={ageRating.ref as React.Ref<HTMLElement>} className={`${theaterMode ? "hidden" : "hidden xl:block"} min-w-0 rounded-lg border border-border/60 bg-card/40 p-4`}>
           {cover && <img src={cover} alt={title} className="mx-auto aspect-[2/3] w-full rounded-md object-cover" />}
           <Link to="/anime/$id" params={{ id: String(id) }} className="mt-4 block text-lg font-extrabold leading-tight hover:text-primary">{title}</Link>
           <div className="mt-3 flex flex-wrap gap-1.5 text-[10px] font-bold uppercase">
             {info.data?.averageScore != null && <span className="rounded border border-primary/30 bg-primary/10 px-2 py-1 text-primary">★ {(info.data.averageScore / 10).toFixed(1)}</span>}
             {info.data?.status && <span className="rounded border border-border px-2 py-1 text-muted-foreground">{info.data.status.replaceAll("_", " ")}</span>}
+            <span className="rounded border border-border px-2 py-1 text-muted-foreground" title={ageRating.verified ? "MyAnimeList age classification" : "Age classification not confirmed"}>{ageRating.label}</span>
           </div>
           {info.data?.description && <p className="mt-4 line-clamp-6 border-t border-border/60 pt-4 text-xs leading-5 text-muted-foreground">{info.data.description.replace(/<[^>]+>/g, "")}</p>}
           <dl className="mt-4 space-y-2 border-t border-border/60 pt-4 text-xs">
