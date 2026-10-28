@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
-import { ChevronLeft, ChevronRight, LoaderCircle, Search, Play, MonitorPlay, ListVideo, SkipForward, RefreshCw, Star, Keyboard, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, LoaderCircle, Search, Play, MonitorPlay, ListVideo, SkipForward, RefreshCw, Star, Keyboard, Users, Flag, BookmarkPlus, MessageSquare, ThumbsUp, ThumbsDown, Send, Reply, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { WatchlistButton } from "@/components/WatchlistButton";
@@ -49,6 +49,33 @@ function WatchAnime() {
   const [autoSkip, setAutoSkip] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [rating, setRating] = useState(0);
+  const [autoPlay, setAutoPlay] = useState(true);
+  const [commentText, setCommentText] = useState("");
+  const [commentSort, setCommentSort] = useState<"newest" | "oldest">("newest");
+  const [comments, setComments] = useState<Array<{ id: string; author: string; body: string; created: number; parent?: string; likes: number; dislikes: number }>>([]);
+  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportText, setReportText] = useState("");
+  const [reportSent, setReportSent] = useState(false);
+  useEffect(() => {
+    try { setComments(JSON.parse(localStorage.getItem(`streamly-comments-${id}-${ep}`) || "[]")); }
+    catch { setComments([]); }
+    setReplyTo(null); setCommentText("");
+  }, [id, ep]);
+  const updateComments = (nextComments: typeof comments) => {
+    setComments(nextComments);
+    try { localStorage.setItem(`streamly-comments-${id}-${ep}`, JSON.stringify(nextComments)); } catch {}
+  };
+  const postComment = () => {
+    const body = commentText.trim();
+    if (!body) return;
+    if (!user) { openAuth("signin"); return; }
+    updateComments([...comments, { id: crypto.randomUUID(), author: username || "Viewer", body, created: Date.now(), parent: replyTo || undefined, likes: 0, dislikes: 0 }]);
+    setCommentText(""); setReplyTo(null);
+  };
+  const voteComment = (commentId: string, direction: "likes" | "dislikes") => {
+    updateComments(comments.map((c) => c.id === commentId ? { ...c, [direction]: c[direction] + 1 } : c));
+  };
   useEffect(() => { setFailed([]); setServer(0); }, [ep, audio]);
   const current = sources.find((s) => s.provider === provider) ?? sources.find((s) => !failed.includes(s.provider));
   const streams = useQuery({ queryKey: ["streams", current?.watchId], queryFn: () => getStreams(current!.watchId), enabled: !!current, retry: 0, staleTime: 5 * 60 * 1000 });
@@ -126,36 +153,55 @@ function WatchAnime() {
             {eps.isPending || (current && streams.isPending) ? <div role="status" className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground"><LoaderCircle className="h-5 w-5 animate-spin" />{eps.isPending ? "Finding episode…" : `Loading ${providerLabel(current!.provider)}…`}</div>
               : !current ? <div role="alert" className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center text-sm text-muted-foreground"><p>{sources.length ? "None of the sources had a working video for this episode." : `No ${audio} version found for this episode.`}</p>{sources.length > 0 && <Button variant="outline" onClick={() => setFailed([])}>Try again</Button>}</div>
               : streams.isError ? <div role="alert" className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">{providerLabel(current.provider)} has no video for this episode right now. Pick another source.</div>
-              : stream ? <VideoPlayer key={stream.src} ref={playerRef} kind={stream.kind} src={stream.src} subtitles={stream.subtitles} intro={stream.intro} poster={episode?.image ?? undefined} autoSkip={autoSkip} fileName={`${title} - ${ep}`} autoPlay
+              : stream ? <VideoPlayer key={stream.src} ref={playerRef} kind={stream.kind} src={stream.src} subtitles={stream.subtitles} intro={stream.intro} poster={episode?.image ?? undefined} autoSkip={autoSkip} fileName={`${title} - ${ep}`} autoPlay={autoPlay}
                   onLoaded={(v) => { if (resumeAt > 5 && resumeAt < v.duration - 30) v.currentTime = resumeAt; }}
                   onEnded={() => { if (playerRef.current) save(playerRef.current, true); if (autoNext && next) go({ ep: next.number }); }}
                   onError={() => { if (streams.data && server < streams.data.length - 1) setServer(server + 1); }} /> : null}
           </div>
-          <div className="mt-2 rounded-md bg-primary/10 px-3 py-2 text-xs text-muted-foreground"><span className="font-semibold text-foreground">Playback issue?</span> Try another source or server below.</div>
-          <div className="mt-2 flex flex-wrap items-center gap-2 py-3 text-xs font-semibold"> <span className="mr-auto text-primary"><ListVideo className="mr-1 inline h-4 w-4" />Episode {ep}</span><button type="button" onClick={() => setTheaterMode(!theaterMode)} className="rounded px-2 py-1 hover:bg-muted"><MonitorPlay className="mr-1 inline h-4 w-4" />{theaterMode ? "Exit theater" : "Theater"}</button><button type="button" onClick={() => setAutoNext(!autoNext)} aria-pressed={autoNext} className={`rounded px-2 py-1 hover:bg-muted ${autoNext ? "text-primary" : "text-muted-foreground"}`}><SkipForward className="mr-1 inline h-4 w-4" />Auto next {autoNext ? "On" : "Off"}</button><button type="button" onClick={() => setAutoSkip(!autoSkip)} aria-pressed={autoSkip} className={`rounded px-2 py-1 hover:bg-muted ${autoSkip ? "text-primary" : "text-muted-foreground"}`}><SkipForward className="mr-1 inline h-4 w-4" />Auto skip {autoSkip ? "On" : "Off"}</button><button type="button" disabled={creatingRoom} onClick={() => void createRoom()} className="rounded px-2 py-1 font-bold text-primary hover:bg-muted"><Users className="mr-1 inline h-4 w-4" />{creatingRoom ? "Creating room…" : "W2G"}</button><button type="button" onClick={() => setShowShortcuts(!showShortcuts)} aria-expanded={showShortcuts} className="rounded px-2 py-1 hover:bg-muted"><Keyboard className="mr-1 inline h-4 w-4" />Keys</button></div>
-          {roomError && <p role="alert" className="my-2 text-xs text-destructive">{roomError}</p>}
-          {showShortcuts && <div className="rounded-md border border-border/60 bg-card/60 p-3 text-xs text-muted-foreground">Player shortcuts: Space/K = play or pause · ←/→ = seek 10 seconds · F = fullscreen · M = mute</div>}
-          <div className="mt-3 flex flex-wrap items-center gap-2 bg-card/30 p-3">
-            <Button variant="outline" size="sm" disabled={!prev} onClick={() => prev && go({ ep: prev.number })}><ChevronLeft /> Previous</Button>
-            <Button variant="outline" size="sm" disabled={!next} onClick={() => next && go({ ep: next.number })}>Next <ChevronRight /></Button>
-            <div className="ml-auto flex gap-1" role="group" aria-label="Audio">
-              <Button size="sm" variant={audio === "sub" ? "default" : "outline"} onClick={() => go({ audio: "sub" })}>Sub</Button>
-              <Button size="sm" variant={audio === "dub" ? "default" : "outline"} disabled={!hasDub} onClick={() => go({ audio: "dub" })}>Dub</Button>
-            </div>
-            {info.data && <WatchlistButton anime={{ id, title, cover }} />}
+          <div className="mt-2 flex items-center gap-2 rounded-md border border-orange-900/60 bg-orange-950/80 px-3 py-2 text-xs font-medium text-orange-100">
+            <Flag className="h-4 w-4 shrink-0" /> If an episode is not working, please report it and we will look into it.
           </div>
-          <div className="mt-4 bg-card/30 p-4"><div className="mb-3 text-center"><p className="text-xs text-muted-foreground">You are watching</p><h2 className="mt-1 font-bold">Episode {ep}{episode?.title ? ` — ${episode.title}` : ""}</h2></div>
-          {sources.length > 0 && <div>
-            <p className="mb-2 text-xs font-bold uppercase text-muted-foreground">Source</p>
-            <div className="flex flex-wrap gap-2">
-              {sources.map((s) => <Button key={s.provider} size="sm" variant={s.provider === current?.provider ? "default" : "outline"} className={failed.includes(s.provider) && s.provider !== current?.provider ? "opacity-50" : ""} onClick={() => go({ provider: s.provider })}>{providerLabel(s.provider)}</Button>)}
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border/60 py-3 text-[11px] font-bold uppercase">
+            <span className="text-primary">● Now watching · Episode {ep}</span>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <button type="button" onClick={() => setTheaterMode(!theaterMode)} className="flex items-center gap-1 hover:text-primary"><MonitorPlay className="h-4 w-4" /> {theaterMode ? "Exit theater" : "Theater"}</button>
+              <button type="button" onClick={() => setShowShortcuts(!showShortcuts)} className="flex items-center gap-1 hover:text-primary"><Keyboard className="h-4 w-4" /> Keys</button>
+              <button type="button" disabled={creatingRoom} onClick={() => void createRoom()} className="flex items-center gap-1 hover:text-primary"><Users className="h-4 w-4" /> W2G</button>
+              <button type="button" aria-pressed={autoPlay} onClick={() => setAutoPlay(!autoPlay)} className={`flex items-center gap-1 ${autoPlay ? "text-primary" : ""}`}><Play className="h-4 w-4" /> Auto play {autoPlay ? "on" : "off"}</button>
+              <button type="button" aria-pressed={autoNext} onClick={() => setAutoNext(!autoNext)} className={`flex items-center gap-1 ${autoNext ? "text-primary" : ""}`}><SkipForward className="h-4 w-4" /> Auto next {autoNext ? "on" : "off"}</button>
+              <button type="button" aria-pressed={autoSkip} onClick={() => setAutoSkip(!autoSkip)} className={`flex items-center gap-1 ${autoSkip ? "text-primary" : ""}`}><SkipForward className="h-4 w-4" /> Auto skip {autoSkip ? "on" : "off"}</button>
+              {info.data && <WatchlistButton anime={{ id, title, cover }} />}
+              <button type="button" onClick={() => { setReportOpen(!reportOpen); setReportSent(false); }} className="flex items-center gap-1 hover:text-primary"><Flag className="h-4 w-4" /> Report</button>
             </div>
-            {(streams.data?.length ?? 0) > 1 && <>
-              <p className="mb-2 mt-3 text-xs font-bold uppercase text-muted-foreground">Server</p>
-              <div className="flex flex-wrap gap-2">{streams.data!.map((s, i) => <Button key={i} size="sm" variant={i === server ? "secondary" : "ghost"} onClick={() => setServer(i)}>{s.label}</Button>)}</div>
-            </>}
+          </div>
+          {roomError && <p role="alert" className="my-2 text-xs text-destructive">{roomError}</p>}
+          {showShortcuts && <div className="my-2 rounded border border-border bg-card p-3 text-xs text-muted-foreground">Player shortcuts: Space/K = play or pause · ←/→ = seek 10 seconds · F = fullscreen · M = mute</div>}
+          {reportOpen && <div className="my-3 rounded-md border border-border bg-card p-3">
+            <div className="flex items-center justify-between"><h3 className="text-sm font-bold">Report playback problem</h3><button aria-label="Close report" onClick={() => setReportOpen(false)}><X className="h-4 w-4" /></button></div>
+            <p className="mt-2 text-xs text-muted-foreground">Reports are not submitted to staff until a reporting service is configured.</p>
+            <textarea value={reportText} onChange={(e) => setReportText(e.target.value)} placeholder="Describe the playback issue..." className="mt-2 w-full rounded border border-border bg-background p-2 text-sm" rows={2} />
+            <Button size="sm" variant="outline" onClick={() => { navigator.clipboard?.writeText(`Streamly playback report: ${title}, episode ${ep}, ${audio}. ${reportText}`); setReportSent(true); }} disabled={!reportText.trim()}>Copy report</Button>
+            {reportSent && <span className="ml-2 text-xs text-muted-foreground">Report copied. Send it to the site administrator.</span>}
           </div>}
-          {!user && <p className="mt-4 text-sm text-muted-foreground">Sign in to save your progress.</p>}
+          <div className="grid gap-4 border-b border-border/60 py-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground">You are Watching</p>
+              <p className="mt-1 text-sm font-bold">Episode {ep}{episode?.title ? ` — ${episode.title}` : ""}</p>
+              <p className="mt-2 text-xs text-muted-foreground">If the current source doesn't work, try another available server.</p>
+            </div>
+            <div className="space-y-2">
+              {(["sub", "dub"] as const).map((lang) => {
+                const available = (episode?.sources ?? []).filter((s) => s.audio === lang);
+                return <div key={lang} className="flex items-start gap-3"><span className="w-12 pt-2 text-xs font-bold uppercase text-muted-foreground">{lang}:</span>
+                  <div className="flex flex-wrap gap-2">{available.length ? available.map((source, i) => <button key={source.provider} type="button" onClick={() => go({ audio: lang, provider: source.provider })} className={`min-w-20 rounded-md border px-3 py-2 text-xs font-semibold ${audio === lang && current?.provider === source.provider ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:border-primary"}`}>{providerLabel(source.provider) || `Server ${i + 1}`}</button>) : <span className="py-2 text-xs text-muted-foreground">No {lang.toUpperCase()} source available</span>}</div>
+                </div>;
+              })}
+              {(streams.data?.length ?? 0) > 1 && <div className="flex flex-wrap items-center gap-2 pt-1"><span className="text-xs text-muted-foreground">Stream:</span>{streams.data!.map((item, i) => <Button key={i} size="sm" variant={i === server ? "default" : "outline"} onClick={() => setServer(i)}>{item.label || `Stream ${i + 1}`}</Button>)}</div>}
+            </div>
+          </div>
+          <div className="mt-3 flex items-center gap-2">
+            <Button variant="outline" size="sm" disabled={!prev} onClick={() => prev && go({ ep: prev.number })}><ChevronLeft className="h-4 w-4" /> Previous</Button>
+            <Button variant="outline" size="sm" disabled={!next} onClick={() => next && go({ ep: next.number })}>Next <ChevronRight className="h-4 w-4" /></Button>
           </div>
         </div>
         <aside className={`${theaterMode ? "hidden" : ""} min-w-0 rounded-xl border border-border bg-card/40 p-3 xl:sticky xl:top-20`}>
@@ -170,7 +216,36 @@ function WatchAnime() {
           </div>
         </aside>
       </div>
-      {recommended.length > 0 && <section className="mt-8 border-t border-border pt-5"><h2 className="mb-4 border-l-2 border-primary pl-3 text-lg font-extrabold">Recommended for this series</h2><div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">{recommended.map((item) => item && <Link key={item.id} to="/anime/$id" params={{ id: String(item.id) }} className="group flex gap-3 rounded-lg border border-border bg-card/40 p-2 hover:border-primary"><img src={item.coverImage.large || ""} alt="" loading="lazy" className="h-24 w-16 shrink-0 rounded object-cover" /><div className="min-w-0"><p className="line-clamp-3 text-xs font-bold group-hover:text-primary">{animeTitle(item)}</p><p className="mt-2 text-xs text-primary">★ {item.averageScore != null ? (item.averageScore / 10).toFixed(1) : "N/A"}</p></div></Link>)}</div></section>}
+      <div className="mt-8 grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_355px]">
+        <section className="min-w-0">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <h2 className="flex items-center gap-2 text-lg font-extrabold uppercase"><MessageSquare className="h-5 w-5 text-primary" /> Comments <span className="rounded bg-primary px-2 py-0.5 text-xs text-primary-foreground">{comments.length}</span></h2>
+            <div className="flex items-center gap-3 text-xs font-semibold">{(["newest", "oldest"] as const).map((sort) => <button key={sort} type="button" onClick={() => setCommentSort(sort)} className={`rounded px-2 py-1 capitalize ${commentSort === sort ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>{sort}</button>)}</div>
+          </div>
+          <p className="my-3 rounded bg-card/60 p-3 text-xs text-muted-foreground">Share your thoughts about this episode. Be respectful and avoid spoilers. Comments are currently saved only in this browser, not shared publicly.</p>
+          <div className="rounded-lg border border-border bg-card/30 p-3">
+            {replyTo && <div className="mb-2 flex items-center justify-between text-xs text-primary"><span>Replying to {comments.find((c) => c.id === replyTo)?.author}</span><button onClick={() => setReplyTo(null)} aria-label="Cancel reply"><X className="h-4 w-4" /></button></div>}
+            <textarea value={commentText} onChange={(e) => setCommentText(e.target.value)} rows={3} placeholder={user ? "Write your comment..." : "Sign in to comment..."} className="w-full resize-y rounded border border-border bg-background p-3 text-sm outline-none focus:border-primary" />
+            <div className="mt-2 flex justify-end"><Button size="sm" onClick={postComment} disabled={!commentText.trim()}><Send className="mr-2 h-4 w-4" />{user ? "Post comment" : "Sign in to post"}</Button></div>
+          </div>
+          <div className="mt-5 space-y-5">
+            {comments.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">No comments yet. Be the first to share your thoughts.</p>}
+            {[...comments].sort((a,b) => commentSort === "newest" ? b.created - a.created : a.created - b.created).map((comment) => <article key={comment.id} className={`border-b border-border/50 pb-4 ${comment.parent ? "ml-7 border-l-2 border-l-primary/40 pl-3" : ""}`}>
+              <div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">{comment.author.slice(0,1).toUpperCase()}</span><strong className="text-xs">{comment.author}</strong><span className="text-[11px] text-muted-foreground">{new Date(comment.created).toLocaleDateString()}</span></div>
+              {comment.parent && <p className="mt-1 text-xs text-primary">Reply to {comments.find((c) => c.id === comment.parent)?.author || "comment"}</p>}
+              <p className="mt-2 whitespace-pre-wrap break-words text-sm">{comment.body}</p>
+              <div className="mt-2 flex gap-4 text-xs text-muted-foreground"><button onClick={() => voteComment(comment.id, "likes")} className="flex items-center gap-1 hover:text-primary"><ThumbsUp className="h-3.5 w-3.5" /> {comment.likes}</button><button onClick={() => voteComment(comment.id, "dislikes")} className="flex items-center gap-1 hover:text-primary"><ThumbsDown className="h-3.5 w-3.5" /> {comment.dislikes}</button><button onClick={() => { setReplyTo(comment.id); document.querySelector("textarea")?.focus(); }} className="flex items-center gap-1 hover:text-primary"><Reply className="h-3.5 w-3.5" /> Reply</button></div>
+            </article>)}
+          </div>
+        </section>
+        <aside className="min-w-0">
+          <h2 className="mb-4 border-l-2 border-primary pl-3 text-lg font-extrabold">Related Anime</h2>
+          {recommended.length ? <div className="space-y-3">{recommended.map((item) => item && <Link key={item.id} to="/anime/$id" params={{ id: String(item.id) }} className="group flex gap-3 rounded border border-border/40 bg-card/30 p-2 hover:border-primary">
+            <img src={item.coverImage.large || ""} alt="" loading="lazy" className="h-24 w-16 shrink-0 rounded object-cover" />
+            <div className="min-w-0"><p className="line-clamp-2 text-sm font-bold group-hover:text-primary">{animeTitle(item)}</p><p className="mt-2 text-xs uppercase text-muted-foreground">{item.format?.replaceAll("_", " ") || "Anime"} · {item.seasonYear || "—"}</p><p className="mt-2 text-xs text-primary">★ {item.averageScore != null ? (item.averageScore / 10).toFixed(1) : "N/A"}</p></div>
+          </Link>)}</div> : <p className="text-sm text-muted-foreground">No related anime available for this series.</p>}
+        </aside>
+      </div>
     </main>
   );
 }
