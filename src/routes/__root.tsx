@@ -130,7 +130,17 @@ function HalloweenEffects() {
   );
 }
 
-Footer />
+function RootComponent() {
+  const { queryClient } = Route.useRouteContext();
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <AuthProvider>
+          <div className="relative min-h-screen">
+            <HalloweenEffects />
+            <Header />
+            <Outlet />
+            <Footer />
           </div>
           <AuthDialog />
           <Toaster />
