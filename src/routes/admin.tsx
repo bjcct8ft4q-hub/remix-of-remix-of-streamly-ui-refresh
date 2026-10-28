@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Trash2, Upload, LoaderCircle, Pencil } from "lucide-react";
+import { Trash2, Upload, LoaderCircle, Pencil, ChevronDown, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth";
@@ -333,6 +333,13 @@ type EpisodeReport = { id: string; anime_id: number; anime_title: string; episod
 function ReportManager() {
   const qc = useQueryClient();
   const [filter, setFilter] = useState("open");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const close = (event: PointerEvent) => { if (!filterMenuRef.current?.contains(event.target as Node)) setFilterOpen(false); };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, []);
   const [updating, setUpdating] = useState<string | null>(null);
   const { data = [], isPending, error } = useQuery({
     queryKey: ["admin-episode-reports", filter],
@@ -353,7 +360,14 @@ function ReportManager() {
   };
   return <section className="space-y-4 border-t border-border pt-7">
     <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-extrabold">Episode reports</h2><p className="text-xs text-muted-foreground">Review viewer playback issues and update their status.</p></div>
-      <select aria-label="Filter reports by status" value={filter} onChange={(e) => setFilter(e.target.value)} className={inputCls + " !w-auto"}>{["open","reviewing","resolved","dismissed","all"].map((v) => <option key={v} value={v}>{v[0].toUpperCase()+v.slice(1)}</option>)}</select></div>
+      <div ref={filterMenuRef} className="relative w-48">
+        <button type="button" aria-label="Filter reports by status" aria-haspopup="listbox" aria-expanded={filterOpen} onClick={() => setFilterOpen(!filterOpen)} className={`flex w-full items-center justify-between rounded-xl border px-3.5 py-3 text-sm font-semibold transition-colors ${filterOpen ? "border-primary bg-primary/10" : "border-border bg-card hover:border-primary/60"}`}>
+          <span>{filter[0].toUpperCase() + filter.slice(1)}</span><ChevronDown size={16} className={`transition-transform ${filterOpen ? "rotate-180 text-primary" : "text-muted-foreground"}`} />
+        </button>
+        {filterOpen && <div role="listbox" aria-label="Report statuses" className="absolute right-0 top-full z-50 mt-2 w-full overflow-hidden rounded-xl border border-primary/40 bg-card p-1.5 shadow-2xl shadow-black/50">
+          {(["open","reviewing","resolved","dismissed","all"] as const).map((v) => <button key={v} type="button" role="option" aria-selected={filter === v} onClick={() => { setFilter(v); setFilterOpen(false); }} className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${filter === v ? "bg-primary text-primary-foreground font-bold" : "text-foreground hover:bg-primary/10 hover:text-primary"}`}><span>{v[0].toUpperCase() + v.slice(1)}</span>{filter === v && <Check size={15} />}</button>)}
+        </div>}
+      </div></div>
     {isPending && <p className="text-sm text-muted-foreground">Loading reports…</p>}
     {error && <p role="alert" className="text-sm text-destructive">Unable to load reports. Apply the episode reports SQL migration in Supabase first.</p>}
     {!isPending && !error && !data.length && <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">No {filter === "all" ? "" : filter} reports yet.</p>}
