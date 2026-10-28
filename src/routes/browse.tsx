@@ -93,7 +93,7 @@ async function fetchFilteredAnime(f: Filters): Promise<{ media: AnimeSummary[]; 
         Page(page: 1, perPage: 48) {
           pageInfo { total }
           media(type: ANIME, search: $search, genre: $genre, tag: $tag, seasonYear: $year, status: $status, format: $format, isAdult: $adult, season: $season, countryOfOrigin: $origin, sort: POPULARITY_DESC) {
-            id title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore isAdult
+            id idMal title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore isAdult
           }
         }
       }`,
