@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, ChevronRight, Film, LoaderCircle, Search, X } from "lucide-react";
@@ -58,17 +60,20 @@ function findImportedSeries(anime: TrendingAnime, data: SeriesRow[]) {
 
 export function QuickSearch({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const [query, setQuery] = useState("");
+  const [category,setCategory] = useState<"anime"|"users">("anime");
+  const { user } = useAuth();
+  const users = useQuery({queryKey:["quick-user-search",query.trim()],queryFn:async()=>{const {data,error}=await supabase.rpc("search_streamly_users",{search_text:query.trim()});if(error)throw error;return (data??[]) as {id:string;username:string}[];},enabled:open&&category==="users"&&!!user&&query.trim().length>=2,staleTime:30000});
   const { data = [], isPending, isError, refetch } = useQuery({ ...seriesListQuery(), enabled: open });
   const { data: trending = [], isPending: trendingPending, isError: trendingError, refetch: refetchTrending } = useQuery({
     queryKey: ["anilist-trending-anime"],
     queryFn: fetchTrendingAnime,
-    enabled: open && !query.trim(),
+    enabled: open && category==="anime" && !query.trim(),
     staleTime: 5 * 60 * 1000,
     refetchInterval: 15 * 60 * 1000,
     retry: 1,
   });
   const term = query.trim().toLowerCase();
-  const anime = useQuery({ ...animeSearchQuery(resolveAnimeSearch(term)), enabled: open && term.length >= 2 });
+  const anime = useQuery({ ...animeSearchQuery(resolveAnimeSearch(term)), enabled: open && category==="anime" && term.length >= 2 });
   const matches = term
     ? data.filter((series) => matchesAnimeTitle(series.title, term) || series.genres.some((genre) => genre.toLowerCase().includes(term)))
     : [];
@@ -84,10 +89,10 @@ export function QuickSearch({ open, onOpenChange }: { open: boolean; onOpenChang
           </div>
           <div className="relative overflow-hidden rounded-md border border-border border-t-primary bg-background">
             <div className="halloween-web pointer-events-none absolute right-0 top-0 h-24 w-24 rotate-90" />
-            <div className="flex h-10 items-center justify-center border-b border-border text-xs font-bold uppercase text-primary"><span className="flex h-full items-center gap-2 border-b-2 border-primary px-4"><Film className="h-3.5 w-3.5" />Series</span></div>
+            <div className="flex h-10 items-center justify-center gap-2 border-b border-border text-xs font-bold uppercase"><button onClick={()=>{setCategory("anime");setQuery("");}} className={`px-4 py-3 ${category==="anime"?"border-b-2 border-primary text-primary":"text-muted-foreground"}`}>Anime</button><button onClick={()=>{setCategory("users");setQuery("");}} className={`px-4 py-3 ${category==="users"?"border-b-2 border-primary text-primary":"text-muted-foreground"}`}>Users</button></div>
             <form onSubmit={(event) => event.preventDefault()} className="flex h-12 items-center gap-2 px-3">
               <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search series..." aria-label="Quick search series" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={category==="users"?"Search usernames...":"Search anime..."} aria-label="Quick search" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
               {query && <Button variant="ghost" size="icon" aria-label="Clear search" onClick={() => setQuery("")}><X /></Button>}
             </form>
           </div>
@@ -95,7 +100,7 @@ export function QuickSearch({ open, onOpenChange }: { open: boolean; onOpenChang
             <div className="halloween-web pointer-events-none absolute right-0 top-0 h-32 w-32 rotate-90" />
             <h2 className="px-3 pb-1 pt-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{term ? "Search results" : "Trending now · Live AniList rankings"}</h2>
             <div className="max-h-[min(50dvh,24rem)] overflow-y-auto p-2">
-              {term ? (isPending ? <div role="status" className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground"><LoaderCircle className="h-4 w-4 animate-spin motion-reduce:animate-none" />Loading series…</div>
+              {category==="users" ? (!user ? <p className="p-5 text-sm text-muted-foreground">Sign in to search Streamly users.</p> : term.length<2 ? <p className="p-5 text-sm text-muted-foreground">Type at least 2 characters to find users.</p> : users.isPending ? <p className="p-5 text-sm">Searching users…</p> : users.isError ? <p className="p-5 text-sm text-muted-foreground">User search unavailable.</p> : users.data?.length ? users.data.map(u=><Link key={u.id} to="/friends" onClick={()=>onOpenChange(false)} className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm hover:bg-muted"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 font-bold text-primary">{u.username.charAt(0).toUpperCase()}</span><span className="font-semibold">{u.username}</span><span className="ml-auto text-xs text-muted-foreground">Friends</span></Link>) : <p className="p-5 text-sm text-muted-foreground">No matching users found.</p>) : term ? (isPending ? <div role="status" className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground"><LoaderCircle className="h-4 w-4 animate-spin motion-reduce:animate-none" />Loading series…</div>
                 : isError ? <div role="alert" className="py-6 text-center text-sm text-muted-foreground"><p>Series couldn’t be loaded.</p><Button variant="ghost" onClick={() => void refetch()} className="mt-2">Try again</Button></div>
                 : matches.length === 0 && !anime.data?.length ? <p role="status" className="px-3 py-8 text-center text-sm text-muted-foreground">{anime.isFetching ? "Searching anime…" : "No series found."}</p>
                 : [...matches.slice(0, 10).map((series, index) => (
@@ -144,7 +149,7 @@ export function QuickSearch({ open, onOpenChange }: { open: boolean; onOpenChang
                   );
                 })}
             </div>
-            {term && <Button asChild variant="ghost" className="h-10 w-full justify-between rounded-none border-t border-border px-3 text-xs text-primary"><Link to="/browse" search={{ q: query.trim() }} onClick={() => onOpenChange(false)}>View all results<ArrowRight /></Link></Button>}
+            {category==="anime" && term && <Button asChild variant="ghost" className="h-10 w-full justify-between rounded-none border-t border-border px-3 text-xs text-primary"><Link to="/browse" search={{ q: query.trim() }} onClick={() => onOpenChange(false)}>View all results<ArrowRight /></Link></Button>}
           </div>
         </DialogPrimitive.Content>
       </DialogPortal>

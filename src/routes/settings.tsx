@@ -100,7 +100,10 @@ function Settings() {
     void fetchIdentity().then((value) => { if (active) { setAccountName(value.username); setAccountEmail(value.email); } }).catch(() => {});
     return () => { active = false; };
   }, [user?.id]);
-  const [settingsTab, setSettingsTab] = useState<"profile" | "playback" | "security">("profile");
+  const [settingsTab, setSettingsTab] = useState<"profile" | "playback" | "security" | "display">("profile");
+  const [displayPrefs,setDisplayPrefs]=useState<Record<string,boolean>>({});
+  useEffect(()=>{try{setDisplayPrefs(JSON.parse(localStorage.getItem("streamly-display-preferences")||"{}"));}catch{}},[]);
+  const toggleDisplay=(key:string)=>{const next={...displayPrefs,[key]:!displayPrefs[key]};setDisplayPrefs(next);localStorage.setItem("streamly-display-preferences",JSON.stringify(next));};
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteCode, setDeleteCode] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
@@ -175,8 +178,10 @@ function Settings() {
         <button type="button" onClick={() => setSettingsTab("profile")} aria-current={settingsTab === "profile" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "profile" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Profile & avatar</button>
         <button type="button" onClick={() => setSettingsTab("playback")} aria-current={settingsTab === "playback" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "playback" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Language & playback</button>
         <button type="button" onClick={() => setSettingsTab("security")} aria-current={settingsTab === "security" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "security" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Account & security</button>
+        <button type="button" onClick={() => setSettingsTab("display")} aria-current={settingsTab === "display" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "display" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Display & preferences</button>
       </nav>
       <div className="min-w-0">
+        {settingsTab === "display" && <section className="rounded-2xl border border-border bg-card/90 p-6"><h2 className="text-xl font-bold">Display & preferences</h2><p className="mt-2 text-sm text-muted-foreground">Save personal preferences on this device. These options are stored locally; they do not yet change player behaviour across the site.</p><div className="mt-6 space-y-4">{[["compact","Compact cards"],["reduceAnimations","Reduce decorative animations"],["showRatings","Show anime ratings"],["showDescriptions","Show full descriptions"],["dimWatched","Dim watched episodes"],["showComments","Show comments"],["autoNext","Auto next episode"],["skipIntro","Skip intros"],["skipOutro","Skip outros"],["autoPlay","Auto play"],["notifications","Episode notifications"]].map(([key,label])=><label key={key} className="flex items-center justify-between gap-4 rounded-xl border border-border p-4 text-sm"><span>{label}</span><input type="checkbox" checked={!!displayPrefs[key]} onChange={()=>toggleDisplay(key)} className="h-5 w-5 accent-primary"/></label>)}</div></section>}
         {settingsTab === "profile" && <section className="rounded-2xl border border-border bg-card/90 p-4 shadow-xl shadow-black/10 sm:p-7">
           <div className="mb-7 rounded-xl border border-border bg-background/50 p-4">
             <h2 className="text-lg font-bold">Profile banner</h2>

@@ -34,8 +34,6 @@ function WatchAnime() {
   const { ep, audio, provider } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const { user, username, openAuth } = useAuth();
-  const [creatingRoom, setCreatingRoom] = useState(false);
-  const [roomError, setRoomError] = useState("");
   const info = useQuery(animeQuery(id));
   const eps = useQuery(episodesQuery(id));
   const [loadingSeconds, setLoadingSeconds] = useState(0);
@@ -163,18 +161,6 @@ function WatchAnime() {
   }, [nextCountdown, autoNext, next?.number, navigate]);
   const hasDub = !!episode?.sources.some((s) => s.audio === "dub");
   const [watchingCount] = useState<number | null>(null); // Only show a viewer count when real presence data is connected.
-  const createRoom = async () => {
-    if (!user) { openAuth("signin"); return; }
-    if (!info.data) return;
-    setCreatingRoom(true); setRoomError("");
-    const { data, error } = await (supabase as any).from("watch_rooms").insert({
-      host_id: user.id, host_name: username || "Host", anime_id: id, anime_title: title,
-      anime_cover: cover, episode: ep, audio, status: "waiting", is_public: true
-    }).select("id").single();
-    setCreatingRoom(false);
-    if (error || !data) { setRoomError("Could not create room. Watch Together may need database setup."); return; }
-    void navigate({ to: "/watch-together/$roomId" as any, params: { roomId: data.id } as any });
-  };
   const go = (search: { ep?: number; audio?: "sub" | "dub"; provider?: string | undefined }) => void navigate({ search: (s) => ({ ...s, provider: undefined, ...search }) });
 
   return (
@@ -223,7 +209,6 @@ function WatchAnime() {
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
               <button type="button" onClick={() => setTheaterMode(!theaterMode)} className="flex items-center gap-1 hover:text-primary"><MonitorPlay className="h-4 w-4" /> {theaterMode ? "Exit theater" : "Theater"}</button>
               <button type="button" onClick={() => setShowShortcuts(!showShortcuts)} className="flex items-center gap-1 hover:text-primary"><Keyboard className="h-4 w-4" /> Keys</button>
-              <button type="button" disabled={creatingRoom} onClick={() => void createRoom()} className="flex items-center gap-1 hover:text-primary"><Users className="h-4 w-4" /> W2G</button>
               <button type="button" aria-pressed={autoPlay} onClick={() => setAutoPlay(!autoPlay)} className={`flex items-center gap-1 ${autoPlay ? "text-primary" : ""}`}><Play className="h-4 w-4" /> Auto play {autoPlay ? "on" : "off"}</button>
               <button type="button" aria-pressed={autoNext} onClick={() => setAutoNext(!autoNext)} className={`flex items-center gap-1 ${autoNext ? "text-primary" : ""}`}><SkipForward className="h-4 w-4" /> Auto next {autoNext ? "on" : "off"}</button>
               <button type="button" aria-pressed={autoSkip} onClick={() => setAutoSkip(!autoSkip)} className={`flex items-center gap-1 ${autoSkip ? "text-primary" : ""}`}><SkipForward className="h-4 w-4" /> Auto skip {autoSkip ? "on" : "off"}</button>
@@ -231,7 +216,6 @@ function WatchAnime() {
               <button type="button" onClick={() => { setReportOpen(true); setReportError(""); }} className="flex items-center gap-1 hover:text-primary"><Flag className="h-4 w-4" /> Report</button>
             </div>
           </div>
-          {roomError && <p role="alert" className="my-2 text-xs text-destructive">{roomError}</p>}
           {showShortcuts && <div className="my-2 rounded border border-border bg-card p-3 text-xs text-muted-foreground">Player shortcuts: Space/K = play or pause · ←/→ = seek 10 seconds · F = fullscreen · M = mute</div>}
           {reportOpen && <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/85 p-3 backdrop-blur-[3px]" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) setReportOpen(false); }}>
             <div role="dialog" aria-modal="true" aria-labelledby="episode-report-title" className="relative my-auto w-full max-w-[448px] overflow-hidden rounded-[20px] border border-primary/35 bg-[#07080b] text-white shadow-[0_28px_90px_rgba(0,0,0,.8)]">
