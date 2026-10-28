@@ -4,7 +4,7 @@ import type { AnimeSummary } from "@/lib/kitsune";
 export type CatalogAnime = AnimeSummary & { description: string | null };
 export type AnimeCatalog = { trending: CatalogAnime[]; popular: CatalogAnime[]; airing: CatalogAnime[] };
 
-const fields = `id title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore description(asHtml: false)`;
+const fields = `id idMal isAdult title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore description(asHtml: false)`;
 
 async function fetchCatalog(): Promise<AnimeCatalog> {
   const response = await fetch("https://graphql.anilist.co", {
