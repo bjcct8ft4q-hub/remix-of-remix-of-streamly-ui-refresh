@@ -29,20 +29,20 @@ type S = CatalogAnime;
 function Hero({ s }: { s: S }) {
   const img = s.bannerImage || s.coverImage.extraLarge || s.coverImage.large;
   return (
-    <div className="relative flex min-h-[430px] items-end overflow-hidden bg-muted md:min-h-[490px]">
+    <div className="relative flex min-h-[350px] items-end overflow-hidden rounded-lg bg-muted sm:min-h-[430px] md:min-h-[490px]">
       {img && <img src={img} alt="" className="absolute inset-0 h-full w-full object-cover" />}
       <div className="absolute inset-0 bg-gradient-to-t from-background via-overlay/60 to-transparent" />
-      <div className="relative z-10 min-w-0 px-6 pb-10 pt-24 sm:px-9 md:px-12">
+      <div className="relative z-10 min-w-0 px-5 pb-7 pt-20 sm:px-9 sm:pb-10 md:px-12">
         <div className="flex flex-wrap gap-3 text-xs font-semibold text-foreground">
           <span>{s.format?.replaceAll("_", " ") ?? "Anime"}</span>
           {s.seasonYear && <span>{s.seasonYear}</span>}
           {s.averageScore != null && <span className="flex items-center gap-1"><Star className="h-3 w-3 fill-star text-star" />{(s.averageScore / 10).toFixed(1)}</span>}
         </div>
-        <h1 className="mt-4 max-w-3xl break-words text-3xl font-black leading-tight sm:text-4xl lg:text-5xl">{animeTitle(s)}</h1>
-        {s.description && <p className="mt-4 line-clamp-3 max-w-2xl text-sm leading-7 text-foreground">{s.description.replace(/<[^>]+>/g, "")}</p>}
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Button asChild className="h-11 px-6 font-bold"><Link to="/anime/$id" params={{ id: String(s.id) }}><Play className="h-4 w-4 fill-current" /> Watch now</Link></Button>
-          <Button asChild variant="outline" className="h-11 bg-background/70 px-6 font-bold"><Link to="/anime/$id" params={{ id: String(s.id) }}><Info className="h-4 w-4" /> View details</Link></Button>
+        <h1 className="mt-3 max-w-3xl break-words text-2xl font-black leading-tight sm:mt-4 sm:text-4xl lg:text-5xl">{animeTitle(s)}</h1>
+        {s.description && <p className="mt-3 line-clamp-2 max-w-2xl text-xs leading-5 sm:mt-4 sm:line-clamp-3 sm:text-sm sm:leading-7 text-foreground">{s.description.replace(/<[^>]+>/g, "")}</p>}
+        <div className="mt-4 flex flex-wrap gap-2 sm:mt-6 sm:gap-3">
+          <Button asChild className="h-10 px-4 text-sm font-bold sm:h-11 sm:px-6"><Link to="/anime/$id" params={{ id: String(s.id) }}><Play className="h-4 w-4 fill-current" /> Watch now</Link></Button>
+          <Button asChild variant="outline" className="h-10 bg-background/70 px-4 text-sm font-bold sm:h-11 sm:px-6"><Link to="/anime/$id" params={{ id: String(s.id) }}><Info className="h-4 w-4" /> View details</Link></Button>
         </div>
       </div>
     </div>
@@ -56,7 +56,7 @@ function Grid({ title, items, loading, filters }: { title: string; items: S[]; l
     <section>
       <SectionTitle title={title}>
         {filters && (
-          <div className="flex gap-4 text-sm font-semibold">
+          <div className="flex gap-1 text-xs font-semibold sm:gap-4 sm:text-sm">
             {(["all", "series", "movies"] as const).map((k) => (
               <Button variant="ghost" size="sm" key={k} onClick={() => setF(k)} aria-pressed={f === k} className={`capitalize ${f === k ? "text-primary" : "text-muted-foreground"}`}>{k}</Button>
             ))}
@@ -64,7 +64,7 @@ function Grid({ title, items, loading, filters }: { title: string; items: S[]; l
         )}
       </SectionTitle>
       {loading ? <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><LoaderCircle className="h-4 w-4 animate-spin motion-reduce:animate-none" />Loading anime…</p> : shown.length ? (
-        <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 sm:gap-x-4 sm:gap-y-7 md:grid-cols-4 xl:grid-cols-6">
           {shown.map((s) => <AnimeCard key={s.id} a={s} />)}
         </div>
       ) : (
@@ -144,7 +144,7 @@ function TopTrending({ daily, weekly, monthly, loading }: { daily: S[]; weekly: 
 
 function SectionTitle({ title, children }: { title: string; children?: React.ReactNode }) {
   return (
-    <div className="mb-4 flex items-center justify-between gap-4">
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
       <h2 className="border-l-[3px] border-primary pl-3 text-xl font-extrabold md:text-2xl">{title}</h2>
       {children}
     </div>
@@ -169,11 +169,11 @@ function Index() {
 
   return (
     <main>
-      <section className="relative mx-auto max-w-[1900px] px-4 pb-8 pt-6 sm:px-6 md:pt-8">
+      <section className="relative mx-auto max-w-[1900px] px-3 pb-5 pt-3 sm:px-6 sm:pb-8 sm:pt-6 md:pt-8">
         {current ? (
           <>
             <Hero key={current.id} s={current} />
-            <div className="absolute right-8 top-10 z-20 flex gap-2 md:right-10 md:top-12">
+            <div className="absolute right-6 top-6 z-20 flex gap-2 sm:right-8 sm:top-10 md:right-10 md:top-12">
               {[ChevronLeft, ChevronRight].map((Ic, k) => (
                 <Button variant="outline" size="icon" key={k} aria-label={k ? "Next" : "Previous"} onClick={() => setI((x) => (x + (k ? 1 : -1) + featured.length) % featured.length)} className="bg-overlay/60">
                   <Ic className="h-4 w-4" />
@@ -196,15 +196,15 @@ function Index() {
         )}
       </section>
 
-      <div className="mx-auto grid max-w-[1900px] items-start gap-6 px-4 pb-20 pt-3 sm:px-6 lg:grid-cols-[minmax(0,1fr)_400px]">
-        <div className="min-w-0 space-y-12">
+      <div className="mx-auto grid max-w-[1900px] min-w-0 items-start gap-6 px-3 pb-14 pt-3 sm:px-6 sm:pb-20 lg:grid-cols-[minmax(0,1fr)_400px]">
+        <div className="min-w-0 space-y-8 sm:space-y-12">
           <ContinueWatchingShelf compact />
           <PersonalizedRecommendations />
           <Grid title="Currently Airing" items={latestEpisodes} loading={isLoading} filters />
           <Grid title="Trending Anime" items={catalog.data?.trending ?? []} loading={isLoading} />
           <Grid title="Popular Anime" items={popularAnime} loading={isLoading} filters />
         </div>
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <TopTrending daily={catalog.data?.trending ?? []} weekly={catalog.data?.popular ?? []} monthly={catalog.data?.trending ?? []} loading={isLoading} />
           <Schedule />
         </div>
