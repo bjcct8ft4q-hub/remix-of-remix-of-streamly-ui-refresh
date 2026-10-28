@@ -2,10 +2,18 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader, setResponseHeader } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { recoverySchema, signupSchema, usernameEmail } from "@/lib/account-schema";
+import { z } from "zod";
 
 export const createUsernameAccount = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => signupSchema.parse(input))
+  .inputValidator((input: unknown) => signupSchema.extend({ turnstileToken: z.string().max(2048).optional() }).parse(input))
   .handler(async ({ data }) => {
+    const turnstileSecret = process.env["TURNSTILE_SECRET_KEY"];
+    if (turnstileSecret) {
+      if (!data.turnstileToken) throw new Error("Complete the human verification challenge.");
+      const verification = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({secret:turnstileSecret,response:data.turnstileToken}),signal:AbortSignal.timeout(8000)});
+      if (!verification.ok || !(await verification.json()).success) throw new Error("Human verification failed. Please try again.");
+    }
+    if (!turnstileSecret && process.env["VITE_TURNSTILE_SITE_KEY"]) throw new Error("Human verification is not configured on the server.");
     setResponseHeader("Cache-Control", "no-store");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { checkLimit, issueCodes } = await import("@/lib/accounts.server");
@@ -46,7 +54,7 @@ export const resolveLoginIdentifier = createServerFn({ method: "POST" })
     const { checkLimit } = await import("@/lib/accounts.server");
     await checkLimit(supabaseAdmin, "email-lookup:" + (getRequestHeader("x-vercel-forwarded-for")?.split(",")[0] || getRequestHeader("x-real-ip") || "unknown"), 30);
     const { data: row, error } = await supabaseAdmin.from("account_credentials")
-      .select("username").ilike("recovery_email", data.replace(/[\\%_]/g, "\\export const recoverUsernameAccount =")).maybeSingle();
+      .select("username").ilike("recovery_email", data.replace(/[\\%_]/g, "\\.select("username").ilike("recovery_email", data.replace(/[\\%_]/g, "\\export const recoverUsernameAccount =")).maybeSingle();")).maybeSingle();
     if (error) throw new Error("Sign in is temporarily unavailable.");
     return { email: row ? usernameEmail(row.username) : "nonexistent@username.streamly.invalid" };
   });
