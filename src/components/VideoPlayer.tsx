@@ -132,7 +132,7 @@ export const VideoPlayer = forwardRef<HTMLVideoElement | null, Props>(function V
         onPlay={() => { setPlaying(true); wake(); }} onPause={() => setPlaying(false)}
         onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
         onProgress={(e) => { const b = e.currentTarget.buffered; if (b.length) setBuffered(b.end(b.length - 1)); }}
-        onLoadedMetadata={(e) => { setDur(e.currentTarget.duration); e.currentTarget.playbackRate = speed; onLoaded?.(e.currentTarget); if (autoSkip && e.currentTarget.currentTime < 1) e.currentTarget.currentTime = intro && intro.end > 0 ? intro.end : Math.min(85, e.currentTarget.duration); }}
+        onLoadedMetadata={(e) => { setDur(e.currentTarget.duration); e.currentTarget.playbackRate = speed; onLoaded?.(e.currentTarget); if (autoSkip && intro && intro.end > intro.start && e.currentTarget.currentTime >= intro.start && e.currentTarget.currentTime < intro.end) e.currentTarget.currentTime = intro.end; }}
         onVolumeChange={(e) => { setMuted(e.currentTarget.muted); setVolume(e.currentTarget.volume); }}
         onEnded={onEnded} onError={onError}>
         {subtitles.map((t, i) => <track key={t.url} kind="subtitles" src={t.url} label={t.label} srcLang={t.lang ?? "en"} default={i === subIndex} />)}
@@ -154,7 +154,7 @@ export const VideoPlayer = forwardRef<HTMLVideoElement | null, Props>(function V
           <div className="relative flex items-center gap-0.5 rounded-full bg-overlay/60 px-2 py-1">
             <button type="button" className={btn} aria-label="Back 10 seconds" title="-10s" onClick={() => seek(-10)}><RotateCcw className="h-4 w-4" /></button>
             <button type="button" className={btn} aria-label="Forward 10 seconds" title="+10s" onClick={() => seek(10)}><RotateCw className="h-4 w-4" /></button>
-            <button type="button" className={btn} aria-label="Skip 85 seconds" title="+85s (skip intro)" onClick={() => seek(85)}><FastForward className="h-4 w-4" /></button>
+            {intro && intro.end > intro.start && time < intro.end && <button type="button" className={btn} aria-label="Skip intro" title="Skip intro" onClick={() => { const el = v(); if (el) el.currentTime = intro.end; }}><FastForward className="h-4 w-4" /></button>}
             <button type="button" className={btn} aria-label="Download" title="Download" onClick={download}><Download className="h-4 w-4" /></button>
             <button type="button" className={btn} aria-label="Screenshot" title="Screenshot" onClick={shot}><Camera className="h-4 w-4" /></button>
             <button type="button" className={btn} aria-label="Settings" title="Quality, subtitles and speed" aria-expanded={menu} onClick={() => setMenu(!menu)}><Settings className={`h-4 w-4 transition ${menu ? "rotate-45 text-primary" : ""}`} /></button>
