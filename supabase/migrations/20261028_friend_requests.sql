@@ -23,12 +23,11 @@ create policy "Participants may remove friend requests" on public.friend_request
   for delete to authenticated using (sender_id=auth.uid() or receiver_id=auth.uid());
 -- Public directory reveals only usernames and avatars; never expose account_credentials or email.
 create or replace function public.search_streamly_users(search_text text)
-returns table(id uuid, username text, avatar_url text)
+returns table(id uuid, username text)
 language sql stable security definer
 set search_path = ''
 as $$
-  select p.id, p.username,
-    case when p.avatar_url like 'https://%' then p.avatar_url else null end
+  select p.id, p.username
   from public.profiles p
   where auth.uid() is not null
     and length(trim(search_text)) between 2 and 40
