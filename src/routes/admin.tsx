@@ -411,12 +411,41 @@ function AnalyticsPanel() {
     <p className="text-xs text-muted-foreground">Page views are not unique visitors or live online users. Refreshes and repeat visits can count again.</p>
   </section>;
 }
+type AdminRoom = { id: string; anime_title: string; host_name: string; episode: number; status: string; created_at: string };
+function RoomManager() {
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState<string | null>(null);
+  const { data = [], isPending, error, refetch } = useQuery({
+    queryKey: ["admin-watch-rooms"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("watch_rooms").select("id,anime_title,host_name,episode,status,created_at").order("created_at", { ascending: false }).limit(100);
+      if (error) throw error;
+      return (data ?? []) as AdminRoom[];
+    }, retry: 0, refetchInterval: 30000,
+  });
+  const endRoom = async (room: AdminRoom) => {
+    if (!confirm(`End the room for "${room.anime_title}"? Viewers will be disconnected from the session.`)) return;
+    setBusy(room.id);
+    const { error } = await (supabase as any).from("watch_rooms").update({ status: "ended", is_playing: false }).eq("id", room.id);
+    setBusy(null);
+    if (error) toast.error(error.message);
+    else { toast.success("Room ended"); void qc.invalidateQueries({ queryKey: ["admin-watch-rooms"] }); }
+  };
+  return <section className="space-y-5">
+    <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-2xl font-extrabold">Watch Together rooms</h2><p className="mt-1 text-sm text-muted-foreground">Monitor recent rooms and end inappropriate sessions. Requires the Watch Together migration and admin database permissions.</p></div><Button variant="outline" onClick={() => void refetch()}>Refresh rooms</Button></div>
+    <div className="grid gap-3 sm:grid-cols-3">{(["live","waiting","ended"] as const).map(status => <div key={status} className="rounded-xl border border-border bg-card p-4"><p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{status} rooms</p><p className="mt-2 text-3xl font-black text-primary">{isPending ? "…" : data.filter(r => r.status === status).length}</p></div>)}</div>
+    {error && <p role="alert" className="rounded-lg border border-destructive/40 p-4 text-sm text-destructive">Rooms could not be loaded. Check the Watch Together database migration and admin permissions.</p>}
+    {!isPending && !error && !data.length && <p className="rounded-lg border border-border p-5 text-sm text-muted-foreground">No Watch Together rooms yet.</p>}
+    <div className="space-y-3">{data.map(room => <article key={room.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card/60 p-4"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="font-bold">{room.anime_title}</h3><span className={`rounded px-2 py-0.5 text-[10px] font-black uppercase ${room.status === "live" ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>{room.status}</span></div><p className="mt-1 text-xs text-muted-foreground">Episode {room.episode} · Hosted by {room.host_name} · {new Date(room.created_at).toLocaleString()}</p></div><div className="flex gap-2"><Button asChild variant="outline" size="sm"><Link to="/watch-together/$roomId" params={{ roomId: room.id }}>View</Link></Button>{room.status !== "ended" && <Button size="sm" variant="destructive" disabled={busy === room.id} onClick={() => void endRoom(room)}>{busy === room.id ? "Ending…" : "End room"}</Button>}</div></article>)}</div>
+    <p className="text-xs text-muted-foreground">Showing up to 100 recent rooms. Ending a room changes its status; it does not delete chat history.</p>
+  </section>;
+}
 function Admin() {
   const { user, isAdmin, loading, openAuth } = useAuth();
   const qc = useQueryClient();
   const { data = [] } = useQuery({ ...seriesListQuery(), enabled: isAdmin });
   const [selected, setSelected] = useState<string | null>(null);
-  const [tab, setTab] = useState<"overview" | "analytics" | "reports" | "content">("overview");
+  const [tab, setTab] = useState<"overview" | "analytics" | "reports" | "rooms" | "content">("overview");
 
   if (loading) return <main className="pt-32 text-center text-muted-foreground">Loading...</main>;
   if (!user)
@@ -443,7 +472,7 @@ function Admin() {
         <Link to="/" className="rounded-lg border border-border px-4 py-2 text-sm font-semibold hover:border-primary">View website</Link>
       </div>
       <nav aria-label="Admin sections" className="mb-8 flex flex-wrap gap-2 border-b border-border pb-4">
-        {(["overview","analytics","reports","content"] as const).map((section)=><button key={section} type="button" aria-current={tab === section ? "page" : undefined} onClick={()=>setTab(section)} className={`rounded-lg px-4 py-2.5 text-sm font-bold capitalize transition ${tab === section ? "bg-primary text-primary-foreground" : "border border-border bg-card text-muted-foreground hover:text-foreground"}`}>{section === "content" ? "Content manager" : section}</button>)}
+        {(["overview","analytics","reports","rooms","content"] as const).map((section)=><button key={section} type="button" aria-current={tab === section ? "page" : undefined} onClick={()=>setTab(section)} className={`rounded-lg px-4 py-2.5 text-sm font-bold capitalize transition ${tab === section ? "bg-primary text-primary-foreground" : "border border-border bg-card text-muted-foreground hover:text-foreground"}`}>{section === "content" ? "Content manager" : section}</button>)}
       </nav>
       {tab === "overview" && <div className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-3">
@@ -451,13 +480,15 @@ function Admin() {
           <div className="rounded-xl border border-border bg-card p-6"><p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Uploaded episodes</p><p className="mt-3 text-4xl font-black text-primary">{data.reduce((n,s)=>n+(s.episodes?.[0]?.count ?? 0),0)}</p></div>
           <div className="rounded-xl border border-border bg-card p-6"><p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Moderation</p><button onClick={()=>setTab("reports")} className="mt-3 text-lg font-extrabold text-primary hover:underline">Review episode reports →</button></div>
         </div>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-3">
           <button onClick={()=>setTab("analytics")} className="rounded-xl border border-border bg-card p-6 text-left transition hover:border-primary"><h2 className="text-xl font-extrabold">Traffic analytics</h2><p className="mt-2 text-sm text-muted-foreground">View actual page visits, daily trends and popular pages.</p></button>
+          <button onClick={()=>setTab("rooms")} className="rounded-xl border border-border bg-card p-6 text-left transition hover:border-primary"><h2 className="text-xl font-extrabold">Watch Together</h2><p className="mt-2 text-sm text-muted-foreground">See active rooms, review hosts and end sessions.</p></button>
           <button onClick={()=>setTab("content")} className="rounded-xl border border-border bg-card p-6 text-left transition hover:border-primary"><h2 className="text-xl font-extrabold">Content management</h2><p className="mt-2 text-sm text-muted-foreground">Import anime, add series, upload episodes and manage your library.</p></button>
         </div>
       </div>}
       {tab === "analytics" && <AnalyticsPanel />}
       {tab === "reports" && <ReportManager />}
+      {tab === "rooms" && <RoomManager />}
       {tab === "content" && <div className="space-y-8">
         <h2 className="text-2xl font-extrabold">Content manager</h2>
         <ImportPanel />
