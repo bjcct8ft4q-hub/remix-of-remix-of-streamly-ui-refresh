@@ -144,7 +144,7 @@ function Browse() {
   const field = (label: string, key: keyof Filters, options: [string, string][]) =>
     <FilterPicker label={label} value={draft[key]} options={options} onChange={(v) => set(key, v)} />;
   return (
-    <main className="mx-auto w-full max-w-none px-4 pb-24 pt-24 sm:px-5 md:px-6 md:pt-24">
+    <main className="mx-auto w-full max-w-none px-4 pb-24 pt-20 sm:px-5 md:px-6 md:pt-20">
       <div className="mb-4 flex items-center justify-between gap-3"><h1 className="border-l-4 border-primary pl-3 text-xl font-extrabold sm:text-2xl">Search Anime</h1><span className="hidden text-xs font-semibold uppercase tracking-wider text-muted-foreground lg:inline">Explore the anime catalogue</span></div>
       <form onSubmit={(e) => { e.preventDefault(); setApplied({ ...draft }); }} className="space-y-3">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-7 lg:items-end">
