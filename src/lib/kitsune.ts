@@ -1,5 +1,6 @@
 // Client helpers for the anime sources ported from Kitsune (AniList metadata + provider scrapers).
 import type { PlayerSubtitle } from "@/components/VideoPlayer";
+import { resolveAnimeSearch, matchesAnimeTitle } from "@/lib/anime-search";
 
 export type Audio = "sub" | "dub";
 
@@ -44,11 +45,21 @@ async function anilist<T>(query: string, variables: Record<string, unknown>): Pr
 export const animeTitle = (a: { title: { english: string | null; romaji: string } }) => a.title.english || a.title.romaji;
 
 export async function searchAnime(search: string): Promise<AnimeSummary[]> {
-  const data = await anilist<{ Page: { media: AnimeSummary[] } }>(
-    `query ($search: String) { Page(page: 1, perPage: 24) { media(type: ANIME, search: $search, isAdult: false, sort: SEARCH_MATCH) { ${SUMMARY} } } }`,
-    { search },
-  );
-  return data.Page.media;
+  const resolved = resolveAnimeSearch(search);
+  const query = `query ($search: String) { Page(page: 1, perPage: 24) { media(type: ANIME, search: $search, isAdult: false, sort: SEARCH_MATCH) { ${SUMMARY} } } }`;
+  const primary = await anilist<{ Page: { media: AnimeSummary[] } }>(query, { search: resolved });
+  const results = primary.Page.media ?? [];
+  // AniList search is not fuzzy. For misspellings, retry a shortened word stem
+  // and rank matches locally instead of requiring an exact spelling.
+  if (results.length || resolved.length < 5) return results;
+  const words = resolved.trim().split(/\s+/);
+  const longest = [...words].sort((a, b) => b.length - a.length)[0];
+  const stem = longest.slice(0, Math.max(3, longest.length - 2));
+  if (stem.length < 3 || stem === resolved) return results;
+  const fallback = await anilist<{ Page: { media: AnimeSummary[] } }>(query, { search: stem });
+  return (fallback.Page.media ?? [])
+    .filter((a) => matchesAnimeTitle(a.title.english || "", search) || matchesAnimeTitle(a.title.romaji, search))
+    .slice(0, 24);
 }
 
 export async function getAnime(id: number): Promise<AnimeDetails | null> {
