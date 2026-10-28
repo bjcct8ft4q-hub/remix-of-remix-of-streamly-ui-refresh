@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
-import { ChevronLeft, ChevronRight, LoaderCircle, Search, Play, MonitorPlay, ListVideo, SkipForward, RefreshCw, Star, Keyboard } from "lucide-react";
+import { ChevronLeft, ChevronRight, LoaderCircle, Search, Play, MonitorPlay, ListVideo, SkipForward, RefreshCw, Star, Keyboard, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { WatchlistButton } from "@/components/WatchlistButton";
@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth";
 import { historyQuery, saveProgress } from "@/lib/library";
 import { animeQuery, episodesQuery } from "@/lib/anime-queries";
 import { useAnimeAgeRating } from "@/lib/age-ratings";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/anime/$id_/watch")({
   validateSearch: z.object({ ep: z.coerce.number().default(1), audio: z.enum(["sub", "dub"]).default("sub"), provider: z.string().optional() }),
@@ -31,7 +32,9 @@ function WatchAnime() {
   const id = Number(Route.useParams().id);
   const { ep, audio, provider } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
-  const { user } = useAuth();
+  const { user, username, openAuth } = useAuth();
+  const [creatingRoom, setCreatingRoom] = useState(false);
+  const [roomError, setRoomError] = useState("");
   const info = useQuery(animeQuery(id));
   const eps = useQuery(episodesQuery(id));
   const ageRating = useAnimeAgeRating(info.data?.idMal, info.data?.isAdult);
@@ -77,6 +80,18 @@ function WatchAnime() {
   const idx = list.findIndex((e) => e.number === ep);
   const prev = list[idx - 1], next = list[idx + 1];
   const hasDub = !!episode?.sources.some((s) => s.audio === "dub");
+  const createRoom = async () => {
+    if (!user) { openAuth("signin"); return; }
+    if (!info.data) return;
+    setCreatingRoom(true); setRoomError("");
+    const { data, error } = await (supabase as any).from("watch_rooms").insert({
+      host_id: user.id, host_name: username || "Host", anime_id: id, anime_title: title,
+      anime_cover: cover, episode: ep, audio, status: "waiting", is_public: true
+    }).select("id").single();
+    setCreatingRoom(false);
+    if (error || !data) { setRoomError("Could not create room. Watch Together may need database setup."); return; }
+    void navigate({ to: "/watch-together/$roomId" as any, params: { roomId: data.id } as any });
+  };
   const go = (search: { ep?: number; audio?: "sub" | "dub"; provider?: string | undefined }) => void navigate({ search: (s) => ({ ...s, provider: undefined, ...search }) });
 
   return (
@@ -117,7 +132,8 @@ function WatchAnime() {
                   onError={() => { if (streams.data && server < streams.data.length - 1) setServer(server + 1); }} /> : null}
           </div>
           <div className="mt-2 rounded-md bg-primary/10 px-3 py-2 text-xs text-muted-foreground"><span className="font-semibold text-foreground">Playback issue?</span> Try another source or server below.</div>
-          <div className="mt-2 flex flex-wrap items-center gap-2 py-3 text-xs font-semibold"> <span className="mr-auto text-primary"><ListVideo className="mr-1 inline h-4 w-4" />Episode {ep}</span><button type="button" onClick={() => setTheaterMode(!theaterMode)} className="rounded px-2 py-1 hover:bg-muted"><MonitorPlay className="mr-1 inline h-4 w-4" />{theaterMode ? "Exit theater" : "Theater"}</button><button type="button" onClick={() => setAutoNext(!autoNext)} aria-pressed={autoNext} className={`rounded px-2 py-1 hover:bg-muted ${autoNext ? "text-primary" : "text-muted-foreground"}`}><SkipForward className="mr-1 inline h-4 w-4" />Auto next {autoNext ? "On" : "Off"}</button><button type="button" onClick={() => setAutoSkip(!autoSkip)} aria-pressed={autoSkip} className={`rounded px-2 py-1 hover:bg-muted ${autoSkip ? "text-primary" : "text-muted-foreground"}`}><SkipForward className="mr-1 inline h-4 w-4" />Auto skip {autoSkip ? "On" : "Off"}</button><button type="button" onClick={() => setShowShortcuts(!showShortcuts)} aria-expanded={showShortcuts} className="rounded px-2 py-1 hover:bg-muted"><Keyboard className="mr-1 inline h-4 w-4" />Keys</button></div>
+          <div className="mt-2 flex flex-wrap items-center gap-2 py-3 text-xs font-semibold"> <span className="mr-auto text-primary"><ListVideo className="mr-1 inline h-4 w-4" />Episode {ep}</span><button type="button" onClick={() => setTheaterMode(!theaterMode)} className="rounded px-2 py-1 hover:bg-muted"><MonitorPlay className="mr-1 inline h-4 w-4" />{theaterMode ? "Exit theater" : "Theater"}</button><button type="button" onClick={() => setAutoNext(!autoNext)} aria-pressed={autoNext} className={`rounded px-2 py-1 hover:bg-muted ${autoNext ? "text-primary" : "text-muted-foreground"}`}><SkipForward className="mr-1 inline h-4 w-4" />Auto next {autoNext ? "On" : "Off"}</button><button type="button" onClick={() => setAutoSkip(!autoSkip)} aria-pressed={autoSkip} className={`rounded px-2 py-1 hover:bg-muted ${autoSkip ? "text-primary" : "text-muted-foreground"}`}><SkipForward className="mr-1 inline h-4 w-4" />Auto skip {autoSkip ? "On" : "Off"}</button><button type="button" disabled={creatingRoom} onClick={() => void createRoom()} className="rounded px-2 py-1 font-bold text-primary hover:bg-muted"><Users className="mr-1 inline h-4 w-4" />{creatingRoom ? "Creating room…" : "W2G"}</button><button type="button" onClick={() => setShowShortcuts(!showShortcuts)} aria-expanded={showShortcuts} className="rounded px-2 py-1 hover:bg-muted"><Keyboard className="mr-1 inline h-4 w-4" />Keys</button></div>
+          {roomError && <p role="alert" className="my-2 text-xs text-destructive">{roomError}</p>}
           {showShortcuts && <div className="rounded-md border border-border/60 bg-card/60 p-3 text-xs text-muted-foreground">Player shortcuts: Space/K = play or pause · ←/→ = seek 10 seconds · F = fullscreen · M = mute</div>}
           <div className="mt-3 flex flex-wrap items-center gap-2 bg-card/30 p-3">
             <Button variant="outline" size="sm" disabled={!prev} onClick={() => prev && go({ ep: prev.number })}><ChevronLeft /> Previous</Button>
