@@ -31,23 +31,18 @@ jobs:
             echo "::error::Configure STREAMLY_URL and LOVABLE_CRON_SECRET repository secrets."
             exit 1
           fi
-          # Persist the cursor in a dedicated GitHub issue (no extra token required).
+
           issue=$(gh issue list --repo "$GH_REPOSITORY" --state open --search "Streamly age-rating import cursor in:title" --json number,title --jq '.[] | select(.title == "Streamly age-rating import cursor") | .number' | head -1)
           if [[ -z "$issue" ]]; then
-            issue=$(gh issue create --repo "$GH_REPOSITORY" --title "Streamly age-rating import cursor" --body "1" | grep -oE '[0-9]+
+            issue_url=$(gh issue create --repo "$GH_REPOSITORY" --title "Streamly age-rating import cursor" --body "1")
+            issue="${issue_url##*/}"
+          fi
+          page=$(gh issue view "$issue" --repo "$GH_REPOSITORY" --json body --jq '.body')
+          [[ "$page" =~ ^[0-9]+$ ]] || page=1
+
           response=$(curl --fail-with-body --silent --show-error --max-time 90 \
             -X POST "${STREAMLY_URL%/}/api/public/jobs/age-ratings?page=$page" \
             -H "Authorization: Bearer $LOVABLE_CRON_SECRET")
           echo "$response" | jq '{page,nextPage,saved,skipped,failed,total}'
           next=$(echo "$response" | jq -r '.nextPage // 1')
           gh issue edit "$issue" --repo "$GH_REPOSITORY" --body "$next"
-)
-          fi
-          page=$(gh issue view "$issue" --repo "$GH_REPOSITORY" --json body --jq '.body')
-          [[ "$page" =~ ^[0-9]+$ ]] || page=1
-          response=$(curl --fail-with-body --silent --show-error --max-time 90 \
-            -X POST "${STREAMLY_URL%/}/api/public/jobs/age-ratings?page=$page" \
-            -H "Authorization: Bearer $LOVABLE_CRON_SECRET")
-          echo "$response" | jq '{page,nextPage,saved,skipped,failed,total}'
-          next=$(echo "$response" | jq -r '.nextPage // 1')
-          gh variable set AGE_RATINGS_NEXT_PAGE --body "$next" --repo "$GH_REPOSITORY"
