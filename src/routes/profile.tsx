@@ -1,0 +1,6 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useAuth } from "@/lib/auth";
+import { AccountAvatar } from "@/components/AccountAvatar";
+import { Button } from "@/components/ui/button";
+export const Route = createFileRoute("/profile")({ component: Profile });
+function Profile() { const { user, username, openAuth } = useAuth(); return <main className="mx-auto max-w-3xl px-5 pb-20 pt-32">{!user ? <><h1 className="text-3xl font-bold">Profile</h1><Button className="mt-5" onClick={() => openAuth("signin")}>Sign in</Button></> : <><div className="rounded-xl border border-border bg-card p-6"><div className="flex items-center gap-5"><AccountAvatar size="lg" /><div className="min-w-0"><h1 className="truncate text-2xl font-extrabold">{username}</h1><p className="truncate text-sm text-muted-foreground">{user.email}</p><p className="mt-1 text-xs text-primary">Joined {new Date(user.created_at).toLocaleDateString("en-GB", { month: "long", year: "numeric" })}</p></div></div><div className="mt-6 flex flex-wrap gap-3"><Button asChild><Link to="/settings">Edit avatar & settings</Link></Button><Button asChild variant="outline"><Link to="/public-profile">Public profile</Link></Button></div></div></>}</main>; }
