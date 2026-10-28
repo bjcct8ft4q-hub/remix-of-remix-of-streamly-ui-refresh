@@ -10,6 +10,31 @@ import { supabase } from "@/integrations/supabase/client";
 import { AccountAvatar } from "@/components/AccountAvatar";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAudioPreference, type AudioPreference } from "@/lib/audio-preference";
+const SETTINGS_SECTIONS = ["profile", "playback", "sync", "security"] as const;
+function useActiveSettingsSection(setActive: (section: typeof SETTINGS_SECTIONS[number]) => void) {
+  useEffect(() => {
+    const container = document.getElementById("settings-scroll-content");
+    if (!container) return;
+    let frame = 0;
+    const update = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const top = container.getBoundingClientRect().top;
+        let active: typeof SETTINGS_SECTIONS[number] = "profile";
+        for (const section of SETTINGS_SECTIONS) {
+          const element = document.getElementById("settings-section-" + section);
+          if (element && element.getBoundingClientRect().top <= top + 120) active = section;
+        }
+        if (container.scrollHeight - container.scrollTop - container.clientHeight < 24) active = "security";
+        setActive(active);
+      });
+    };
+    container.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("scroll", update, { passive: true });
+    update();
+    return () => { cancelAnimationFrame(frame); container.removeEventListener("scroll", update); window.removeEventListener("scroll", update); };
+  }, [setActive]);
+}
 type CharacterAvatar = { id: number; name: string; image: string };
 type AvatarCollection = { title: string; mediaId: number; characters: CharacterAvatar[] };
 const avatarShows = [
@@ -103,6 +128,7 @@ function Settings() {
     return () => { active = false; };
   }, [user?.id]);
   const [settingsTab, setSettingsTab] = useState<"profile" | "playback" | "security" | "display" | "titles" | "sync">("profile");
+  useActiveSettingsSection(setSettingsTab);
   const titleDefaults: Record<string, { main: string[]; supporting: string[] }> = {
     Default: { main: ["English", "Romaji", "Native"], supporting: ["Romaji"] },
     Japanese: { main: ["English", "Romaji", "Native"], supporting: ["Romaji"] },
