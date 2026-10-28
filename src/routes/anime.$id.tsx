@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { LoaderCircle, Play, Share2 } from "lucide-react";
+import { ChevronDown, LoaderCircle, Play, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WatchlistButton } from "@/components/WatchlistButton";
 import { animeTitle, type AnimeSummary, type Audio } from "@/lib/kitsune";
@@ -10,6 +10,8 @@ import { useAuth } from "@/lib/auth";
 import { historyQuery } from "@/lib/library";
 import { useAnimeAgeRating } from "@/lib/age-ratings";
 import { useAudioPreference } from "@/lib/audio-preference";
+import { fetchSeasonChain } from "@/lib/anime-series";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 
 export const Route = createFileRoute("/anime/$id")({
@@ -35,6 +37,7 @@ function AnimePage() {
   const [manualAudio, setManualAudio] = useState<Audio | null>(null);
   const { preference } = useAudioPreference();
   const info = useQuery(animeQuery(id));
+  const seasons = useQuery({ queryKey: ["anime-season-chain", id], queryFn: () => fetchSeasonChain(id), staleTime: 60 * 60 * 1000 });
   const ageRating = useAnimeAgeRating(info.data?.idMal, info.data?.isAdult);
   const eps = useQuery(episodesQuery(id));
   const hist = useQuery(historyQuery(user?.id, id));
@@ -75,6 +78,17 @@ function AnimePage() {
               {first != null && <Button asChild><Link to="/anime/$id/watch" params={{ id: String(id) }} search={{ ep: first, audio: resume?.audio === "dub" ? "dub" : audio }}><Play /> {resume ? `Continue episode ${resume.episode}` : "Watch now"}</Link></Button>}
               <WatchlistButton anime={{ id, title, cover: a.coverImage.large }} />
               <Button variant="outline" onClick={() => { if (typeof navigator !== "undefined" && navigator.share) void navigator.share({ title, url: window.location.href }); else if (typeof navigator !== "undefined" && navigator.clipboard) void navigator.clipboard.writeText(window.location.href); }}><Share2 className="h-4 w-4" /> Share</Button>
+              {(seasons.isPending || (seasons.data?.length ?? 0) > 1) && <DropdownMenu>
+                <DropdownMenuTrigger asChild><Button variant="outline" disabled={seasons.isPending}>Seasons {seasons.isPending ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <ChevronDown className="h-4 w-4" />}</Button></DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="max-h-80 w-72 overflow-y-auto border-primary/40 bg-card">
+                  {(seasons.data ?? []).map((season, index) => <DropdownMenuItem key={season.id} asChild>
+                    <Link to="/anime/$id" params={{ id: String(season.id) }} className={season.id === id ? "bg-primary/15 text-primary" : ""}>
+                      <img src={season.coverImage.large || ""} alt="" className="mr-2 h-12 w-9 rounded object-cover" />
+                      <span className="min-w-0"><span className="block text-sm font-bold">Season {index + 1}</span><span className="block truncate text-xs text-muted-foreground">{animeTitle(season)}</span></span>
+                    </Link>
+                  </DropdownMenuItem>)}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
             {a.description && <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted-foreground">{a.description.replace(/<[^>]+>/g, "")}</p>}
           </div>
