@@ -1,0 +1,3 @@
+import { createFileRoute } from "@tanstack/react-router";
+export const Route = createFileRoute("/friends")({ component: Friends });
+function Friends() { return <main className="mx-auto max-w-3xl px-5 pb-20 pt-32"><h1 className="mb-5 border-l-4 border-primary pl-3 text-3xl font-bold">Friends</h1><div className="rounded-xl border border-border bg-card p-6"><h2 className="text-xl font-bold">Friends are coming soon</h2><p className="mt-2 text-sm text-muted-foreground">Friend requests and profiles need a secure friends system. They aren't active yet, so no requests or friends are shown.</p></div></main>; }
