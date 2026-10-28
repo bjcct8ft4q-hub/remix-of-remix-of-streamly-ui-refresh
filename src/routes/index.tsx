@@ -107,20 +107,13 @@ function Schedule() {
 }
 
 function TopTrending({ daily, weekly, monthly, loading }: { daily: S[]; weekly: S[]; monthly: S[]; loading: boolean }) {
-  const [period, setPeriod] = useState<"day" | "week" | "month">("day");
-  const lists = { day: daily, week: weekly, month: monthly };
-  const ranked = lists[period].slice(0, 10);
+  // AniList exposes a current TRENDING_DESC ranking, not historical daily/weekly/monthly leaderboards.
+  const ranked = daily.slice(0, 10);
   return (
     <aside className="relative overflow-hidden rounded-xl border border-border bg-card/70 p-3.5 shadow-lg sm:p-4">
       <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-3">
         <h2 className="shrink-0 text-lg font-black tracking-tight sm:text-xl">Top Trending</h2>
-        <div role="tablist" aria-label="Trending period" className="flex items-center gap-1">
-          {(["day", "week", "month"] as const).map((p) => (
-            <button key={p} type="button" role="tab" aria-selected={period === p} onClick={() => setPeriod(p)} className={`relative px-2 py-2 text-[11px] font-black uppercase tracking-wider transition-colors sm:px-2.5 ${period === p ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}>
-              {p}<span className={`absolute inset-x-2 -bottom-[13px] h-0.5 bg-primary transition-opacity ${period === p ? "opacity-100" : "opacity-0"}`} />
-            </button>
-          ))}
-        </div>
+        <span className="text-[11px] font-bold text-muted-foreground">AniList · Current</span>
       </div>
       <div className="mt-4 space-y-3">
         {loading ? <p className="py-8 text-center text-sm text-muted-foreground">Loading trending anime…</p> : ranked.length ? ranked.map((anime, index) => {
@@ -141,7 +134,7 @@ function TopTrending({ daily, weekly, monthly, loading }: { daily: S[]; weekly: 
           </Link>;
         }) : <p className="py-8 text-center text-sm text-muted-foreground">Trending anime is unavailable right now.</p>}
       </div>
-      <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground">Rankings based on available AniList catalog data. Periods use separate catalog lists, not live daily or weekly viewing statistics.</p>
+      <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground">Current AniList trending order, not Streamly viewing figures or historical day/week/month statistics.</p>
     </aside>
   );
 }
