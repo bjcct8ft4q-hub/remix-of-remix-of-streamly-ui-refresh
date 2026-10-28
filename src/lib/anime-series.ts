@@ -2,9 +2,13 @@ import type { AnimeSummary } from "@/lib/kitsune";
 
 export type SeasonEntry = AnimeSummary & { relations?: { edges: { relationType: string; node: AnimeSummary }[] } };
 const tv = (a: AnimeSummary) => a.format === "TV" || a.format === "TV_SHORT";
-const title = (a: AnimeSummary) => a.title.english || a.title.romaji;
+const name = (a: AnimeSummary) => (a.title.english || a.title.romaji).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+const baseName = (a: AnimeSummary) => name(a)
+  .replace(/(?:\s+|^)(?:season|series|part|cour)\s*(?:[0-9]+|ii|iii|iv|v|vi|vii|viii|ix|x)\b.*$/i, "")
+  .replace(/\s+(?:2nd|3rd|4th|5th|6th|7th|8th|9th)\s+season\b.*$/i, "")
+  .trim();
 
-/** Group only explicitly linked TV sequels; films, specials and spin-offs remain separate. */
+/** Prefer explicit sequel links; use conservative numbered-season title matching when AniList omits links. */
 export function groupAnimeSeasons<T extends SeasonEntry>(items: T[]): T[] {
   const byId = new Map(items.map((item) => [item.id, item]));
   const parent = new Map<number, number>();
@@ -21,13 +25,24 @@ export function groupAnimeSeasons<T extends SeasonEntry>(items: T[]): T[] {
     while (parent.has(id) && !visited.has(id)) { visited.add(id); id = parent.get(id)!; }
     return id;
   };
+  const canonical = new Map<string, number>();
+  for (const item of items) {
+    if (!tv(item)) continue;
+    const key = baseName(item);
+    if (!key) continue;
+    const existing = canonical.get(key);
+    if (existing == null || ((byId.get(existing)?.seasonYear ?? 9999) > (item.seasonYear ?? 9999))) canonical.set(key, item.id);
+  }
   const seen = new Set<number>();
-  return items.filter((item) => {
-    const id = tv(item) ? root(item.id) : item.id;
-    if (seen.has(id)) return false;
-    seen.add(id);
-    return true;
-  }).map((item) => byId.get(tv(item) ? root(item.id) : item.id) ?? item);
+  const result: T[] = [];
+  for (const item of items) {
+    const linked = tv(item) ? root(item.id) : item.id;
+    const canonicalId = tv(item) ? canonical.get(baseName(byId.get(linked) ?? item)) ?? linked : linked;
+    if (seen.has(canonicalId)) continue;
+    seen.add(canonicalId);
+    result.push(byId.get(canonicalId) ?? item);
+  }
+  return result;
 }
 
 export function orderedSeasons(items: AnimeSummary[]): AnimeSummary[] {
