@@ -166,7 +166,17 @@ function WatchAnime() {
   const createRoom = async () => {
     if (!user) { openAuth("signin"); return; }
     if (!info.data) return;
+    if (creatingRoom) return;
     setCreatingRoom(true); setRoomError("");
+    const { data: existing, error: lookupError } = await (supabase as any).from("watch_rooms")
+      .select("id").eq("host_id", user.id).eq("anime_id", id).eq("episode", ep)
+      .eq("audio", audio).in("status", ["waiting", "live"]).order("created_at", { ascending: false }).limit(1);
+    if (lookupError) { setCreatingRoom(false); setRoomError("Could not check your existing rooms. Please try again."); return; }
+    if (existing?.length) {
+      setCreatingRoom(false);
+      void navigate({ to: "/watch-together/$roomId" as any, params: { roomId: existing[0].id } as any });
+      return;
+    }
     const { data, error } = await (supabase as any).from("watch_rooms").insert({
       host_id: user.id, host_name: username || "Host", anime_id: id, anime_title: title,
       anime_cover: cover, episode: ep, audio, status: "waiting", is_public: true
