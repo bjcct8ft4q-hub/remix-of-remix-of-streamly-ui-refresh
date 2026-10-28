@@ -5,6 +5,8 @@ const Ctx = createContext<{ halloween: boolean; toggleHalloween: () => void }>({
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [halloween, setHalloween] = useState(false);
+  const [transitionKey, setTransitionKey] = useState(0);
+  const [transitioning, setTransitioning] = useState(false);
   useEffect(() => {
     const update = () => {
       try {
@@ -15,9 +17,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       }
     };
     update();
+    const ready = window.requestAnimationFrame(() => document.documentElement.classList.add("streamly-theme-ready"));
     const timer = window.setInterval(update, 60_000);
     window.addEventListener("focus", update);
     return () => {
+      window.cancelAnimationFrame(ready);
       window.clearInterval(timer);
       window.removeEventListener("focus", update);
     };
@@ -27,14 +31,23 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const favicon = document.querySelector<HTMLLinkElement>('link[data-streamly-favicon]');
     if (favicon) favicon.href = halloween ? "/favicon-halloween.svg" : "/favicon.svg";
   }, [halloween]);
+  useEffect(() => {
+    if (!transitioning) return;
+    const timer = window.setTimeout(() => setTransitioning(false), 900);
+    return () => window.clearTimeout(timer);
+  }, [transitionKey, transitioning]);
   const toggleHalloween = () => {
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setTransitioning(true);
+      setTransitionKey((current) => current + 1);
+    }
     setHalloween((current) => {
       const next = !current;
       try { window.localStorage.setItem("streamly-theme", next ? "halloween" : "blue"); } catch {}
       return next;
     });
   };
-  return <Ctx.Provider value={{ halloween, toggleHalloween }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ halloween, toggleHalloween }}>{children}{transitioning && <div key={transitionKey} className="streamly-theme-wipe" aria-hidden="true" />}</Ctx.Provider>;
 }
 
 export const useTheme = () => useContext(Ctx);
