@@ -14,14 +14,14 @@ async function lookupRating(malId: number): Promise<string | null> {
     // Queue calls rather than starting dozens of simultaneous poster requests.
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        const response = await fetch(`https://api.jikan.moe/v4/anime/${malId}`, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+        const response = await fetch(`/api/public/age-rating/${malId}`, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
         if (response.status === 429 || response.status >= 500) {
           await new Promise((resolve) => setTimeout(resolve, 1800 * (attempt + 1)));
           continue;
         }
         if (!response.ok) { cache.set(malId, null); return null; }
-        const payload = await response.json() as { data?: { rating?: string | null } };
-        const value = payload.data?.rating?.split(" - ")[0]?.trim() || null;
+        const payload = await response.json() as { rating?: string | null };
+        const value = payload.rating?.trim() || null;
         cache.set(malId, value);
         return value;
       } catch {
