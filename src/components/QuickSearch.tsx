@@ -107,7 +107,7 @@ export function QuickSearch({ open, onOpenChange }: { open: boolean; onOpenChang
                       <ChevronRight className="shrink-0 text-muted-foreground" />
                     </Link>
                   </Button>
-                )), ...groupAnimeSeasons(anime.data ?? []).filter((a) => !matches.some((m) => Number(m.anilist_id) === a.id)).slice(0, 8).map((a) => (
+                )), ...( /jo\\s*jo|jojo|joestar|stardust crusaders|diamond is unbreakable|golden wind|stone ocean|steel ball run|phantom blood|battle tendency|kishibe rohan/i.test(term) ? (anime.data ?? []) : groupAnimeSeasons(anime.data ?? []) ).filter((a) => !matches.some((m) => Number(m.anilist_id) === a.id)).slice(0, 8).map((a) => (
                   <Button asChild variant="ghost" key={`a${a.id}`} className="h-auto min-h-16 w-full justify-start gap-3 whitespace-normal px-1.5 py-2">
                     <Link to="/anime/$id" params={{ id: String(a.id) }} onClick={() => onOpenChange(false)}>
                       <span className="w-4 shrink-0 text-[10px] font-bold text-primary"><Film className="h-3 w-3" /></span>
