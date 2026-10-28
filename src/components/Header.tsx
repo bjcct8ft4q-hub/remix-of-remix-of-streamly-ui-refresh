@@ -67,7 +67,6 @@ export function Header() {
               <MenuLabel>More</MenuLabel>
               <Link to="/schedule" onClick={() => setMenuOpen(false)} className={`flex h-11 items-center gap-3 rounded px-3 text-sm hover:bg-primary/10 hover:text-primary ${pathname === "/schedule" ? "text-primary" : "text-muted-foreground"}`}><CalendarDays className="h-4 w-4" />Weekly Schedule</Link>
               <Link to="/news" onClick={() => setMenuOpen(false)} className={`flex h-11 items-center gap-3 rounded px-3 text-sm hover:bg-primary/10 hover:text-primary ${pathname === "/news" ? "text-primary" : "text-muted-foreground"}`}><Bell className="h-4 w-4" />News & Updates</Link>
-              <Link to="/watch-together" onClick={() => setMenuOpen(false)} className={`flex h-11 items-center gap-3 rounded px-3 text-sm hover:bg-primary/10 hover:text-primary ${pathname.startsWith("/watch-together") ? "text-primary" : "text-muted-foreground"}`}><Users className="h-4 w-4" />Watch Together</Link>
               <MenuLink to="/my-list" icon={Library} active={pathname === "/my-list"} onClick={() => setMenuOpen(false)}>My list</MenuLink>
               <MenuLink to="/settings" icon={Settings} active={pathname === "/settings"} onClick={() => setMenuOpen(false)}>Settings</MenuLink>
               {isAdmin && (
