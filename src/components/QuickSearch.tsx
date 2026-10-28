@@ -8,6 +8,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { seriesListQuery, type SeriesRow } from "@/lib/queries";
 import { animeSearchQuery } from "@/lib/anime-queries";
 import { animeTitle } from "@/lib/kitsune";
+import { matchesAnimeTitle, resolveAnimeSearch } from "@/lib/anime-search";
 
 type TrendingAnime = {
   id: number;
@@ -66,9 +67,9 @@ export function QuickSearch({ open, onOpenChange }: { open: boolean; onOpenChang
     retry: 1,
   });
   const term = query.trim().toLowerCase();
-  const anime = useQuery({ ...animeSearchQuery(term), enabled: open && term.length >= 2 });
+  const anime = useQuery({ ...animeSearchQuery(resolveAnimeSearch(term)), enabled: open && term.length >= 2 });
   const matches = term
-    ? data.filter((series) => series.title.toLowerCase().includes(term) || series.genres.some((genre) => genre.toLowerCase().includes(term)))
+    ? data.filter((series) => matchesAnimeTitle(series.title, term) || series.genres.some((genre) => genre.toLowerCase().includes(term)))
     : [];
 
   return (
