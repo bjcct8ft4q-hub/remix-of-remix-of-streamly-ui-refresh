@@ -38,3 +38,20 @@ as $$
 $$;
 revoke all on function public.search_streamly_users(text) from public;
 grant execute on function public.search_streamly_users(text) to authenticated;
+
+-- Prevent recipients from changing either participant when responding.
+create or replace function public.friend_request_immutable_participants()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if new.sender_id <> old.sender_id or new.receiver_id <> old.receiver_id then
+    raise exception 'Friend request participants cannot change';
+  end if;
+  if old.status <> 'pending' and new.status <> old.status then
+    raise exception 'Accepted or declined requests cannot be reopened';
+  end if;
+  return new;
+end;
+$$;
+create trigger friend_request_participants_immutable
+before update on public.friend_requests
+for each row execute function public.friend_request_immutable_participants();
