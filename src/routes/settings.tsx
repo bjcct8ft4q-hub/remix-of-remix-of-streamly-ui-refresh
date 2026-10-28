@@ -164,6 +164,10 @@ function Settings() {
           </> : <p className="mt-5 text-sm text-muted-foreground">Sign in to customise your avatar.</p>}
         </section>}
         {settingsTab === "playback" && <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+          <div className="mb-6 flex items-center justify-between gap-4 rounded-lg border border-border p-4">
+            <div><h2 className="text-base font-bold">Interface sounds</h2><p className="mt-1 text-xs text-muted-foreground">Play a quiet click when you use buttons and links. Off by default.</p></div>
+            <input type="checkbox" aria-label="Enable interface sounds" checked={uiSounds} onChange={(e) => { setUiSounds(e.target.checked); localStorage.setItem("streamly-ui-sounds", e.target.checked ? "on" : "off"); }} className="h-5 w-5 accent-primary" />
+          </div>
           <h2 className="text-xl font-bold">Preferred audio language</h2>
           <p className="mt-2 text-sm text-muted-foreground">Choose the audio Streamly selects automatically. You can still change it for individual episodes.</p>
           <div className="mt-5 space-y-3">{choices.map((choice) => <label key={choice.value} className={"flex cursor-pointer gap-3 rounded-lg border p-4 " + (preference === choice.value ? "border-primary bg-primary/10" : "border-border")}>
