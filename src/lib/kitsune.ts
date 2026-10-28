@@ -87,30 +87,26 @@ export type SourceEpisode = { number: number; title: string | null; image: strin
 type RawEpisode = { id: string; number: number; title?: string | null; image?: string | null; description?: string | null };
 
 export async function getSourceEpisodes(anilistId: number): Promise<SourceEpisode[]> {
-  // Request the complete provider catalogue so a successful Anikoto response
-  // doesn't prevent discovery of other subtitle/dub providers.
+  // Race quick provider discovery against the full catalogue. Never block the
+  // player on the slowest provider when a playable episode list is ready.
   const fetchEpisodes = async (path: string, timeoutMs: number) => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const res = await fetch(path, { signal: controller.signal });
       if (!res.ok) throw new Error("Episode provider unavailable");
-      return await res.json() as Record<string, { episodes?: Partial<Record<string, RawEpisode[]>> } | unknown>;
+      const result = await res.json() as Record<string, { episodes?: Partial<Record<string, RawEpisode[]>> } | unknown>;
+      if (!PROVIDER_ORDER.some((name) => {
+        const entry = result[name] as { episodes?: Partial<Record<string, RawEpisode[]>> } | undefined;
+        return Boolean(entry?.episodes?.sub?.length || entry?.episodes?.dub?.length);
+      })) throw new Error("No episodes returned");
+      return result;
     } finally { clearTimeout(timeout); }
   };
-  const hasEpisodes = (result: Record<string, unknown>) =>
-    PROVIDER_ORDER.some((name) => {
-      const entry = result[name] as { episodes?: Partial<Record<string, RawEpisode[]>> } | undefined;
-      return Boolean(entry?.episodes?.sub?.length || entry?.episodes?.dub?.length);
-    });
-  let data: Record<string, { episodes?: Partial<Record<string, RawEpisode[]>> } | unknown>;
-  try {
-    data = await fetchEpisodes(`/api/public/kitsune/episodes/${anilistId}`, 35000);
-    if (!hasEpisodes(data)) throw new Error("No episodes found across providers");
-  } catch {
-    // Fall back to quicker providers when the complete catalogue is unavailable.
-    data = await fetchEpisodes(`/api/public/kitsune/episodes/anikoto/kaa/anizone/${anilistId}?map=false`, 12000);
-  }
+  const data = await Promise.any([
+    fetchEpisodes(`/api/public/kitsune/episodes/anikoto/kaa/anizone/${anilistId}?map=false`, 12000),
+    fetchEpisodes(`/api/public/kitsune/episodes/${anilistId}`, 20000),
+  ]);
   const byNumber = new Map<number, SourceEpisode>();
   for (const provider of PROVIDER_ORDER) {
     const entry = data[provider] as { episodes?: Partial<Record<string, RawEpisode[]>> } | undefined;
@@ -149,7 +145,12 @@ export function proxyUrl(url: string, opts: { referer?: string | undefined; head
 
 export async function getStreams(watchId: string): Promise<PlayableStream[]> {
   if (!/^watch\/[\w-]+\/\d+\/(sub|dub)\/[\w-]+$/.test(watchId)) throw new Error("Unknown episode source.");
-  const res = await fetch(`/api/public/kitsune/${watchId}`);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
+  let res: Response;
+  try { res = await fetch(`/api/public/kitsune/${watchId}`, { signal: controller.signal }); }
+  finally { clearTimeout(timeout); }
+  if (!res.ok) throw new Error("Video provider did not respond successfully.");
   const data = (await res.json().catch(() => ({}))) as { streams?: RawStream[]; subtitles?: RawStream["subtitles"]; intro?: { start: number; end: number }; error?: string };
   const streams = data.streams ?? [];
   if (!streams.length) throw new Error(data.error ? "This source has no video for this episode right now." : "No video found on this source.");
