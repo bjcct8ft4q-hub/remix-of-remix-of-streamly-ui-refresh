@@ -22,46 +22,49 @@ const avatarShows = [
   { title: "Cyberpunk: Edgerunners", mediaId: 120377 },
   { title: "Cyberpunk: Edgerunners 2", mediaId: 195539 },
 ];
-async function fetchCharacterAvatars(): Promise<AvatarCollection[]> {
-  const query = `query ($id: Int) { Media(id: $id, type: ANIME) { characters(sort: [ROLE, RELEVANCE, ID], perPage: 12) { nodes { id name { full } image { large } } } } }`;
-  const collections = await Promise.all(avatarShows.filter((show) => show.mediaId > 0).map(async (show) => {
-    try {
-    const response = await fetch("https://graphql.anilist.co", {
-      method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ query, variables: { id: show.mediaId } }),
-    });
-    if (!response.ok) throw new Error("Character portraits could not be loaded");
-    const json = await response.json();
-    if (json.errors?.length) throw new Error("Character portraits could not be loaded");
-    const characters: CharacterAvatar[] = (json.data?.Media?.characters?.nodes ?? [])
-      .filter((character: { id: number; name?: { full?: string }; image?: { large?: string } }) => character.image?.large && character.name?.full)
-      .map((character: { id: number; name: { full: string }; image: { large: string } }) => ({
-        id: character.id, name: character.name.full, image: character.image.large,
-      }));
-    return { ...show, characters };
-    } catch { return { ...show, characters: [] as CharacterAvatar[] }; }
+async function fetchCharacterAvatars(mediaId: number, page: number): Promise<{ characters: CharacterAvatar[]; hasNextPage: boolean }> {
+  const query = `query ($id: Int, $page: Int) {
+    Media(id: $id, type: ANIME) {
+      characters(page: $page, perPage: 50, sort: [ROLE, RELEVANCE, ID]) {
+        pageInfo { hasNextPage }
+        nodes { id name { full } image { large } }
+      }
+    }
+  }`;
+  const response = await fetch("https://graphql.anilist.co", {
+    method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ query, variables: { id: mediaId, page } }),
+  });
+  if (!response.ok) throw new Error("Unable to load characters. Try again.");
+  const json = await response.json();
+  if (json.errors?.length) throw new Error("Unable to load characters. Try again.");
+  const connection = json.data?.Media?.characters;
+  const characters: CharacterAvatar[] = (connection?.nodes ?? [])
+    .filter((character: { id: number; name?: { full?: string }; image?: { large?: string } }) => character.image?.large && character.name?.full)
+    .map((character: { id: number; name: { full: string }; image: { large: string } }) => ({
+      id: character.id, name: character.name.full, image: character.image.large,
+    }));
+  return { characters, hasNextPage: Boolean(connection?.pageInfo?.hasNextPage) };
+}
+async function searchAvatarAnime(term: string): Promise<{ title: string; mediaId: number; image: string | null }[]> {
+  if (term.trim().length < 2) return [];
+  const query = `query ($search: String) {
+    Page(page: 1, perPage: 25) {
+      media(type: ANIME, search: $search, isAdult: false, sort: SEARCH_MATCH) {
+        id title { english romaji } coverImage { medium }
+      }
+    }
+  }`;
+  const response = await fetch("https://graphql.anilist.co", {
+    method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ query, variables: { search: term.trim() } }),
+  });
+  if (!response.ok) throw new Error("Unable to search anime.");
+  const json = await response.json();
+  if (json.errors?.length) throw new Error("Unable to search anime.");
+  return (json.data?.Page?.media ?? []).map((media: { id: number; title: { english?: string; romaji: string }; coverImage?: { medium?: string } }) => ({
+    mediaId: media.id, title: media.title.english || media.title.romaji, image: media.coverImage?.medium ?? null,
   }));
-  const extraNames = ["Aoi Todo", "Hiromi Higuruma", "Toji Fushiguro", "Kokichi Muta", "Ko-Guy"];
-  const extras = await Promise.all(extraNames.map(async (characterName) => {
-    try {
-      const response = await fetch("https://graphql.anilist.co", {
-        method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ query: `query ($search: String) { Character(search: $search) { id name { full } image { large } } }`, variables: { search: characterName } }),
-      });
-      if (!response.ok) return null;
-      const result = await response.json();
-      const character = result.data?.Character;
-      return character?.image?.large ? { id: character.id, name: characterName === "Ko-Guy" ? "Grasshopper Curse" : characterName, image: character.image.large } as CharacterAvatar : null;
-    } catch { return null; }
-  }));
-  const jjk = collections.find((collection) => collection.mediaId === 113415);
-  if (jjk) {
-    // Supplement the original JJK cast list with characters omitted by AniList's 12-character page limit.
-    const additions = extras.filter((character): character is CharacterAvatar => character !== null);
-    const existing = new Set(jjk.characters.map((character) => character.id));
-    jjk.characters.push(...additions.filter((character) => !existing.has(character.id)));
-  }
-  return collections.filter((collection) => collection.characters.length > 0);
 }
 export const Route = createFileRoute("/settings")({ component: Settings, head: () => ({ meta: [{ title: "Settings — Streamly" }] }) });
 function Settings() {
@@ -106,10 +109,34 @@ function Settings() {
   const [avatarTab, setAvatarTab] = useState<"anime" | "upload">("anime");
   const [selectedShow, setSelectedShow] = useState(113415);
   const [avatarSearch, setAvatarSearch] = useState("");
+  const [animeAvatarSearch, setAnimeAvatarSearch] = useState("");
+  const [avatarPage, setAvatarPage] = useState(1);
+  const [customAvatarShow, setCustomAvatarShow] = useState<{ title: string; mediaId: number } | null>(null);
   const [avatarMessage, setAvatarMessage] = useState("");
   const [avatarSaving, setAvatarSaving] = useState(false);
   const [avatarChoice, setAvatarChoice] = useState<string | null>(null);
-  const { data: animeAvatars, isPending: avatarsLoading, isError: avatarsError, refetch: retryAvatars } = useQuery({ queryKey: ["anime-avatar-collections-v4"], queryFn: fetchCharacterAvatars, staleTime: 60 * 60 * 1000, retry: 1 });
+  const [debouncedAnimeSearch, setDebouncedAnimeSearch] = useState("");
+  useEffect(() => { const timer = setTimeout(() => setDebouncedAnimeSearch(animeAvatarSearch), 350); return () => clearTimeout(timer); }, [animeAvatarSearch]);
+  const { data: animeMatches = [], isFetching: searchingAnime } = useQuery({
+    queryKey: ["avatar-anime-search", debouncedAnimeSearch],
+    queryFn: () => searchAvatarAnime(debouncedAnimeSearch),
+    enabled: debouncedAnimeSearch.trim().length >= 2,
+    staleTime: 10 * 60 * 1000,
+  });
+  const { data: animeAvatars, isPending: avatarsLoading, isError: avatarsError, refetch: retryAvatars } = useQuery({
+    queryKey: ["anime-avatar-pages", selectedShow, avatarPage],
+    queryFn: async () => {
+      const pages = await Promise.all(Array.from({ length: avatarPage }, (_, index) => fetchCharacterAvatars(selectedShow, index + 1)));
+      const seen = new Set<number>();
+      return { characters: pages.flatMap((page) => page.characters).filter((character) => {
+        if (seen.has(character.id)) return false;
+        seen.add(character.id);
+        return true;
+      }), hasNextPage: pages.at(-1)?.hasNextPage ?? false };
+    },
+    staleTime: 60 * 60 * 1000,
+    retry: 1,
+  });
   const uploadAvatar = async (file?: File) => {
     if (!file || !user) return;
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) { setAvatarMessage("Choose a JPG, PNG or WebP image."); return; }
@@ -139,8 +166,7 @@ function Settings() {
     { value: "sub", label: "Japanese (Sub)", detail: "Prefer Japanese audio with subtitles." },
     { value: "dub", label: "English (Dub)", detail: "Prefer English dubbed audio when available; otherwise use subtitles." },
   ];
-  const currentCollection = animeAvatars?.find((collection) => collection.mediaId === selectedShow);
-  const visibleCharacters = currentCollection?.characters.filter((character) => character.name.toLowerCase().includes(avatarSearch.trim().toLowerCase())) ?? [];
+  const visibleCharacters = animeAvatars?.characters.filter((character) => character.name.toLowerCase().includes(avatarSearch.trim().toLowerCase())) ?? [];
   const selectedAvatar = avatarChoice ?? (typeof user?.user_metadata?.avatar_url === "string" ? user.user_metadata.avatar_url : "");
   return <main className="mx-auto max-w-5xl px-4 pb-24 pt-32 sm:px-6 md:pt-28">
     <div className="mb-7"><p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Your Streamly account</p><h1 className="mt-2 text-3xl font-extrabold sm:text-4xl">Settings</h1><p className="mt-2 text-sm text-muted-foreground">Personalise your profile and watching experience.</p></div>
@@ -170,11 +196,20 @@ function Settings() {
               <button role="tab" aria-selected={avatarTab === "upload"} onClick={() => setAvatarTab("upload")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${avatarTab === "upload" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>Upload your own</button>
             </div>
             {avatarTab === "anime" && <div className="pt-5">
-              <h3 className="mb-3 text-sm font-bold">Choose an anime</h3>
+              <h3 className="mb-1 text-lg font-bold">Anime character library</h3>
+              <p className="mb-4 text-xs text-muted-foreground">Search any anime, choose its cast, then select a portrait. Browse more characters with Load more.</p>
+              <label className="block"><span className="sr-only">Search anime titles for avatars</span><input type="search" value={animeAvatarSearch} onChange={(event) => setAnimeAvatarSearch(event.target.value)} placeholder="Search any anime, e.g. JoJo, Naruto, Bleach…" className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary" /></label>
+              {animeAvatarSearch.trim().length >= 2 && <div className="mt-2 max-h-56 overflow-y-auto rounded-xl border border-border bg-background p-2">
+                {searchingAnime && <p className="px-3 py-2 text-xs text-muted-foreground">Searching anime…</p>}
+                {animeMatches.map((show) => <button type="button" key={show.mediaId} onClick={() => { setSelectedShow(show.mediaId); setCustomAvatarShow({ title: show.title, mediaId: show.mediaId }); setAvatarPage(1); setAvatarSearch(""); setAnimeAvatarSearch(""); }} className="flex w-full items-center gap-3 rounded-lg p-2 text-left text-sm hover:bg-primary/10 focus-visible:outline-primary">{show.image && <img src={show.image} alt="" loading="lazy" className="h-12 w-9 rounded object-cover" />}<span className="line-clamp-2">{show.title}</span></button>)}
+                {!searchingAnime && !animeMatches.length && <p className="px-3 py-2 text-xs text-muted-foreground">No matching anime found.</p>}
+              </div>}
+              <h4 className="mb-3 mt-5 text-xs font-bold uppercase tracking-wide text-muted-foreground">Popular anime</h4>
               <div className="flex gap-2 overflow-x-auto pb-3" role="group" aria-label="Anime series">
-                {avatarShows.map((show) => <button type="button" key={show.mediaId} onClick={() => { setSelectedShow(show.mediaId); setAvatarSearch(""); }} aria-pressed={selectedShow === show.mediaId} className={`shrink-0 rounded-full border px-4 py-2 text-xs font-semibold transition ${selectedShow === show.mediaId ? "border-primary bg-primary/15 text-primary" : "border-border bg-muted/30 hover:border-primary"}`}>{show.title}</button>)}
+                {avatarShows.map((show) => <button type="button" key={show.mediaId} onClick={() => { setSelectedShow(show.mediaId); setCustomAvatarShow(null); setAvatarPage(1); setAvatarSearch(""); }} aria-pressed={selectedShow === show.mediaId} className={`shrink-0 rounded-full border px-4 py-2 text-xs font-semibold transition ${selectedShow === show.mediaId ? "border-primary bg-primary/15 text-primary" : "border-border bg-muted/30 hover:border-primary"}`}>{show.title}</button>)}
               </div>
-              <label className="mt-2 block"><span className="sr-only">Search characters</span><input type="search" value={avatarSearch} onChange={(event) => setAvatarSearch(event.target.value)} placeholder="Find a character…" className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" /></label>
+              <div className="mt-4 flex items-center justify-between gap-3"><h4 className="font-semibold">{customAvatarShow?.mediaId === selectedShow ? customAvatarShow.title : avatarShows.find((show) => show.mediaId === selectedShow)?.title}</h4><span className="text-xs text-muted-foreground">{animeAvatars?.characters.length ?? 0} characters loaded</span></div>
+              <label className="mt-3 block"><span className="sr-only">Search characters</span><input type="search" value={avatarSearch} onChange={(event) => setAvatarSearch(event.target.value)} placeholder="Find a character…" className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" /></label>
               {avatarsLoading && <p className="py-8 text-center text-sm text-muted-foreground">Loading character avatars…</p>}
               {avatarsError && <div className="py-8 text-center text-sm text-muted-foreground">Could not load characters. <button type="button" onClick={() => void retryAvatars()} className="text-primary underline">Retry</button></div>}
               {!avatarsLoading && !avatarsError && <div className="mt-4 grid max-h-[430px] grid-cols-3 gap-3 overflow-y-auto rounded-lg border border-border bg-background/40 p-3 sm:grid-cols-4 lg:grid-cols-5">{visibleCharacters.map((character) => <button type="button" key={character.id} disabled={avatarSaving} onClick={() => void saveAvatar("", character.image)} aria-label={`Choose ${character.name}`} title={character.name} className="group min-w-0 text-center"><span className={`mx-auto block aspect-square w-full max-w-24 overflow-hidden rounded-full border-[3px] transition group-hover:scale-105 group-hover:border-primary ${selectedAvatar === character.image ? "border-primary" : "border-border"}`}><img src={character.image} alt="" loading="lazy" className="h-full w-full object-cover" /></span><span className="mt-1.5 block truncate text-xs text-muted-foreground group-hover:text-foreground">{character.name}</span></button>)}{!visibleCharacters.length && <p className="col-span-full py-6 text-center text-sm text-muted-foreground">No matching characters found.</p>}</div>}
