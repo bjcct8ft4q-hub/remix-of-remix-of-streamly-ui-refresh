@@ -8,6 +8,7 @@ import { animeTitle, type Audio } from "@/lib/kitsune";
 import { animeQuery, episodesQuery } from "@/lib/anime-queries";
 import { useAuth } from "@/lib/auth";
 import { historyQuery } from "@/lib/library";
+import { useAudioPreference } from "@/lib/audio-preference";
 
 
 export const Route = createFileRoute("/anime/$id")({
@@ -27,7 +28,8 @@ export const Route = createFileRoute("/anime/$id")({
 function AnimePage() {
   const id = Number(Route.useParams().id);
   const { user } = useAuth();
-  const [audio, setAudio] = useState<Audio>("sub");
+  const [manualAudio, setManualAudio] = useState<Audio | null>(null);
+  const { preference } = useAudioPreference();
   const info = useQuery(animeQuery(id));
   const eps = useQuery(episodesQuery(id));
   const hist = useQuery(historyQuery(user?.id, id));
@@ -35,8 +37,9 @@ function AnimePage() {
   if (info.isPending) return <main className="flex min-h-[60vh] items-center justify-center pt-28"><LoaderCircle className="animate-spin text-primary" /></main>;
   if (!a) return <main className="mx-auto max-w-3xl px-4 pt-40 text-center"><h1 className="text-2xl font-bold">Anime not found</h1></main>;
   const title = animeTitle(a);
-  const list = (eps.data ?? []).filter((e) => e.sources.some((s) => s.audio === audio));
   const hasDub = (eps.data ?? []).some((e) => e.sources.some((s) => s.audio === "dub"));
+  const audio: Audio = manualAudio ?? (preference !== "sub" && hasDub ? "dub" : "sub");
+  const list = (eps.data ?? []).filter((e) => e.sources.some((s) => s.audio === audio));
   const watched = new Map((hist.data ?? []).map((h) => [h.episode, h]));
   const resume = hist.data?.[0];
   const first = resume?.episode ?? list[0]?.number;
@@ -52,6 +55,7 @@ function AnimePage() {
           <div className="min-w-0 flex-1 md:pt-24">
             <h1 className="text-3xl font-extrabold md:text-4xl">{title}</h1>
             <p className="mt-2 text-sm text-muted-foreground">{[a.format?.replaceAll("_", " "), a.seasonYear, a.episodes && `${a.episodes} episodes`, a.averageScore && `★ ${(a.averageScore / 10).toFixed(1)}`, ...a.genres].filter(Boolean).join(" · ")}</p>
+            <div className="mt-3 flex flex-wrap gap-2"><span className="rounded-md border border-border bg-card px-3 py-1 text-xs font-bold">{a.isAdult ? "Adult content (18+)" : "Age rating: Not classified"}</span></div>
             <div className="mt-4 flex flex-wrap gap-2">
               {first != null && <Button asChild><Link to="/anime/$id/watch" params={{ id: String(id) }} search={{ ep: first, audio: resume?.audio === "dub" ? "dub" : audio }}><Play /> {resume ? `Continue episode ${resume.episode}` : "Watch now"}</Link></Button>}
               <WatchlistButton anime={{ id, title, cover: a.coverImage.large }} />
@@ -63,8 +67,8 @@ function AnimePage() {
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h2 className="border-l-4 border-primary pl-3 text-xl font-bold">Episodes</h2>
             <div className="flex gap-1" role="group" aria-label="Audio">
-              <Button size="sm" variant={audio === "sub" ? "default" : "outline"} onClick={() => setAudio("sub")}>Sub</Button>
-              <Button size="sm" variant={audio === "dub" ? "default" : "outline"} disabled={!hasDub} onClick={() => setAudio("dub")}>Dub</Button>
+              <Button size="sm" variant={audio === "sub" ? "default" : "outline"} onClick={() => setManualAudio("sub")}>Sub</Button>
+              <Button size="sm" variant={audio === "dub" ? "default" : "outline"} disabled={!hasDub} onClick={() => setManualAudio("dub")}>Dub</Button>
             </div>
           </div>
           {eps.isPending ? <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><LoaderCircle className="h-4 w-4 animate-spin" />Finding episodes across sources… this can take up to a minute.</p>
