@@ -233,72 +233,39 @@ html.streamly-theme-ready :where(header, nav, aside, main, footer, section, arti
   transition-duration: 850ms;
   transition-timing-function: ease;
 }
-.streamly-theme-cinematic {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  overflow: hidden;
-  pointer-events: none;
-  isolation: isolate;
-  --reveal-rgb: 255, 115, 0;
-}
-.streamly-theme-exit { --reveal-rgb: 0, 153, 255; }
-.streamly-theme-darkness {
-  position: absolute;
-  inset: 0;
-  background: rgba(4, 3, 10, .85);
-  animation: streamly-shadow 1450ms ease-in-out both;
-}
-.streamly-theme-halo {
-  position: absolute;
-  inset: -60%;
-  background: radial-gradient(circle at center, rgba(var(--reveal-rgb), .55), rgba(var(--reveal-rgb), .17) 19%, transparent 55%);
-  animation: streamly-halo 1450ms cubic-bezier(.19,1,.22,1) both;
-}
-.streamly-theme-symbol {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  font-size: clamp(90px, 20vw, 220px);
-  line-height: 1;
-  filter: drop-shadow(0 0 40px rgba(var(--reveal-rgb), .8));
-  animation: streamly-jumpscare 1450ms cubic-bezier(.19,1,.22,1) both;
-}
-.streamly-theme-flash {
-  position: absolute;
-  inset: 0;
-  background: rgba(var(--reveal-rgb), .38);
-  animation: streamly-flash 1450ms ease-out both;
-}
-@keyframes streamly-shadow {
-  0% { opacity: 0; }
-  15% { opacity: 1; }
-  43% { opacity: .85; }
-  100% { opacity: 0; }
-}
-@keyframes streamly-jumpscare {
-  0%, 13% { opacity: 0; transform: translate(-50%,-50%) scale(.18) rotate(-12deg); }
-  23% { opacity: 1; transform: translate(-50%,-50%) scale(1.18) rotate(5deg); }
-  34% { opacity: 1; transform: translate(-50%,-50%) scale(1) rotate(0deg); }
-  58% { opacity: .9; transform: translate(-50%,-50%) scale(1.25); }
-  100% { opacity: 0; transform: translate(-50%,-50%) scale(2.8); }
-}
-@keyframes streamly-halo {
-  0%, 23% { opacity: 0; transform: scale(.2); }
-  45% { opacity: .95; transform: scale(.6); }
-  100% { opacity: 0; transform: scale(1.6); }
-}
-@keyframes streamly-flash {
-  0%, 21% { opacity: 0; }
-  24% { opacity: .75; }
-  32% { opacity: 0; }
-  100% { opacity: 0; }
-}
 @media (prefers-reduced-motion: reduce) {
   html.streamly-theme-ready,
   html.streamly-theme-ready body,
   html.streamly-theme-ready :where(header, nav, aside, main, footer, section, article, button, a, input, textarea, [role="dialog"], [role="tab"]) {
     transition-duration: 0ms;
   }
-  .streamly-theme-cinematic { display: none; }
+}
+
+/* Custom pointer accent: native pointer remains usable, this ring is decorative only. */
+.streamly-custom-cursor {
+  position: fixed;
+  top: -13px;
+  left: -13px;
+  z-index: 9999;
+  width: 26px;
+  height: 26px;
+  border: 1.5px solid var(--primary);
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--primary) 10%, transparent);
+  box-shadow: 0 0 14px color-mix(in oklab, var(--primary) 28%, transparent);
+  pointer-events: none;
+  opacity: 0;
+  transform: translate3d(-100px, -100px, 0);
+  transition: opacity .16s ease, width .16s ease, height .16s ease, margin .16s ease, background .16s ease;
+  will-change: transform;
+}
+.streamly-cursor-visible { opacity: .8; }
+.streamly-cursor-active {
+  width: 36px;
+  height: 36px;
+  margin: -5px;
+  background: color-mix(in oklab, var(--primary) 20%, transparent);
+}
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .streamly-custom-cursor { display: none; }
 }
