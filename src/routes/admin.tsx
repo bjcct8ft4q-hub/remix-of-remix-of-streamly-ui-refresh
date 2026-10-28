@@ -367,11 +367,42 @@ function ReportManager() {
   </section>;
 }
 
+type TrafficRow = { day: string; path: string; views: number };
+function AnalyticsPanel() {
+  const { data = [], isPending, error } = useQuery({
+    queryKey: ["admin-traffic"],
+    queryFn: async () => {
+      const since = new Date(Date.now() - 29 * 86400000).toISOString().slice(0, 10);
+      const { data, error } = await (supabase as any).from("page_view_counts").select("day,path,views").gte("day", since).order("day", { ascending: false }).limit(3000);
+      if (error) throw error;
+      return (data ?? []) as TrafficRow[];
+    }, retry: 0, refetchInterval: 60000,
+  });
+  const total = data.reduce((sum, row) => sum + Number(row.views), 0);
+  const today = new Date().toISOString().slice(0,10);
+  const todayViews = data.filter((row) => row.day === today).reduce((sum,row) => sum + Number(row.views), 0);
+  const paths = Object.entries(data.reduce((acc, row) => { acc[row.path] = (acc[row.path] || 0) + Number(row.views); return acc; }, {} as Record<string, number>)).sort((a,b) => b[1]-a[1]).slice(0,10);
+  const days = Object.entries(data.reduce((acc, row) => { acc[row.day] = (acc[row.day] || 0) + Number(row.views); return acc; }, {} as Record<string,number>)).sort((a,b)=>a[0].localeCompare(b[0]));
+  const peak = Math.max(1,...days.map(([,n])=>n));
+  return <section className="space-y-5">
+    <div><h2 className="text-2xl font-extrabold">Visitor analytics</h2><p className="mt-1 text-sm text-muted-foreground">Actual page views, aggregated without storing IP addresses or visitor identities. Counts begin when the database migration is applied.</p></div>
+    {error && <p role="alert" className="rounded-lg border border-destructive/40 p-4 text-sm text-destructive">Analytics are not available yet. Apply the page view analytics SQL migration in Supabase.</p>}
+    <div className="grid gap-3 sm:grid-cols-3">
+      {([["Today",todayViews],["Last 30 days",total],["Pages visited",paths.length]] as const).map(([label,value])=><div key={label} className="rounded-xl border border-border bg-card p-5"><p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{label}</p><p className="mt-2 text-3xl font-black text-primary">{isPending ? "…" : value.toLocaleString()}</p></div>)}
+    </div>
+    <div className="grid gap-5 lg:grid-cols-2">
+      <div className="rounded-xl border border-border bg-card p-5"><h3 className="font-bold">Daily page views</h3><div className="mt-6 flex h-44 items-end gap-1">{days.length ? days.map(([day,count])=><div key={day} className="group relative min-w-1 flex-1 rounded-t bg-primary/80 hover:bg-primary" style={{height:`${Math.max(2,count/peak*100)}%`}} title={`${day}: ${count.toLocaleString()} views`} />) : <p className="self-center text-sm text-muted-foreground">No visits recorded yet.</p>}</div><p className="mt-2 text-xs text-muted-foreground">Last 30 days · hover over a bar for daily totals</p></div>
+      <div className="rounded-xl border border-border bg-card p-5"><h3 className="font-bold">Most visited pages</h3><div className="mt-4 space-y-3">{paths.length ? paths.map(([path,count])=><div key={path} className="flex items-center justify-between gap-3 border-b border-border/50 pb-2 text-sm"><span className="min-w-0 truncate text-muted-foreground">{path}</span><span className="font-bold tabular-nums">{count.toLocaleString()}</span></div>) : <p className="text-sm text-muted-foreground">No page data yet.</p>}</div></div>
+    </div>
+    <p className="text-xs text-muted-foreground">Page views are not unique visitors or live online users. Refreshes and repeat visits can count again.</p>
+  </section>;
+}
 function Admin() {
   const { user, isAdmin, loading, openAuth } = useAuth();
   const qc = useQueryClient();
   const { data = [] } = useQuery({ ...seriesListQuery(), enabled: isAdmin });
   const [selected, setSelected] = useState<string | null>(null);
+  const [tab, setTab] = useState<"overview" | "analytics" | "reports" | "content">("overview");
 
   if (loading) return <main className="pt-32 text-center text-muted-foreground">Loading...</main>;
   if (!user)
@@ -392,27 +423,40 @@ function Admin() {
   };
 
   return (
-    <main className="mx-auto max-w-6xl space-y-8 px-4 pb-20 pt-40 sm:px-6 md:pt-28">
-      <h1 className="border-l-4 border-primary pl-3 text-3xl font-extrabold">Admin dashboard</h1>
-      <ReportManager />
-      <ImportPanel />
-      <SeriesForm onDone={() => qc.invalidateQueries({ queryKey: ["series"] })} />
-      <div className="min-w-0">
-        <h2 className="mb-3 text-xl font-extrabold">Your series</h2>
-        <ul className="divide-y divide-border">
-          {data.map((s) => (
-            <li key={s.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <span className="min-w-0 break-words font-semibold">{s.title} <span className="text-xs text-muted-foreground">· {s.episodes?.[0]?.count ?? 0} eps</span></span>
-              <div className="flex shrink-0 items-center gap-2">
-                <Button size="sm" onClick={() => setSelected(s.id)} variant={selected === s.id ? "default" : "outline"}>Manage episodes</Button>
-                <Button variant="ghost" size="icon" aria-label="Delete series" title="Delete series" onClick={() => delSeries(s.id)} className="text-muted-foreground hover:text-destructive"><Trash2 /></Button>
-              </div>
-            </li>
-          ))}
-          {!data.length && <p className="text-sm text-muted-foreground">No series yet — add one above.</p>}
-        </ul>
+    <main className="mx-auto max-w-7xl px-4 pb-24 pt-32 sm:px-6">
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <div><p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-primary">Streamly control centre</p><h1 className="text-3xl font-black tracking-tight sm:text-4xl">Admin dashboard</h1><p className="mt-2 text-sm text-muted-foreground">Manage your site, understand traffic and resolve playback reports.</p></div>
+        <Link to="/" className="rounded-lg border border-border px-4 py-2 text-sm font-semibold hover:border-primary">View website</Link>
       </div>
-      {selected && <EpisodeManager key={selected} seriesId={selected} />}
+      <nav aria-label="Admin sections" className="mb-8 flex flex-wrap gap-2 border-b border-border pb-4">
+        {(["overview","analytics","reports","content"] as const).map((section)=><button key={section} type="button" aria-current={tab === section ? "page" : undefined} onClick={()=>setTab(section)} className={`rounded-lg px-4 py-2.5 text-sm font-bold capitalize transition ${tab === section ? "bg-primary text-primary-foreground" : "border border-border bg-card text-muted-foreground hover:text-foreground"}`}>{section === "content" ? "Content manager" : section}</button>)}
+      </nav>
+      {tab === "overview" && <div className="space-y-6">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-xl border border-border bg-card p-6"><p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Managed series</p><p className="mt-3 text-4xl font-black text-primary">{data.length}</p></div>
+          <div className="rounded-xl border border-border bg-card p-6"><p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Uploaded episodes</p><p className="mt-3 text-4xl font-black text-primary">{data.reduce((n,s)=>n+(s.episodes?.[0]?.count ?? 0),0)}</p></div>
+          <div className="rounded-xl border border-border bg-card p-6"><p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Moderation</p><button onClick={()=>setTab("reports")} className="mt-3 text-lg font-extrabold text-primary hover:underline">Review episode reports →</button></div>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <button onClick={()=>setTab("analytics")} className="rounded-xl border border-border bg-card p-6 text-left transition hover:border-primary"><h2 className="text-xl font-extrabold">Traffic analytics</h2><p className="mt-2 text-sm text-muted-foreground">View actual page visits, daily trends and popular pages.</p></button>
+          <button onClick={()=>setTab("content")} className="rounded-xl border border-border bg-card p-6 text-left transition hover:border-primary"><h2 className="text-xl font-extrabold">Content management</h2><p className="mt-2 text-sm text-muted-foreground">Import anime, add series, upload episodes and manage your library.</p></button>
+        </div>
+      </div>}
+      {tab === "analytics" && <AnalyticsPanel />}
+      {tab === "reports" && <ReportManager />}
+      {tab === "content" && <div className="space-y-8">
+        <h2 className="text-2xl font-extrabold">Content manager</h2>
+        <ImportPanel />
+        <SeriesForm onDone={() => qc.invalidateQueries({ queryKey: ["series"] })} />
+        <section className="min-w-0 rounded-xl border border-border bg-card/40 p-4 sm:p-6">
+          <h3 className="mb-3 text-xl font-extrabold">Your series</h3>
+          <ul className="divide-y divide-border">
+            {data.map((s)=><li key={s.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"><span className="min-w-0 break-words font-semibold">{s.title} <span className="text-xs text-muted-foreground">· {s.episodes?.[0]?.count ?? 0} eps</span></span><div className="flex shrink-0 gap-2"><Button size="sm" onClick={()=>setSelected(s.id)} variant={selected === s.id ? "default" : "outline"}>Manage episodes</Button><Button variant="ghost" size="icon" aria-label="Delete series" onClick={()=>delSeries(s.id)}><Trash2 /></Button></div></li>)}
+            {!data.length && <p className="py-4 text-sm text-muted-foreground">No uploaded series yet.</p>}
+          </ul>
+        </section>
+        {selected && <EpisodeManager key={selected} seriesId={selected} />}
+      </div>}
     </main>
   );
 }
