@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
-import { ChevronLeft, ChevronRight, LoaderCircle, Search, Play, MonitorPlay, ListVideo, SkipForward, RefreshCw, Star, Keyboard, Users, Flag, BookmarkPlus, MessageSquare, ThumbsUp, ThumbsDown, Send, Reply, X, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, LoaderCircle, Search, Play, MonitorPlay, ListVideo, SkipForward, RefreshCw, Star, Keyboard, Users, Flag, LayoutGrid, List, Eye, EyeOff, Mic, Captions, BookmarkPlus, MessageSquare, ThumbsUp, ThumbsDown, Send, Reply, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { WatchlistButton } from "@/components/WatchlistButton";
@@ -111,6 +111,7 @@ function WatchAnime() {
   const idx = list.findIndex((e) => e.number === ep);
   const prev = list[idx - 1], next = list[idx + 1];
   const hasDub = !!episode?.sources.some((s) => s.audio === "dub");
+  const [watchingCount] = useState<number | null>(null); // Only show a viewer count when real presence data is connected.
   const createRoom = async () => {
     if (!user) { openAuth("signin"); return; }
     if (!info.data) return;
@@ -166,7 +167,7 @@ function WatchAnime() {
             <Flag className="h-4 w-4 shrink-0" /> If an episode is not working, please report it and we will look into it.
           </div>
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border/60 py-3 text-[11px] font-bold uppercase">
-            <span className="text-primary">● <span className="font-extrabold">WATCHING</span> · Episode {ep}</span>
+            <span className="flex items-center gap-1.5 text-primary"><span className="h-1.5 w-1.5 rounded-full bg-primary" />{watchingCount !== null ? <><strong>{watchingCount.toLocaleString()}</strong> <span className="text-[9px] tracking-wider text-muted-foreground">WATCHING</span></> : <span className="text-[10px] tracking-wider">NOW WATCHING</span>}</span>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
               <button type="button" onClick={() => setTheaterMode(!theaterMode)} className="flex items-center gap-1 hover:text-primary"><MonitorPlay className="h-4 w-4" /> {theaterMode ? "Exit theater" : "Theater"}</button>
               <button type="button" onClick={() => setShowShortcuts(!showShortcuts)} className="flex items-center gap-1 hover:text-primary"><Keyboard className="h-4 w-4" /> Keys</button>
@@ -187,18 +188,20 @@ function WatchAnime() {
             <Button size="sm" variant="outline" onClick={() => { navigator.clipboard?.writeText(`Streamly playback report: ${title}, episode ${ep}, ${audio}. ${reportText}`); setReportSent(true); }} disabled={!reportText.trim()}>Copy report</Button>
             {reportSent && <span className="ml-2 text-xs text-muted-foreground">Report copied. Send it to the site administrator.</span>}
           </div>}
-          <div className="grid gap-4 border-b border-border/60 py-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-            <div className="text-center">
+          <div className="grid gap-5 border-b border-border/60 py-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
+            <div className="flex flex-col items-center justify-center text-center">
               <p className="text-xs text-muted-foreground">You are Watching</p>
-              <p className="mt-1 text-sm font-bold">Episode {ep}{episode?.title ? ` — ${episode.title}` : ""}</p>
-              <p className="mt-2 text-xs text-muted-foreground">If the current source doesn't work, try another available server.</p>
+              <p className="mt-1 text-sm font-bold">Episode {ep}</p>
+              <p className="mt-1 max-w-xs text-xs leading-4 text-muted-foreground">If the current server doesn't work please try other servers beside.</p>
             </div>
             <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2 pb-1 text-xs"><span className="text-muted-foreground">Audio:</span><button type="button" onClick={() => go({audio:"sub"})} className={`rounded border px-3 py-1.5 font-semibold ${audio === "sub" ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card"}`}>SUB</button><button type="button" onClick={() => go({audio:"dub"})} className={`rounded border px-3 py-1.5 font-semibold ${audio === "dub" ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card"}`}>DUB</button>{!hasDub && <span className="text-muted-foreground">Dub not available for this episode</span>}</div>
               {(["sub", "dub"] as const).map((lang) => {
-                const available = (episode?.sources ?? []).filter((s) => s.audio === lang);
-                return <div key={lang} className="flex items-start gap-3"><span className="w-12 pt-2 text-xs font-bold uppercase text-muted-foreground">{lang}:</span>
-                  <div className="flex flex-wrap gap-2">{available.length ? available.map((source, i) => <button key={source.provider} type="button" onClick={() => go({ audio: lang, provider: source.provider })} className={`min-w-20 rounded-md border px-3 py-2 text-xs font-semibold ${audio === lang && current?.provider === source.provider ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:border-primary"}`}>{providerLabel(source.provider) || `Server ${i + 1}`}</button>) : <span className="py-2 text-xs text-muted-foreground">No {lang.toUpperCase()} source available</span>}</div>
+                const available = (episode?.sources ?? []).filter((source) => source.audio === lang);
+                return <div key={lang} className="flex min-h-9 items-center gap-3">
+                  <span className="flex w-16 shrink-0 items-center gap-1.5 text-xs font-bold uppercase text-muted-foreground">{lang === "sub" ? <Captions className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}{lang}:</span>
+                  <div className="flex flex-wrap gap-2">
+                    {available.length ? available.map((source, i) => <button key={source.provider} type="button" onClick={() => go({ audio: lang, provider: source.provider })} className={`min-w-[72px] rounded-md border px-3 py-2 text-xs font-semibold transition-colors ${audio === lang && current?.provider === source.provider ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:border-primary hover:text-foreground"}`}>{providerLabel(source.provider) || `Server ${i + 1}`}</button>) : <span className="py-2 text-xs text-muted-foreground">No {lang.toUpperCase()} servers available</span>}
+                  </div>
                 </div>;
               })}
               {(streams.data?.length ?? 0) > 1 && <div className="flex flex-wrap items-center gap-2 pt-1"><span className="text-xs text-muted-foreground">Stream:</span>{streams.data!.map((item, i) => <Button key={i} size="sm" variant={i === server ? "default" : "outline"} onClick={() => setServer(i)}>{item.label || `Stream ${i + 1}`}</Button>)}</div>}
@@ -209,15 +212,26 @@ function WatchAnime() {
             <Button variant="outline" size="sm" disabled={!next} onClick={() => next && go({ ep: next.number })}>Next <ChevronRight className="h-4 w-4" /></Button>
           </div>
         </div>
-        <aside className={`${theaterMode ? "hidden" : ""} min-w-0 rounded-xl border border-border bg-card/40 p-3 `}>
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 className="text-lg font-extrabold">Episodes <span className="rounded bg-muted px-2 py-1 text-xs text-muted-foreground">{list.length}</span></h2><div className="flex items-center gap-1 text-[10px] font-bold">{(["all","sub","dub"] as const).map((filter) => <button key={filter} type="button" onClick={() => setEpisodeAudioFilter(filter)} aria-pressed={episodeAudioFilter === filter} className={`rounded px-2 py-1 uppercase ${episodeAudioFilter === filter ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{filter}</button>)}<button type="button" onClick={() => setEpisodeView(episodeView === "list" ? "grid" : "list")} aria-label="Toggle episode grid/list" className="rounded border border-border px-2 py-1">{episodeView === "list" ? "▦" : "☰"}</button><button type="button" onClick={() => setShowEpisodeImages(!showEpisodeImages)} aria-label="Toggle episode thumbnails" className="rounded border border-border px-2 py-1">{showEpisodeImages ? "◉" : "◎"}</button></div></div>
+        <aside className={`${theaterMode ? "hidden" : ""} min-w-0 p-0 `}>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-extrabold">Episodes <span className="rounded bg-muted px-2 py-1 text-xs text-muted-foreground">{list.length}</span></h2>
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center rounded-md border border-border bg-muted/40 p-0.5">
+                <button type="button" title="All episodes" aria-label="All episodes" aria-pressed={episodeAudioFilter === "all"} onClick={() => setEpisodeAudioFilter("all")} className={`rounded px-2 py-1 text-[10px] font-bold ${episodeAudioFilter === "all" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>ALL</button>
+                <button type="button" title="Subtitled episodes" aria-label="Subtitled episodes" aria-pressed={episodeAudioFilter === "sub"} onClick={() => setEpisodeAudioFilter("sub")} className={`rounded px-1.5 py-1 ${episodeAudioFilter === "sub" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}><Captions className="h-3.5 w-3.5" /></button>
+                <button type="button" title="Dubbed episodes" aria-label="Dubbed episodes" aria-pressed={episodeAudioFilter === "dub"} onClick={() => setEpisodeAudioFilter("dub")} className={`rounded px-1.5 py-1 ${episodeAudioFilter === "dub" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}><Mic className="h-3.5 w-3.5" /></button>
+              </div>
+              <button type="button" title={episodeView === "list" ? "Grid view" : "List view"} onClick={() => setEpisodeView(episodeView === "list" ? "grid" : "list")} aria-label="Toggle episode grid/list" className="rounded p-1.5 text-muted-foreground hover:text-primary">{episodeView === "list" ? <LayoutGrid className="h-4 w-4" /> : <List className="h-4 w-4" />}</button>
+              <button type="button" title={showEpisodeImages ? "Hide thumbnails" : "Show thumbnails"} onClick={() => setShowEpisodeImages(!showEpisodeImages)} aria-label="Toggle episode thumbnails" className="rounded p-1.5 text-muted-foreground hover:text-primary">{showEpisodeImages ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}</button>
+            </div>
+          </div>
           <label className="relative block"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input value={episodeSearch} onChange={(e) => setEpisodeSearch(e.target.value)} placeholder="Search episodes..." aria-label="Search episodes" className="w-full rounded-md border border-border bg-background py-2 pl-9 pr-3 text-sm outline-none focus:border-primary" /></label>
-          <div className={`mt-3 max-h-[72vh] overflow-y-auto pr-1 ${episodeView === "grid" ? "grid grid-cols-5 content-start gap-2" : "space-y-2"}`}>
+          <div className={`mt-3 pr-1 ${episodeView === "grid" ? "grid grid-cols-5 content-start gap-2" : "space-y-2"}`}>
             {filteredEpisodes.map((e) => <button key={e.number} type="button" onClick={() => go({ ep: e.number })} className={`${episodeView === "grid" ? "flex aspect-square items-center justify-center text-center" : "flex w-full items-center gap-3 text-left"} rounded-lg border p-2 transition hover:border-primary/70 hover:bg-muted/50 ${e.number === ep ? "border-primary bg-primary/10" : "border-border/40"}`}>
               {episodeView === "list" && showEpisodeImages && <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded bg-muted">{(e.image || cover) && <img src={e.image || cover || ""} alt="" loading="lazy" className="h-full w-full object-cover" />}{e.number === ep && <span className="absolute inset-0 flex items-center justify-center bg-black/40 text-primary"><Play className="h-5 w-5 fill-current" /></span>}</div>}
               <div className="min-w-0"><p className={`text-[10px] font-bold uppercase ${e.number === ep ? "text-primary" : "text-muted-foreground"}`}>{episodeView === "grid" ? e.number : `EP ${String(e.number).padStart(2, "0")}`}</p>{episodeView === "list" && <p className="mt-1 line-clamp-2 text-xs font-semibold">{e.title || `Episode ${e.number}`}</p>}{episodeView === "list" && <p className="mt-1 flex gap-1 text-[9px] font-bold">{e.sources.some((s) => s.audio === "sub") && <span className="rounded bg-muted px-1">SUB</span>}{e.sources.some((s) => s.audio === "dub") && <span className="rounded bg-primary/20 px-1 text-primary">DUB</span>}</p>}</div>
             </button>)}
-            {!filteredEpisodes.length && <div className="p-4 text-center text-sm text-muted-foreground">{eps.isPending ? <span><RefreshCw className="mr-2 inline h-4 w-4 animate-spin" />Finding episodes…</span> : eps.isError ? <span>Episodes could not be loaded. <button className="font-bold text-primary underline" onClick={() => void eps.refetch()}>Retry</button></span> : list.length === 0 ? "No episodes available yet." : "No episodes match your search."}</div>}
+            {!filteredEpisodes.length && <div className="col-span-full p-4 text-center text-sm text-muted-foreground">{eps.isPending ? <span><RefreshCw className="mr-2 inline h-4 w-4 animate-spin" />Finding episodes…</span> : eps.isError ? <span>Episodes could not be loaded. <button className="font-bold text-primary underline" onClick={() => void eps.refetch()}>Retry</button></span> : list.length === 0 ? "No episodes available yet." : "No episodes match your search."}</div>}
           </div>
         </aside>
       </div>
