@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
-import { ChevronLeft, ChevronRight, LoaderCircle, Search, Play, MonitorPlay, ListVideo, SkipForward, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, LoaderCircle, Search, Play, MonitorPlay, ListVideo, SkipForward, RefreshCw, Star, CalendarDays, Film, Keyboard, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { WatchlistButton } from "@/components/WatchlistButton";
@@ -41,6 +41,9 @@ function WatchAnime() {
   const [episodeSearch, setEpisodeSearch] = useState("");
   const [autoNext, setAutoNext] = useState(true);
   const [theaterMode, setTheaterMode] = useState(false);
+  const [autoSkip, setAutoSkip] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [rating, setRating] = useState(0);
   useEffect(() => { setFailed([]); setServer(0); }, [ep, audio]);
   const current = sources.find((s) => s.provider === provider) ?? sources.find((s) => !failed.includes(s.provider));
   const streams = useQuery({ queryKey: ["streams", current?.watchId], queryFn: () => getStreams(current!.watchId), enabled: !!current, retry: 0, staleTime: 5 * 60 * 1000 });
@@ -78,19 +81,41 @@ function WatchAnime() {
     <main className="mx-auto max-w-[1900px] px-3 pb-20 pt-3 sm:px-5 md:pt-4">
       <nav className="mb-3 flex items-center gap-2 text-xs text-muted-foreground"><Link to="/" className="hover:text-primary">Home</Link><span>›</span><Link to="/anime/$id" params={{ id: String(id) }} className="max-w-56 truncate hover:text-primary">{title || "Series"}</Link><span>›</span><span className="font-semibold text-primary">Episode {ep}</span></nav>
       <div className={`grid items-start gap-3 ${theaterMode ? "grid-cols-1" : "xl:grid-cols-[270px_minmax(0,1fr)_355px]"}`}>
-        <aside className={`${theaterMode ? "hidden" : "hidden xl:block"} rounded-lg border border-border bg-card/40 p-4`}>{cover && <img src={cover} alt="" className="mx-auto aspect-[2/3] w-full rounded-md object-cover" />}<Link to="/anime/$id" params={{ id: String(id) }} className="mt-3 block text-base font-extrabold hover:text-primary">{title}</Link>{info.data?.averageScore != null && <p className="mt-2 text-sm font-semibold text-primary">★ {(info.data.averageScore / 10).toFixed(1)} / 10</p>}{info.data?.genres?.length ? <p className="mt-3 text-xs leading-5 text-muted-foreground">{info.data.genres.join(" · ")}</p> : null}{info.data?.description && <p className="mt-3 line-clamp-6 text-xs leading-5 text-muted-foreground">{info.data.description.replace(/<[^>]+>/g, "")}</p>}</aside>
+        <aside className={`${theaterMode ? "hidden" : "hidden xl:block"} min-w-0 rounded-lg border border-border/60 bg-card/40 p-4`}>
+          {cover && <img src={cover} alt={title} className="mx-auto aspect-[2/3] w-full rounded-md object-cover" />}
+          <Link to="/anime/$id" params={{ id: String(id) }} className="mt-4 block text-lg font-extrabold leading-tight hover:text-primary">{title}</Link>
+          <div className="mt-3 flex flex-wrap gap-1.5 text-[10px] font-bold uppercase">
+            {info.data?.averageScore != null && <span className="rounded border border-primary/30 bg-primary/10 px-2 py-1 text-primary">★ {(info.data.averageScore / 10).toFixed(1)}</span>}
+            {info.data?.status && <span className="rounded border border-border px-2 py-1 text-muted-foreground">{info.data.status.replaceAll("_", " ")}</span>}
+          </div>
+          {info.data?.description && <p className="mt-4 line-clamp-6 border-t border-border/60 pt-4 text-xs leading-5 text-muted-foreground">{info.data.description.replace(/<[^>]+>/g, "")}</p>}
+          <dl className="mt-4 space-y-2 border-t border-border/60 pt-4 text-xs">
+            {info.data?.seasonYear && <div className="flex items-center justify-between gap-2"><dt className="text-muted-foreground">Year</dt><dd className="font-semibold">{info.data.seasonYear}</dd></div>}
+            {info.data?.format && <div className="flex items-center justify-between gap-2"><dt className="text-muted-foreground">Format</dt><dd className="font-semibold">{info.data.format}</dd></div>}
+            {info.data?.duration && <div className="flex items-center justify-between gap-2"><dt className="text-muted-foreground">Duration</dt><dd className="font-semibold">{info.data.duration} min</dd></div>}
+            {info.data?.genres?.length ? <div><dt className="mb-1 text-muted-foreground">Genres</dt><dd className="leading-5">{info.data.genres.join(", ")}</dd></div> : null}
+          </dl>
+          <div className="mt-5 rounded-lg border border-border/60 bg-background/50 p-3 text-center">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-primary">Rate this anime</p>
+            <div className="mt-2 flex justify-center gap-1" role="group" aria-label="Rate this anime locally">
+              {[1,2,3,4,5].map((n) => <button key={n} type="button" onClick={() => setRating(n)} aria-label={`Rate ${n} out of 5`} aria-pressed={rating === n} className="text-muted-foreground transition hover:scale-110 hover:text-primary"><Star className={`h-5 w-5 ${n <= rating ? "fill-primary text-primary" : ""}`} /></button>)}
+            </div>
+            <p className="mt-2 text-[10px] text-muted-foreground">{rating ? `Your selection: ${rating}/5 (not submitted)` : "Select your rating"}</p>
+          </div>
+        </aside>
         <div className="min-w-0">
           <div className="aspect-video overflow-hidden rounded-md bg-black">
             {eps.isPending || (current && streams.isPending) ? <div role="status" className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground"><LoaderCircle className="h-5 w-5 animate-spin" />{eps.isPending ? "Finding episode…" : `Loading ${providerLabel(current!.provider)}…`}</div>
               : !current ? <div role="alert" className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center text-sm text-muted-foreground"><p>{sources.length ? "None of the sources had a working video for this episode." : `No ${audio} version found for this episode.`}</p>{sources.length > 0 && <Button variant="outline" onClick={() => setFailed([])}>Try again</Button>}</div>
               : streams.isError ? <div role="alert" className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">{providerLabel(current.provider)} has no video for this episode right now. Pick another source.</div>
-              : stream ? <VideoPlayer key={stream.src} ref={playerRef} kind={stream.kind} src={stream.src} subtitles={stream.subtitles} intro={stream.intro} poster={episode?.image ?? undefined} fileName={`${title} - ${ep}`} autoPlay
+              : stream ? <VideoPlayer key={stream.src} ref={playerRef} kind={stream.kind} src={stream.src} subtitles={stream.subtitles} intro={stream.intro} poster={episode?.image ?? undefined} autoSkip={autoSkip} fileName={`${title} - ${ep}`} autoPlay
                   onLoaded={(v) => { if (resumeAt > 5 && resumeAt < v.duration - 30) v.currentTime = resumeAt; }}
                   onEnded={() => { if (playerRef.current) save(playerRef.current, true); if (autoNext && next) go({ ep: next.number }); }}
                   onError={() => { if (streams.data && server < streams.data.length - 1) setServer(server + 1); }} /> : null}
           </div>
-          <div className="mt-2 rounded-md bg-primary/10 px-3 py-2 text-xs text-muted-foreground">If playback is unavailable, try another available source or server below.</div>
-          <div className="mt-2 flex flex-wrap items-center gap-2 py-3 text-xs font-semibold"> <span className="mr-auto text-primary"><ListVideo className="mr-1 inline h-4 w-4" />Episode {ep}</span><button type="button" onClick={() => setTheaterMode(!theaterMode)} className="rounded px-2 py-1 hover:bg-muted"><MonitorPlay className="mr-1 inline h-4 w-4" />{theaterMode ? "Exit theater" : "Theater"}</button><button type="button" onClick={() => setAutoNext(!autoNext)} aria-pressed={autoNext} className={`rounded px-2 py-1 hover:bg-muted ${autoNext ? "text-primary" : "text-muted-foreground"}`}><SkipForward className="mr-1 inline h-4 w-4" />Auto next {autoNext ? "On" : "Off"}</button></div>
+          <div className="mt-2 rounded-md bg-primary/10 px-3 py-2 text-xs text-muted-foreground"><span className="font-semibold text-foreground">Playback issue?</span> Try another source or server below.</div>
+          <div className="mt-2 flex flex-wrap items-center gap-2 py-3 text-xs font-semibold"> <span className="mr-auto text-primary"><ListVideo className="mr-1 inline h-4 w-4" />Episode {ep}</span><button type="button" onClick={() => setTheaterMode(!theaterMode)} className="rounded px-2 py-1 hover:bg-muted"><MonitorPlay className="mr-1 inline h-4 w-4" />{theaterMode ? "Exit theater" : "Theater"}</button><button type="button" onClick={() => setAutoNext(!autoNext)} aria-pressed={autoNext} className={`rounded px-2 py-1 hover:bg-muted ${autoNext ? "text-primary" : "text-muted-foreground"}`}><SkipForward className="mr-1 inline h-4 w-4" />Auto next {autoNext ? "On" : "Off"}</button><button type="button" onClick={() => setAutoSkip(!autoSkip)} aria-pressed={autoSkip} className={`rounded px-2 py-1 hover:bg-muted ${autoSkip ? "text-primary" : "text-muted-foreground"}`}><SkipForward className="mr-1 inline h-4 w-4" />Auto skip {autoSkip ? "On" : "Off"}</button><button type="button" onClick={() => setShowShortcuts(!showShortcuts)} aria-expanded={showShortcuts} className="rounded px-2 py-1 hover:bg-muted"><Keyboard className="mr-1 inline h-4 w-4" />Keys</button></div>
+          {showShortcuts && <div className="rounded-md border border-border/60 bg-card/60 p-3 text-xs text-muted-foreground">Player shortcuts: Space/K = play or pause · ←/→ = seek 10 seconds · F = fullscreen · M = mute</div>}
           <div className="mt-3 flex flex-wrap items-center gap-2 bg-card/30 p-3">
             <Button variant="outline" size="sm" disabled={!prev} onClick={() => prev && go({ ep: prev.number })}><ChevronLeft /> Previous</Button>
             <Button variant="outline" size="sm" disabled={!next} onClick={() => next && go({ ep: next.number })}>Next <ChevronRight /></Button>
@@ -115,7 +140,7 @@ function WatchAnime() {
           </div>
         </div>
         <aside className={`${theaterMode ? "hidden" : ""} min-w-0 rounded-xl border border-border bg-card/40 p-3 xl:sticky xl:top-20`}>
-          <h2 className="mb-3 text-lg font-extrabold">Episodes <span className="rounded bg-muted px-2 py-1 text-xs text-muted-foreground">{list.length}</span></h2>
+          <h2 className="mb-3 flex items-center justify-between text-lg font-extrabold"><span>Episodes <span className="rounded bg-muted px-2 py-1 text-xs text-muted-foreground">{list.length}</span></span><span className="text-[10px] font-semibold text-primary">{audio.toUpperCase()}</span></h2><div className="hidden">Episodes <span className="rounded bg-muted px-2 py-1 text-xs text-muted-foreground">{list.length}</span></div>
           <label className="relative block"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input value={episodeSearch} onChange={(e) => setEpisodeSearch(e.target.value)} placeholder="Search episodes..." aria-label="Search episodes" className="w-full rounded-md border border-border bg-background py-2 pl-9 pr-3 text-sm outline-none focus:border-primary" /></label>
           <div className="mt-3 max-h-[72vh] space-y-2 overflow-y-auto pr-1">
             {filteredEpisodes.map((e) => <button key={e.number} type="button" onClick={() => go({ ep: e.number })} className={`flex w-full items-center gap-3 rounded-lg border p-2 text-left transition hover:border-primary/70 hover:bg-muted/50 ${e.number === ep ? "border-primary bg-primary/10" : "border-border/40"}`}>
