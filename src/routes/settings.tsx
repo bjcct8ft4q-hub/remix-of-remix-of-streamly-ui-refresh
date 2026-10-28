@@ -100,7 +100,28 @@ function Settings() {
     void fetchIdentity().then((value) => { if (active) { setAccountName(value.username); setAccountEmail(value.email); } }).catch(() => {});
     return () => { active = false; };
   }, [user?.id]);
-  const [settingsTab, setSettingsTab] = useState<"profile" | "playback" | "security" | "display">("profile");
+  const [settingsTab, setSettingsTab] = useState<"profile" | "playback" | "security" | "display" | "titles">("profile");
+  const titleDefaults: Record<string, { main: string[]; supporting: string[] }> = {
+    Default: { main: ["English", "Romaji", "Native"], supporting: ["Romaji"] },
+    Japanese: { main: ["English", "Romaji", "Native"], supporting: ["Romaji"] },
+    Korean: { main: ["English", "Romaji", "Native"], supporting: ["Native"] },
+    Chinese: { main: ["English", "Romaji", "Native"], supporting: ["Native"] },
+  };
+  const [titlePrefs, setTitlePrefs] = useState(titleDefaults);
+  const [titleSaved, setTitleSaved] = useState(false);
+  useEffect(() => { try { const stored = JSON.parse(localStorage.getItem("streamly-title-preferences") || "null"); if (stored && typeof stored === "object") setTitlePrefs({ ...titleDefaults, ...stored }); } catch {} }, []);
+  const changeTitle = (region: string, field: "main" | "supporting", index: number, value: string) => {
+    setTitleSaved(false);
+    setTitlePrefs(prev => ({ ...prev, [region]: { ...prev[region], [field]: prev[region][field].map((item, i) => i === index ? value : item) } }));
+  };
+  const addTitle = (region: string, field: "main" | "supporting") => { setTitleSaved(false); setTitlePrefs(prev => ({ ...prev, [region]: { ...prev[region], [field]: [...prev[region][field], "English"] } })); };
+  const removeTitle = (region: string, field: "main" | "supporting", index: number) => { setTitleSaved(false); setTitlePrefs(prev => ({ ...prev, [region]: { ...prev[region], [field]: prev[region][field].filter((_, i) => i !== index) } })); };
+  const moveTitle = (region: string, field: "main" | "supporting", index: number, direction: number) => {
+    const next = [...titlePrefs[region][field]]; const target = index + direction;
+    if (target < 0 || target >= next.length) return;
+    [next[index], next[target]] = [next[target], next[index]];
+    setTitleSaved(false); setTitlePrefs(prev => ({ ...prev, [region]: { ...prev[region], [field]: next } }));
+  };
   const [displayPrefs,setDisplayPrefs]=useState<Record<string,boolean>>({});
   useEffect(()=>{try{setDisplayPrefs(JSON.parse(localStorage.getItem("streamly-display-preferences")||"{}"));}catch{}},[]);
   const toggleDisplay=(key:string)=>{const next={...displayPrefs,[key]:!displayPrefs[key]};setDisplayPrefs(next);localStorage.setItem("streamly-display-preferences",JSON.stringify(next));};
@@ -177,10 +198,17 @@ function Settings() {
       <nav aria-label="Settings categories" className="flex h-fit gap-2 overflow-x-auto rounded-2xl border border-border bg-card/80 p-2 shadow-xl shadow-black/10 md:sticky md:top-28 md:flex-col">
         <button type="button" onClick={() => setSettingsTab("profile")} aria-current={settingsTab === "profile" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "profile" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Profile & avatar</button>
         <button type="button" onClick={() => setSettingsTab("playback")} aria-current={settingsTab === "playback" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "playback" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Language & playback</button>
+        <button type="button" onClick={() => setSettingsTab("titles")} aria-current={settingsTab === "titles" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "titles" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Title preferences</button>
         <button type="button" onClick={() => setSettingsTab("security")} aria-current={settingsTab === "security" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "security" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Account & security</button>
         <button type="button" onClick={() => setSettingsTab("display")} aria-current={settingsTab === "display" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "display" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Display & preferences</button>
       </nav>
       <div className="min-w-0">
+        {settingsTab === "titles" && <section className="space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-2xl font-extrabold">Title preferences</h2><p className="mt-1 text-sm text-muted-foreground">Choose your preferred language order for main and supporting anime titles.</p></div><div className="flex gap-2"><button type="button" className="rounded-lg border border-border px-4 py-2 text-sm font-semibold" onClick={() => { setTitlePrefs(titleDefaults); setTitleSaved(false); }}>Reset</button><button type="button" className="rounded-lg bg-primary px-5 py-2 text-sm font-bold text-primary-foreground" onClick={() => { localStorage.setItem("streamly-title-preferences", JSON.stringify(titlePrefs)); setTitleSaved(true); }}>Save</button></div></div>
+          <p className="text-xs text-muted-foreground">Preferences are saved on this device. Applying these choices throughout search results and anime pages requires a separate integration.</p>
+          {titleSaved && <p role="status" className="text-sm text-primary">Title preferences saved on this device.</p>}
+          {Object.entries(titlePrefs).map(([region, config]) => <div key={region} className="rounded-2xl border border-border bg-card/90 p-5 sm:p-6"><h3 className="text-xl font-bold">{region === "Japanese" ? "🇯🇵 " : region === "Korean" ? "🇰🇷 " : region === "Chinese" ? "🇨🇳 " : ""}{region}</h3><p className="mt-1 text-xs text-muted-foreground">{region === "Default" ? "Fallback order for anime from any original language." : `Preferred title order for anime originally in ${region}.`}</p><div className="mt-5 grid gap-6 sm:grid-cols-2">{(["main","supporting"] as const).map(field => <div key={field}><h4 className="mb-3 font-bold">{field === "main" ? "Main title" : "Supporting title"}</h4><div className="space-y-2">{config[field].map((language, index) => <div key={index} className="flex items-center gap-1 rounded-lg border border-border bg-background/50 p-2"><select aria-label={`${region} ${field} language ${index + 1}`} className="min-w-0 flex-1 bg-transparent px-2 py-1 text-sm" value={language} onChange={e => changeTitle(region,field,index,e.target.value)}>{["English","Romaji","Native"].map(option => <option key={option} value={option}>{option}</option>)}</select><button type="button" aria-label="Move up" disabled={index===0} onClick={()=>moveTitle(region,field,index,-1)} className="px-1 text-muted-foreground disabled:opacity-30">↑</button><button type="button" aria-label="Move down" disabled={index===config[field].length-1} onClick={()=>moveTitle(region,field,index,1)} className="px-1 text-muted-foreground disabled:opacity-30">↓</button><button type="button" aria-label="Remove language" onClick={()=>removeTitle(region,field,index)} className="px-1 text-red-400">×</button></div>)}</div><button type="button" onClick={()=>addTitle(region,field)} className="mt-3 text-sm font-semibold text-primary hover:underline">+ Add language option</button><p className="mt-3 text-xs text-muted-foreground">{field === "main" ? "Falls back to any available title." : "Hidden if no preferred supporting title is available."}</p></div>)}</div></div>)}
+        </section>}
         {settingsTab === "display" && <section className="rounded-2xl border border-border bg-card/90 p-6"><h2 className="text-xl font-bold">Display & preferences</h2><p className="mt-2 text-sm text-muted-foreground">Save personal preferences on this device. These options are stored locally; they do not yet change player behaviour across the site.</p><div className="mt-6 space-y-4">{[["compact","Compact cards"],["reduceAnimations","Reduce decorative animations"],["showRatings","Show anime ratings"],["showDescriptions","Show full descriptions"],["dimWatched","Dim watched episodes"],["showComments","Show comments"],["autoNext","Auto next episode"],["skipIntro","Skip intros"],["skipOutro","Skip outros"],["autoPlay","Auto play"],["notifications","Episode notifications"]].map(([key,label])=><label key={key} className="flex items-center justify-between gap-4 rounded-xl border border-border p-4 text-sm"><span>{label}</span><input type="checkbox" checked={!!displayPrefs[key]} onChange={()=>toggleDisplay(key)} className="h-5 w-5 accent-primary"/></label>)}</div></section>}
         {settingsTab === "profile" && <section className="rounded-2xl border border-border bg-card/90 p-4 shadow-xl shadow-black/10 sm:p-7">
           <div className="mb-7 rounded-xl border border-border bg-background/50 p-4">
