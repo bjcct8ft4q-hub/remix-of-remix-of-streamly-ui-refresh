@@ -1,6 +1,7 @@
 // Client helpers for the anime sources ported from Kitsune (AniList metadata + provider scrapers).
 import type { PlayerSubtitle } from "@/components/VideoPlayer";
 import { resolveAnimeSearch, matchesAnimeTitle } from "@/lib/anime-search";
+import { groupAnimeSeasons } from "@/lib/anime-series";
 
 export type Audio = "sub" | "dub";
 
@@ -18,6 +19,7 @@ export type AnimeSummary = {
   episodes: number | null;
   averageScore: number | null;
   isAdult?: boolean;
+  relations?: { edges: { relationType: string; node: AnimeSummary }[] };
 };
 
 export type AnimeDetails = AnimeSummary & {
@@ -37,6 +39,7 @@ export type AnimeDetails = AnimeSummary & {
 };
 
 const SUMMARY = "id idMal title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore isAdult";
+const SEARCH_SUMMARY = SUMMARY + " relations { edges { relationType node { id format } } }";
 
 async function anilist<T>(query: string, variables: Record<string, unknown>): Promise<T> {
   const res = await fetch("https://graphql.anilist.co", {
@@ -54,12 +57,12 @@ export const animeTitle = (a: { title: { english: string | null; romaji: string 
 
 export async function searchAnime(search: string): Promise<AnimeSummary[]> {
   const resolved = resolveAnimeSearch(search);
-  const query = `query ($search: String) { Page(page: 1, perPage: 24) { media(type: ANIME, search: $search, isAdult: false, sort: SEARCH_MATCH) { ${SUMMARY} } } }`;
+  const query = `query ($search: String) { Page(page: 1, perPage: 24) { media(type: ANIME, search: $search, isAdult: false, sort: SEARCH_MATCH) { ${SEARCH_SUMMARY} } } }`;
   const primary = await anilist<{ Page: { media: AnimeSummary[] } }>(query, { search: resolved });
   const results = primary.Page.media ?? [];
   // AniList search is not fuzzy. For misspellings, retry a shortened word stem
   // and rank matches locally instead of requiring an exact spelling.
-  if (results.length || resolved.length < 5) return results;
+  if (results.length || resolved.length < 5) return groupAnimeSeasons(results);
   const words = resolved.trim().split(/\s+/).filter((word) => word.length >= 4);
   const attempts = [...words].sort((a, b) => a.length - b.length).map((word) => word.slice(0, Math.max(3, word.length - 2)));
   const found = new Map<number, AnimeSummary>();
@@ -70,7 +73,7 @@ export async function searchAnime(search: string): Promise<AnimeSummary[]> {
     }
     if (found.size) break;
   }
-  return [...found.values()].slice(0, 24);
+  return groupAnimeSeasons([...found.values()]).slice(0, 24);
 }
 
 export async function getAnime(id: number): Promise<AnimeDetails | null> {
