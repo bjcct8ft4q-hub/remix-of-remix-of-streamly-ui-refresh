@@ -246,61 +246,81 @@ html.streamly-theme-ready :where(header, nav, aside, main, footer, section, arti
 @media (hover: hover) and (pointer: fine) {
   html, html body, html a, html button, html [role="button"], html [role="tab"], html label, html select, html summary,
   html input[type="checkbox"], html input[type="radio"] {
-    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 32 32'%3E%3Cpath d='M3 2v26l7.5-7.4 4.9 10.1 5.5-2.7-4.9-10.1L27 17Z' fill='%23009cff' stroke='%23000' stroke-width='1.6' stroke-linejoin='round'/%3E%3C/svg%3E") 1 1, auto !important;
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 32 32'%3E%3Cpath d='M3 2v26l7.5-7.4 4.9 10.1 5.5-2.7-4.9-10.1L27 17Z' fill='%23009cff' stroke='%23000' stroke-width='1.6' stroke-linejoin='round'/%3E%3C/svg%3E") 1 1, auto !important;
   }
   html.halloween, html.halloween body, html.halloween a, html.halloween button, html.halloween [role="button"], html.halloween [role="tab"],
   html.halloween label, html.halloween select, html.halloween summary, html.halloween input[type="checkbox"], html.halloween input[type="radio"] {
-    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 32 32'%3E%3Cpath d='M3 2v26l7.5-7.4 4.9 10.1 5.5-2.7-4.9-10.1L27 17Z' fill='%23ff7900' stroke='%23000' stroke-width='1.6' stroke-linejoin='round'/%3E%3C/svg%3E") 1 1, auto !important;
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 32 32'%3E%3Cpath d='M3 2v26l7.5-7.4 4.9 10.1 5.5-2.7-4.9-10.1L27 17Z' fill='%23ff7900' stroke='%23000' stroke-width='1.6' stroke-linejoin='round'/%3E%3C/svg%3E") 1 1, auto !important;
   }
 }
 
-/* Brief CRT-style glitch during manual theme switching. No jumpscare images. */
+/* Deliberately visible TV signal glitch, with moving tears and RGB interference. */
 .streamly-glitch-overlay {
   position: fixed;
   inset: 0;
   z-index: 95;
-  overflow: hidden;
   pointer-events: none;
-  background: rgba(0, 0, 0, .22);
-  animation: streamly-glitch-flash 480ms steps(1, end) both;
+  overflow: hidden;
+  background: rgba(0,0,0,.55);
+  animation: streamly-glitch-flash 680ms steps(1,end) both;
 }
 .streamly-glitch-noise {
   position: absolute;
-  inset: -25%;
-  opacity: .48;
+  inset: -30%;
+  opacity: .9;
   background-image:
-    repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,255,255,.23) 3px 4px, transparent 4px 8px),
-    repeating-linear-gradient(90deg, transparent 0 7px, rgba(255,255,255,.11) 7px 9px, transparent 9px 16px);
-  background-size: 19px 23px, 31px 37px;
-  animation: streamly-glitch-noise 110ms steps(2, end) infinite;
+    repeating-linear-gradient(0deg, #fff 0 1px, #050505 1px 3px, #999 3px 4px, transparent 4px 7px),
+    repeating-linear-gradient(90deg, rgba(0,190,255,.5) 0 3px, transparent 3px 11px, rgba(255,100,0,.5) 11px 13px, transparent 13px 23px);
+  background-size: 17px 23px, 43px 39px;
+  mix-blend-mode: screen;
+  animation: streamly-glitch-noise 90ms steps(2,end) infinite;
 }
 .streamly-glitch-scanlines {
   position: absolute;
   inset: 0;
-  background: repeating-linear-gradient(0deg, transparent 0 5px, rgba(0,0,0,.45) 5px 7px);
-  animation: streamly-glitch-scan 130ms steps(2, end) infinite;
+  background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(0,0,0,.85) 3px 6px);
+  animation: streamly-glitch-scan 75ms steps(2,end) infinite;
 }
+.streamly-glitch-tear {
+  position: absolute;
+  left: -15%;
+  width: 130%;
+  height: 12%;
+  background: linear-gradient(90deg, rgba(0,175,255,.8), rgba(255,255,255,.4) 45%, rgba(255,80,0,.75));
+  mix-blend-mode: screen;
+  filter: contrast(2);
+  animation: streamly-glitch-tear 180ms steps(3,end) infinite;
+}
+.streamly-glitch-tear-one { top: 22%; }
+.streamly-glitch-tear-two { top: 65%; animation-delay: -90ms; height: 5%; }
 @keyframes streamly-glitch-flash {
   0% { opacity: 0; }
-  12% { opacity: .9; }
-  27% { opacity: .2; }
-  38% { opacity: .85; }
-  52% { opacity: .15; }
-  67% { opacity: .6; }
-  85% { opacity: .15; }
+  8% { opacity: 1; }
+  18% { opacity: .45; }
+  26% { opacity: 1; }
+  43% { opacity: .65; }
+  58% { opacity: 1; }
+  72% { opacity: .4; }
+  82% { opacity: .95; }
   100% { opacity: 0; }
 }
 @keyframes streamly-glitch-noise {
-  0% { transform: translate(0,0); filter: contrast(160%); }
-  25% { transform: translate(-12px,8px); }
-  50% { transform: translate(9px,-15px); filter: contrast(220%); }
-  75% { transform: translate(-4px,-7px); }
-  100% { transform: translate(13px,5px); }
+  0% { transform: translate(0,0) skewX(0deg); }
+  25% { transform: translate(-22px,11px) skewX(4deg); }
+  50% { transform: translate(18px,-16px) skewX(-6deg); }
+  75% { transform: translate(-9px,-6px) skewX(3deg); }
+  100% { transform: translate(16px,9px) skewX(-3deg); }
 }
 @keyframes streamly-glitch-scan {
   0% { transform: translateY(0); }
-  50% { transform: translateY(7px); }
-  100% { transform: translateY(-5px); }
+  50% { transform: translateY(11px); }
+  100% { transform: translateY(-8px); }
+}
+@keyframes streamly-glitch-tear {
+  0% { transform: translate(-8%,0) skewX(-9deg); opacity: .2; }
+  33% { transform: translate(10%,90px) skewX(15deg); opacity: .95; }
+  66% { transform: translate(-12%,-70px) skewX(-18deg); opacity: .5; }
+  100% { transform: translate(5%,40px) skewX(8deg); opacity: .85; }
 }
 @media (prefers-reduced-motion: reduce) {
   .streamly-glitch-overlay { display: none; }
