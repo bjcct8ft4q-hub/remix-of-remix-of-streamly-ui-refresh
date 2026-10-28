@@ -47,7 +47,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       return next;
     });
   };
-  return <Ctx.Provider value={{ halloween, toggleHalloween }}>{children}{transitioning && <div key={transitionKey} className="streamly-theme-wipe" aria-hidden="true" />}</Ctx.Provider>;
+  return <Ctx.Provider value={{ halloween, toggleHalloween }}>{children}{transitioning && <div key={transitionKey} className={`streamly-theme-wipe ${halloween ? "streamly-theme-wipe-halloween" : "streamly-theme-wipe-blue"}`} aria-hidden="true" />}</Ctx.Provider>;
 }
 
 export const useTheme = () => useContext(Ctx);
