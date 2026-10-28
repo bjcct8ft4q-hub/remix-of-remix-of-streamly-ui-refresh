@@ -31,11 +31,11 @@ function PublicProfile() {
   return <main className="min-h-screen bg-[#050505] pb-24 pt-16 text-white">
     {!user ? <div className="mx-auto max-w-4xl px-6 pt-20"><h1 className="text-3xl font-bold">Profile</h1><button onClick={() => openAuth("signin")} className="mt-5 rounded-md bg-primary px-5 py-2 font-semibold">Sign in</button></div> : <>
     {tab === "watchlist" ? <>
-      <div className="relative h-48 w-full overflow-hidden bg-gradient-to-r from-[#11263a] via-[#121b2a] to-[#050505] sm:h-64">
+      <div className="relative h-[320px] w-full overflow-hidden bg-gradient-to-r from-[#11263a] via-[#121b2a] to-[#050505] sm:h-[420px] lg:h-[480px]">
         {banner && <img src={banner} alt="Profile banner" className="h-full w-full object-cover" />}
         <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-black/25 to-black/10" />
       </div>
-      <div className="relative mx-auto -mt-9 max-w-[920px] px-5 sm:-mt-10">
+      <div className="relative mx-auto -mt-16 max-w-[920px] px-5 sm:-mt-20">
         <div className="flex flex-wrap items-end gap-4 border-b border-white/10 pb-7 sm:gap-6">
           <div className="relative z-10 shrink-0 rounded-full border-4 border-[#050505] bg-[#111] shadow-xl"><AccountAvatar size="lg" /></div>
           <div className="min-w-0 flex-1 pb-1">
