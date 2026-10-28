@@ -38,7 +38,7 @@ async function fetchCharacterAvatars(): Promise<AvatarCollection[]> {
     return { ...show, characters };
     } catch { return { ...show, characters: [] as CharacterAvatar[] }; }
   }));
-  const extraNames = ["Aoi Todo", "Hiromi Higuruma", "Toji Fushiguro", "Kokichi Muta"];
+  const extraNames = ["Aoi Todo", "Hiromi Higuruma", "Toji Fushiguro", "Kokichi Muta", "Ko-Guy"];
   const extras = await Promise.all(extraNames.map(async (characterName) => {
     try {
       const response = await fetch("https://graphql.anilist.co", {
@@ -48,7 +48,7 @@ async function fetchCharacterAvatars(): Promise<AvatarCollection[]> {
       if (!response.ok) return null;
       const result = await response.json();
       const character = result.data?.Character;
-      return character?.image?.large ? { id: character.id, name: characterName, image: character.image.large } as CharacterAvatar : null;
+      return character?.image?.large ? { id: character.id, name: characterName === "Ko-Guy" ? "Grasshopper Curse" : characterName, image: character.image.large } as CharacterAvatar : null;
     } catch { return null; }
   }));
   const jjk = collections.find((collection) => collection.mediaId === 113415);
@@ -76,7 +76,7 @@ function Settings() {
   const [avatarMessage, setAvatarMessage] = useState("");
   const [avatarSaving, setAvatarSaving] = useState(false);
   const [avatarChoice, setAvatarChoice] = useState<string | null>(null);
-  const { data: animeAvatars, isPending: avatarsLoading, isError: avatarsError, refetch: retryAvatars } = useQuery({ queryKey: ["anime-avatar-collections-v3"], queryFn: fetchCharacterAvatars, staleTime: 60 * 60 * 1000, retry: 1 });
+  const { data: animeAvatars, isPending: avatarsLoading, isError: avatarsError, refetch: retryAvatars } = useQuery({ queryKey: ["anime-avatar-collections-v4"], queryFn: fetchCharacterAvatars, staleTime: 60 * 60 * 1000, retry: 1 });
   const uploadAvatar = async (file?: File) => {
     if (!file || !user) return;
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) { setAvatarMessage("Choose a JPG, PNG or WebP image."); return; }
