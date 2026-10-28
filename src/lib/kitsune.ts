@@ -9,6 +9,7 @@ export const PROVIDER_ORDER = ["anikoto", "kaa", "anizone", "reanime", "aniwaves
 
 export type AnimeSummary = {
   id: number;
+  idMal?: number | null;
   title: { english: string | null; romaji: string };
   coverImage: { large: string | null; extraLarge?: string | null };
   bannerImage?: string | null;
@@ -35,7 +36,7 @@ export type AnimeDetails = AnimeSummary & {
   recommendations: { nodes: { rating: number | null; mediaRecommendation: AnimeSummary | null }[] };
 };
 
-const SUMMARY = "id title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore isAdult";
+const SUMMARY = "id idMal title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore isAdult";
 
 async function anilist<T>(query: string, variables: Record<string, unknown>): Promise<T> {
   const res = await fetch("https://graphql.anilist.co", {
