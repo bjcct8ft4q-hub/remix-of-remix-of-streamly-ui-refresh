@@ -50,7 +50,7 @@ export function Header() {
   }, [menuOpen]);
 
   return (
-    <header className="relative z-30 flex flex-wrap items-center gap-x-3 gap-y-3 bg-background px-4 py-3 sm:px-6">
+    <header className="relative z-30 flex flex-wrap items-center gap-x-2 gap-y-2 bg-background px-3 py-3 sm:gap-x-3 sm:gap-y-3 sm:px-6">
       {halloween && <div className="halloween-web pointer-events-none absolute left-0 top-0 h-24 w-24" />}
       <div className="relative shrink-0">
         <Button variant="ghost" size="icon" aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-expanded={menuOpen} onClick={() => setMenuOpen((o) => !o)} className="text-muted-foreground hover:text-foreground">
@@ -81,9 +81,9 @@ export function Header() {
         )}
       </div>
       <Logo />
-      <Button variant="outline" aria-label="Search series" aria-haspopup="dialog" aria-expanded={searchOpen} onClick={() => { setMenuOpen(false); setSearchOpen(true); }} className="order-3 h-10 w-full justify-start bg-overlay/60 px-3 text-sm text-muted-foreground backdrop-blur md:order-none md:w-64 md:flex-none lg:w-72"><Search />Search series...</Button>
+      <Button variant="outline" aria-label="Search series" aria-haspopup="dialog" aria-expanded={searchOpen} onClick={() => { setMenuOpen(false); setSearchOpen(true); }} className="order-3 h-10 w-full min-w-0 justify-start bg-overlay/60 px-3 text-sm text-muted-foreground backdrop-blur md:order-none md:w-64 md:flex-none lg:w-72"><Search />Search series...</Button>
       <QuickSearch open={searchOpen} onOpenChange={setSearchOpen} />
-      <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-3">
+      <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1 sm:gap-3">
         {user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
