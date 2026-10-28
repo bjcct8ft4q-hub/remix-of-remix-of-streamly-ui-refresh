@@ -158,3 +158,74 @@ body:has(main.streamly-settings) [data-site-footer] {
 .streamly-settings-content section input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),.streamly-settings-content section textarea{background:#090909!important;border-color:#222!important;}
 .streamly-settings-content section input:focus-visible,.streamly-settings-content section button:focus-visible{outline:2px solid var(--settings-orange)!important;outline-offset:2px;}
 @media(max-width:767px){.streamly-settings-content{padding-bottom:60px!important;}.streamly-settings-content section > h2:first-child{font-size:30px!important;}}
+
+
+/* Streamly settings polish — keep one clear content column and a calm, readable rail. */
+@media (min-width:768px) {
+  .streamly-settings-grid {
+    max-width:1280px!important;
+    grid-template-columns:190px minmax(0,1fr)!important;
+    column-gap:clamp(36px,7vw,110px)!important;
+    padding:0 clamp(20px,3vw,42px)!important;
+  }
+  .streamly-settings-nav {
+    width:190px!important;
+    padding:22px 12px!important;
+    gap:7px!important;
+  }
+  .streamly-settings-nav > button {
+    min-height:42px!important;
+    padding:10px 12px!important;
+    gap:11px!important;
+    border-radius:9px!important;
+    font-size:13px!important;
+  }
+  .streamly-settings-nav > button svg {width:16px!important;height:16px!important;}
+  .streamly-settings-content {
+    max-width:790px!important;
+    padding:24px 8px 100px 0!important;
+  }
+  .streamly-settings-content > section,
+  .streamly-settings-content > div[id^="settings-section-"] {
+    max-width:790px!important;
+    margin-bottom:72px!important;
+  }
+}
+.streamly-settings-content section > h2:first-child,
+.streamly-settings-content > div[id^="settings-section-"] > h2:first-child {
+  letter-spacing:-.035em!important;
+}
+.streamly-settings-content section .rounded-xl.border,
+.streamly-settings-content section .rounded-2xl.border {
+  background:#0c0d10!important;
+  border:1px solid #252932!important;
+  border-radius:12px!important;
+}
+.streamly-settings-content input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.streamly-settings-content textarea,
+.streamly-settings-content select {
+  border-color:#2a303a!important;
+  background:#0a0d12!important;
+  transition:border-color .18s,box-shadow .18s;
+}
+.streamly-settings-content input:focus-visible,
+.streamly-settings-content textarea:focus-visible,
+.streamly-settings-content select:focus-visible {
+  border-color:var(--settings-orange)!important;
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--settings-orange) 16%,transparent)!important;
+}
+.streamly-settings-account-info {
+  border-color:#252932!important;
+  overflow-wrap:anywhere;
+}
+.streamly-settings-account-info p {line-height:1.5;}
+.streamly-settings-nav > button[aria-current="page"] {
+  background:color-mix(in srgb,var(--settings-orange) 14%,#080b10)!important;
+  border-color:color-mix(in srgb,var(--settings-orange) 30%,transparent)!important;
+  color:var(--settings-orange)!important;
+}
+@media(max-width:767px){
+  .streamly-settings-nav {gap:6px!important;}
+  .streamly-settings-nav > button {min-height:40px!important;padding:9px 11px!important;}
+  .streamly-settings-content {padding:12px 0 70px!important;}
+}
