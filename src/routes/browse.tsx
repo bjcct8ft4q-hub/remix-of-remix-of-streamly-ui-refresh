@@ -15,8 +15,8 @@ export const Route = createFileRoute("/browse")({
   component: Browse,
 });
 
-type Filters = { q: string; genre: string; tag: string; year: string; status: string; format: string; demographic: string; ageRating: string };
-const empty: Filters = { q: "", genre: "", tag: "", year: "", status: "", format: "", demographic: "", ageRating: "" };
+type Filters = { q: string; genre: string; tag: string; year: string; status: string; format: string; demographic: string; ageRating: string; season: string; origin: string };
+const empty: Filters = { q: "", genre: "", tag: "", year: "", status: "", format: "", demographic: "", ageRating: "", season: "", origin: "" };
 // AniList has a smaller genre taxonomy; other requested categories are AniList tags.
 const genreOptions: [string, string][] = [
   ["Action", "Action"], ["Adventure", "Adventure"], ["Boys Love", "Boys Love / Yaoi"],
@@ -37,6 +37,8 @@ const demographics: [string, string][] = [["Josei", "Josei"], ["Shoujo", "Shoujo
 const tagOptions: [string, string][] = ["School", "Female Protagonist", "Male Protagonist", "Vampire", "Time Travel", "Revenge", "Super Power", "Military", "Space"].map((x) => [x, x]);
 const formats = [["TV", "TV"], ["TV_SHORT", "TV Short"], ["MOVIE", "Movie"], ["OVA", "OVA"], ["ONA", "ONA"], ["SPECIAL", "Special"], ["MUSIC", "Music"]];
 const statuses = [["FINISHED", "Finished"], ["RELEASING", "Releasing"], ["NOT_YET_RELEASED", "Not yet released"], ["CANCELLED", "Cancelled"], ["HIATUS", "Hiatus"]];
+const seasons: [string, string][] = [["WINTER", "Winter"], ["SPRING", "Spring"], ["SUMMER", "Summer"], ["FALL", "Fall"]];
+const origins: [string, string][] = [["JP", "Japan"], ["KR", "South Korea"], ["CN", "China"]];
 const years = Array.from({ length: new Date().getFullYear() - 1969 }, (_, i) => String(new Date().getFullYear() - i));
 const selectClass = "w-full min-w-0 rounded-md border border-border bg-card px-3 py-3 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary";
 
@@ -79,16 +81,18 @@ async function fetchFilteredAnime(f: Filters): Promise<{ media: AnimeSummary[]; 
     // For tag-based categories, use the AniList tag filter. A demographic takes precedence.
     tag: f.demographic || (!anilistGenres.has(f.genre) ? f.genre : "") || f.tag || undefined,
     adult: f.ageRating === "adult",
+    season: f.season || undefined,
+    origin: f.origin || undefined,
     year: f.year ? Number(f.year) : undefined, status: f.status || undefined, format: f.format || undefined,
   };
   const response = await fetch("https://graphql.anilist.co", {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({
-      query: `query ($search: String, $genre: String, $tag: String, $year: Int, $status: MediaStatus, $format: MediaFormat, $adult: Boolean) {
+      query: `query ($search: String, $genre: String, $tag: String, $year: Int, $status: MediaStatus, $format: MediaFormat, $adult: Boolean, $season: MediaSeason, $origin: CountryCode) {
         Page(page: 1, perPage: 48) {
           pageInfo { total }
-          media(type: ANIME, search: $search, genre: $genre, tag: $tag, seasonYear: $year, status: $status, format: $format, isAdult: $adult, sort: POPULARITY_DESC) {
+          media(type: ANIME, search: $search, genre: $genre, tag: $tag, seasonYear: $year, status: $status, format: $format, isAdult: $adult, season: $season, countryOfOrigin: $origin, sort: POPULARITY_DESC) {
             id title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore isAdult
           }
         }
@@ -133,41 +137,50 @@ function Browse() {
       && (!applied.genre || s.genres.some((g) => g.toLowerCase() === applied.genre.toLowerCase()))
       && (!applied.year || s.premiered?.includes(applied.year))
       && (!applied.format || s.type?.toUpperCase().replaceAll(" ", "_") === applied.format)
-      && !applied.tag && !applied.status && !applied.demographic && !applied.ageRating;
+      && !applied.tag && !applied.status && !applied.demographic && !applied.ageRating && !applied.season && !applied.origin;
   });
   const set = (key: keyof Filters, value: string) => setDraft((prev) => ({ ...prev, [key]: value }));
   const field = (label: string, key: keyof Filters, options: [string, string][]) =>
     <FilterPicker label={label} value={draft[key]} options={options} onChange={(v) => set(key, v)} />;
   return (
     <main className="mx-auto max-w-[1600px] px-4 pb-24 pt-36 sm:px-6 md:px-8 md:pt-28">
-      <h1 className="mb-5 border-l-4 border-primary pl-3 text-2xl font-extrabold sm:text-3xl">Search Anime</h1>
-      <form onSubmit={(e) => { e.preventDefault(); setApplied({ ...draft }); }} className="space-y-5">
-        <label className="relative block">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-          <input aria-label="Search anime" placeholder="Type to search..." value={draft.q} onChange={(e) => set("q", e.target.value)} className="w-full rounded-md border border-border bg-card py-3.5 pl-12 pr-4 text-base outline-none focus:border-primary" />
-        </label>
-        <div className="grid grid-cols-2 gap-4">
-          {field("Genres", "genre", genreOptions)}
-          {field("Tags", "tag", tagOptions)}
-          {field("Year", "year", years.map((y) => [y, y]))}
-          {field("Status", "status", statuses as [string, string][])}
-          {field("Format", "format", formats as [string, string][])}
-          {field("Demographics", "demographic", demographics)}
-          {field("Age rating", "ageRating", ageRatings)}
-          <div className="flex min-w-0 items-end gap-1 sm:gap-2">
-            <button type="submit" title="Apply filters" aria-label="Apply filters" className="flex h-[46px] min-w-0 flex-1 items-center justify-center gap-1 rounded-l-md border border-primary bg-primary/10 text-primary hover:bg-primary/20"><Filter size={18} /><span className="hidden sm:inline">Apply</span></button>
-            <button type="button" title="Reset filters" aria-label="Reset filters" onClick={() => { setDraft({ ...empty }); setApplied({ ...empty }); }} className="flex h-[46px] min-w-0 flex-1 items-center justify-center gap-1 border border-border bg-card hover:text-primary"><RotateCcw size={18} /><span className="hidden sm:inline">Reset</span></button>
-            <button type="button" title="More filters" aria-label="More filters" aria-expanded={expanded} onClick={() => setExpanded(!expanded)} className="flex h-[46px] min-w-0 flex-1 items-center justify-center rounded-r-md border border-border bg-card hover:text-primary"><ChevronDown size={18} className={expanded ? "rotate-180" : ""} /></button>
+      <div className="mb-5 flex items-center justify-between gap-3"><h1 className="border-l-4 border-primary pl-3 text-2xl font-extrabold sm:text-3xl">Search Anime</h1><span className="hidden text-xs font-semibold uppercase tracking-wider text-muted-foreground lg:inline">Explore the anime catalogue</span></div>
+      <form onSubmit={(e) => { e.preventDefault(); setApplied({ ...draft }); }} className="space-y-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+          <label className="relative block min-w-0 flex-1"><span className="mb-2 block text-sm font-semibold">Search</span><Search className="pointer-events-none absolute bottom-3.5 left-4 h-5 w-5 text-muted-foreground" /><input aria-label="Search anime" placeholder="Search by anime title or abbreviation…" value={draft.q} onChange={(e) => set("q", e.target.value)} className="w-full rounded-md border border-border bg-card py-3 pl-12 pr-4 text-sm outline-none focus:border-primary" /></label>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 lg:flex-[3]">
+            {field("Genres", "genre", genreOptions)}
+            {field("Year", "year", years.map((y) => [y, y]))}
+            {field("Tags", "tag", tagOptions)}
+            {field("Status", "status", statuses as [string, string][])}
+            {field("Format", "format", formats as [string, string][])}
+            {field("Age rating", "ageRating", ageRatings)}
           </div>
         </div>
-        {expanded && <p className="rounded-md border border-border bg-card p-3 text-sm text-muted-foreground">Choose a filter using the searchable dropdowns, then press Apply. Demographics and some genre categories are AniList tags; when multiple tag-based options are chosen, demographics take priority. AniList only provides an adult-content flag, not official age classifications. "Not marked adult" does not mean suitable for all ages.</p>}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <button type="submit" className="flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90"><Filter size={16} />Apply filters</button>
+          <button type="button" onClick={() => { setDraft({ ...empty }); setApplied({ ...empty }); }} className="flex items-center gap-2 rounded-md border border-border bg-card px-4 py-2.5 text-sm hover:text-primary"><RotateCcw size={16} />Reset</button>
+          <button type="button" onClick={() => setExpanded(!expanded)} aria-expanded={expanded} className="flex items-center gap-2 rounded-md border border-border bg-card px-4 py-2.5 text-sm hover:text-primary">More filters <ChevronDown size={16} className={expanded ? "rotate-180" : ""} /></button>
+        </div>
+        {expanded && <div className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-card/60 p-4 sm:grid-cols-4">{field("Demographics", "demographic", demographics)}{field("Season", "season", seasons)}{field("Origin", "origin", origins)}<p className="col-span-2 self-end text-xs text-muted-foreground sm:col-span-1">AniList age flags are not official age classifications.</p></div>}
       </form>
-      <div className="mt-9 border-t border-border pt-6">
-        <p className="mb-5 text-sm text-muted-foreground">{results.isLoading ? "Searching anime…" : results.isError ? "Search unavailable" : `${(results.data?.total ?? 0).toLocaleString()} anime results found`}</p>
-        {results.isError && <div role="alert" className="mb-5 text-sm text-destructive">{results.error.message} <button className="ml-2 underline" onClick={() => void results.refetch()}>Retry</button></div>}
-        {!!imported.length && <section className="mb-9"><h2 className="mb-4 text-lg font-bold">Streamly series</h2><div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">{imported.map((s) => <SeriesCard key={s.id} s={s} />)}</div></section>}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">{results.data?.media.map((a) => <AnimeCard key={a.id} a={a} />)}</div>
-        {!results.isLoading && !results.isError && !results.data?.media.length && !imported.length && <p className="py-12 text-center text-muted-foreground">No anime matched your filters. Try resetting them.</p>}
+      <div className="mt-7 flex flex-col gap-6 border-t border-border pt-5 lg:flex-row">
+        <aside className="hidden w-52 shrink-0 space-y-4 lg:block xl:w-60">
+          {([
+            ["Season", "season", seasons],
+            ["Format", "format", formats as [string, string][]],
+            ["Status", "status", statuses as [string, string][]],
+            ["Origin", "origin", origins],
+          ] as [string, keyof Filters, [string, string][]][]).map(([label, key, options]) => <fieldset key={key} className="overflow-hidden rounded-lg border border-border bg-card/70 p-3"><legend className="sr-only">{label}</legend><h2 className="mb-3 border-l-2 border-primary pl-2 text-sm font-bold">{label}</h2><div className="space-y-2">{options.map(([value, name]) => <label key={value} className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground hover:text-foreground"><input type="radio" name={key} checked={draft[key] === value} onChange={() => set(key, draft[key] === value ? "" : value)} className="accent-primary" />{name}</label>)}<button type="button" onClick={() => set(key, "")} className="text-xs text-primary underline">Any {label.toLowerCase()}</button></div></fieldset>)}
+          <button type="button" onClick={() => setApplied({ ...draft })} className="w-full rounded bg-primary py-2 text-sm font-bold text-primary-foreground">Apply sidebar filters</button>
+        </aside>
+        <div className="min-w-0 flex-1">
+          <p className="mb-5 text-sm text-muted-foreground">{results.isLoading ? "Searching anime…" : results.isError ? "Search unavailable" : `${(results.data?.total ?? 0).toLocaleString()} anime results found`}</p>
+          {results.isError && <div role="alert" className="mb-5 text-sm text-destructive">{results.error.message} <button className="ml-2 underline" onClick={() => void results.refetch()}>Retry</button></div>}
+          {!!imported.length && <section className="mb-8"><h2 className="mb-4 text-lg font-bold">Available on Streamly</h2><div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7">{imported.map((series) => <SeriesCard key={series.id} s={series} />)}</div></section>}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7">{results.data?.media.map((anime) => <AnimeCard key={anime.id} a={anime} />)}</div>
+          {!results.isLoading && !results.isError && !results.data?.media.length && !imported.length && <p className="py-12 text-center text-muted-foreground">No anime matched your filters. Try resetting them.</p>}
+        </div>
       </div>
     </main>
   );
