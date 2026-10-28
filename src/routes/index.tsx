@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Play, Info, Star, ChevronLeft, ChevronRight, LoaderCircle } from "lucide-react";
-import { animeCatalogQuery, type CatalogAnime } from "@/lib/anime-catalog";
+import { animeCatalogQuery, jojoCollectionQuery, type CatalogAnime } from "@/lib/anime-catalog";
 import { animeTitle } from "@/lib/kitsune";
 import { AnimeCard } from "@/components/AnimeCard";
 import { Button } from "@/components/ui/button";
@@ -153,6 +153,7 @@ function SectionTitle({ title, children }: { title: string; children?: React.Rea
 
 function Index() {
   const catalog = useQuery(animeCatalogQuery());
+  const jojo = useQuery(jojoCollectionQuery());
   const isLoading = catalog.isPending;
   const [i, setI] = useState(0);
   const featured = (catalog.data?.trending ?? []).slice(0, 8);
@@ -200,6 +201,7 @@ function Index() {
         <div className="min-w-0 space-y-8 sm:space-y-12">
           <ContinueWatchingShelf compact />
           <PersonalizedRecommendations />
+          <Grid title="JoJo’s Bizarre Adventure — All Parts" items={jojo.data ?? []} loading={jojo.isPending} />
           <Grid title="Currently Airing" items={latestEpisodes} loading={isLoading} filters />
           <Grid title="Trending Anime" items={catalog.data?.trending ?? []} loading={isLoading} />
           <Grid title="Popular Anime" items={popularAnime} loading={isLoading} filters />
