@@ -188,23 +188,26 @@ function WatchAnime() {
             <Button size="sm" variant="outline" onClick={() => { navigator.clipboard?.writeText(`Streamly playback report: ${title}, episode ${ep}, ${audio}. ${reportText}`); setReportSent(true); }} disabled={!reportText.trim()}>Copy report</Button>
             {reportSent && <span className="ml-2 text-xs text-muted-foreground">Report copied. Send it to the site administrator.</span>}
           </div>}
-          <div className="grid gap-5 border-b border-border/60 py-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
-            <div className="flex flex-col items-center justify-center text-center">
+          <div className="grid gap-5 border-b border-border/60 py-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-8">
+            <div className="flex min-w-0 flex-col items-center justify-center text-center">
               <p className="text-xs text-muted-foreground">You are Watching</p>
-              <p className="mt-1 text-sm font-bold">Episode {ep}</p>
-              <p className="mt-1 max-w-xs text-xs leading-4 text-muted-foreground">If the current server doesn't work please try other servers beside.</p>
+              <p className="mt-1 text-sm font-bold">Episode {ep}{episode?.title ? ` — ${episode.title}` : ""}</p>
+              <p className="mt-1 max-w-sm text-xs leading-5 text-muted-foreground">If the current server doesn't work, please try another available server.</p>
             </div>
-            <div className="space-y-2">
+            <div className="min-w-0 space-y-3">
               {(["sub", "dub"] as const).map((lang) => {
                 const available = (episode?.sources ?? []).filter((source) => source.audio === lang);
-                return <div key={lang} className="flex min-h-9 items-center gap-3">
-                  <span className="flex w-16 shrink-0 items-center gap-1.5 text-xs font-bold uppercase text-muted-foreground">{lang === "sub" ? <Captions className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}{lang}:</span>
-                  <div className="flex flex-wrap gap-2">
-                    {available.length ? available.map((source, i) => <button key={source.provider} type="button" onClick={() => go({ audio: lang, provider: source.provider })} className={`min-w-[72px] rounded-md border px-3 py-2 text-xs font-semibold transition-colors ${audio === lang && current?.provider === source.provider ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:border-primary hover:text-foreground"}`}>{providerLabel(source.provider) || `Server ${i + 1}`}</button>) : <span className="py-2 text-xs text-muted-foreground">No {lang.toUpperCase()} servers available</span>}
+                return <div key={lang} className="grid grid-cols-[54px_minmax(0,1fr)] items-start gap-3">
+                  <span className="flex h-8 items-center gap-1.5 text-xs font-bold uppercase text-muted-foreground">{lang === "sub" ? <Captions className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}{lang}:</span>
+                  <div className="flex min-w-0 flex-wrap gap-2">
+                    {available.length ? available.map((source, i) => <button key={source.provider} type="button" onClick={() => go({ audio: lang, provider: source.provider })} className={`min-w-[76px] rounded-md border px-3 py-2 text-xs font-semibold transition-colors ${audio === lang && current?.provider === source.provider ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:border-primary hover:text-foreground"}`}>{providerLabel(source.provider) || `Server ${i + 1}`}</button>) : <span className="py-2 text-xs text-muted-foreground">No {lang.toUpperCase()} servers available</span>}
                   </div>
                 </div>;
               })}
-              {(streams.data?.length ?? 0) > 1 && <div className="flex flex-wrap items-center gap-2 pt-1"><span className="text-xs text-muted-foreground">Stream:</span>{streams.data!.map((item, i) => <Button key={i} size="sm" variant={i === server ? "default" : "outline"} onClick={() => setServer(i)}>{item.label || `Stream ${i + 1}`}</Button>)}</div>}
+              {(streams.data?.length ?? 0) > 1 && <div className="grid grid-cols-[54px_minmax(0,1fr)] items-start gap-3 border-t border-border/40 pt-3">
+                <span className="flex h-8 items-center text-xs font-bold text-muted-foreground">Stream:</span>
+                <div className="flex min-w-0 flex-wrap gap-2">{streams.data!.map((item, i) => <Button key={i} size="sm" variant={i === server ? "default" : "outline"} onClick={() => setServer(i)} className="max-w-full truncate">{item.label || `Stream ${i + 1}`}</Button>)}</div>
+              </div>}
             </div>
           </div>
           <div className="mt-3 flex items-center gap-2">
