@@ -15,8 +15,8 @@ export const Route = createFileRoute("/browse")({
   component: Browse,
 });
 
-type Filters = { q: string; genre: string; tag: string; year: string; status: string; format: string; demographic: string };
-const empty: Filters = { q: "", genre: "", tag: "", year: "", status: "", format: "", demographic: "" };
+type Filters = { q: string; genre: string; tag: string; year: string; status: string; format: string; demographic: string; ageRating: string };
+const empty: Filters = { q: "", genre: "", tag: "", year: "", status: "", format: "", demographic: "", ageRating: "" };
 // AniList has a smaller genre taxonomy; other requested categories are AniList tags.
 const genreOptions: [string, string][] = [
   ["Action", "Action"], ["Adventure", "Adventure"], ["Boys Love", "Boys Love / Yaoi"],
@@ -32,6 +32,7 @@ const genreOptions: [string, string][] = [
   ["Psychological", "Suspense"], ["Thriller", "Thriller"],
 ];
 const anilistGenres = new Set(["Action", "Adventure", "Comedy", "Drama", "Fantasy", "Horror", "Mecha", "Music", "Mystery", "Sci-Fi", "Slice of Life", "Sports", "Supernatural", "Thriller", "Boys Love", "Girls Love", "Ecchi"]);
+const ageRatings: [string, string][] = [["general", "Not marked adult"], ["adult", "Adult content (18+)"]];
 const demographics: [string, string][] = [["Josei", "Josei"], ["Shoujo", "Shoujo"], ["Shounen", "Shounen"]];
 const tagOptions: [string, string][] = ["School", "Female Protagonist", "Male Protagonist", "Vampire", "Time Travel", "Revenge", "Super Power", "Military", "Space"].map((x) => [x, x]);
 const formats = [["TV", "TV"], ["TV_SHORT", "TV Short"], ["MOVIE", "Movie"], ["OVA", "OVA"], ["ONA", "ONA"], ["SPECIAL", "Special"], ["MUSIC", "Music"]];
@@ -77,16 +78,17 @@ async function fetchFilteredAnime(f: Filters): Promise<{ media: AnimeSummary[]; 
     genre: anilistGenres.has(f.genre) ? f.genre : undefined,
     // For tag-based categories, use the AniList tag filter. A demographic takes precedence.
     tag: f.demographic || (!anilistGenres.has(f.genre) ? f.genre : "") || f.tag || undefined,
+    adult: f.ageRating === "adult",
     year: f.year ? Number(f.year) : undefined, status: f.status || undefined, format: f.format || undefined,
   };
   const response = await fetch("https://graphql.anilist.co", {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({
-      query: `query ($search: String, $genre: String, $tag: String, $year: Int, $status: MediaStatus, $format: MediaFormat) {
+      query: `query ($search: String, $genre: String, $tag: String, $year: Int, $status: MediaStatus, $format: MediaFormat, $adult: Boolean) {
         Page(page: 1, perPage: 48) {
           pageInfo { total }
-          media(type: ANIME, search: $search, genre: $genre, tag: $tag, seasonYear: $year, status: $status, format: $format, isAdult: false, sort: POPULARITY_DESC) {
+          media(type: ANIME, search: $search, genre: $genre, tag: $tag, seasonYear: $year, status: $status, format: $format, isAdult: $adult, sort: POPULARITY_DESC) {
             id title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore
           }
         }
@@ -98,7 +100,7 @@ async function fetchFilteredAnime(f: Filters): Promise<{ media: AnimeSummary[]; 
   const json = await response.json();
   if (json.errors?.length) throw new Error("Unable to apply those filters.");
   const found: AnimeSummary[] = json.data?.Page?.media ?? [];
-  if (found.length || !f.q.trim() || f.q.trim().length < 5) {
+  if (found.length || !f.q.trim() || f.q.trim().length < 5 || f.ageRating === "adult") {
     return { media: found, total: json.data?.Page?.pageInfo?.total ?? 0 };
   }
   // Retry a word stem when AniList's exact search finds no titles.
@@ -131,7 +133,7 @@ function Browse() {
       && (!applied.genre || s.genres.some((g) => g.toLowerCase() === applied.genre.toLowerCase()))
       && (!applied.year || s.premiered?.includes(applied.year))
       && (!applied.format || s.type?.toUpperCase().replaceAll(" ", "_") === applied.format)
-      && !applied.tag && !applied.status && !applied.demographic;
+      && !applied.tag && !applied.status && !applied.demographic && !applied.ageRating;
   });
   const set = (key: keyof Filters, value: string) => setDraft((prev) => ({ ...prev, [key]: value }));
   const field = (label: string, key: keyof Filters, options: [string, string][]) =>
@@ -151,13 +153,14 @@ function Browse() {
           {field("Status", "status", statuses as [string, string][])}
           {field("Format", "format", formats as [string, string][])}
           {field("Demographics", "demographic", demographics)}
+          {field("Age rating", "ageRating", ageRatings)}
           <div className="flex min-w-0 items-end gap-1 sm:gap-2">
             <button type="submit" title="Apply filters" aria-label="Apply filters" className="flex h-[46px] min-w-0 flex-1 items-center justify-center gap-1 rounded-l-md border border-primary bg-primary/10 text-primary hover:bg-primary/20"><Filter size={18} /><span className="hidden sm:inline">Apply</span></button>
             <button type="button" title="Reset filters" aria-label="Reset filters" onClick={() => { setDraft({ ...empty }); setApplied({ ...empty }); }} className="flex h-[46px] min-w-0 flex-1 items-center justify-center gap-1 border border-border bg-card hover:text-primary"><RotateCcw size={18} /><span className="hidden sm:inline">Reset</span></button>
             <button type="button" title="More filters" aria-label="More filters" aria-expanded={expanded} onClick={() => setExpanded(!expanded)} className="flex h-[46px] min-w-0 flex-1 items-center justify-center rounded-r-md border border-border bg-card hover:text-primary"><ChevronDown size={18} className={expanded ? "rotate-180" : ""} /></button>
           </div>
         </div>
-        {expanded && <p className="rounded-md border border-border bg-card p-3 text-sm text-muted-foreground">Choose a filter using the searchable dropdowns, then press Apply. Demographics and some genre categories are AniList tags; when multiple tag-based options are chosen, demographics take priority. Adult-only titles are excluded from public results.</p>}
+        {expanded && <p className="rounded-md border border-border bg-card p-3 text-sm text-muted-foreground">Choose a filter using the searchable dropdowns, then press Apply. Demographics and some genre categories are AniList tags; when multiple tag-based options are chosen, demographics take priority. AniList only provides an adult-content flag, not official age classifications. "Not marked adult" does not mean suitable for all ages.</p>}
       </form>
       <div className="mt-9 border-t border-border pt-6">
         <p className="mb-5 text-sm text-muted-foreground">{results.isLoading ? "Searching anime…" : results.isError ? "Search unavailable" : `${(results.data?.total ?? 0).toLocaleString()} anime results found`}</p>
