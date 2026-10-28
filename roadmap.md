@@ -1,6 +1,7 @@
 # Streamly roadmap
 - [ ] Show live anime on the homepage without requiring an admin import
 - [ ] Restore account creation for the requested administrator — deferred until the homepage is fixed
+- [ ] Add username/password signup with optional email, ordinary non-admin accounts, and authenticator setup — awaiting recovery-method clarification
 - [ ] Apply uploaded anime search, season, filter, rating, language and comment requests — deferred until the homepage is fixed
 - [ ] Plan staged AniList metadata and episode importing, preserving manual content
 - [ ] Add automatic import controls, statistics and visible errors
