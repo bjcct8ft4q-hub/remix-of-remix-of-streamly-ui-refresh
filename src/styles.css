@@ -393,3 +393,61 @@ html.streamly-screen-glitch header {
   html.streamly-screen-glitch body > #root,
   html.streamly-screen-glitch body > #app { animation: none !important; filter: none !important; }
 }
+
+/* Reference-inspired black-screen RGB signal breakup: thin neon pixel fragments. */
+.streamly-glitch-overlay {
+  background: #020205;
+  animation: streamly-rgb-blackout 900ms steps(1,end) both;
+}
+.streamly-glitch-noise {
+  inset: -10%;
+  opacity: .95;
+  mix-blend-mode: screen;
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 2px, rgba(255,255,255,.6) 2px 3px, transparent 3px 7px),
+    repeating-linear-gradient(90deg, transparent 0 19px, rgba(255,0,90,.8) 19px 22px, rgba(0,255,255,.8) 22px 24px, transparent 24px 53px),
+    repeating-linear-gradient(90deg, rgba(0,255,120,.5) 0 2px, transparent 2px 37px, rgba(255,255,0,.5) 37px 39px, transparent 39px 79px);
+  background-size: 41px 17px, 173px 59px, 127px 41px;
+  animation: streamly-rgb-noise 90ms steps(3,end) infinite;
+}
+.streamly-glitch-scanlines {
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,.85) 0 3px, transparent 3px 4px, rgba(0,0,0,.5) 4px 8px);
+}
+.streamly-glitch-tear {
+  height: 4%;
+  background: repeating-linear-gradient(90deg,
+    transparent 0 8px, #ff005a 8px 14px, #00faff 14px 18px,
+    #f5ff00 18px 21px, transparent 21px 36px, #28ff72 36px 39px, transparent 39px 60px);
+  box-shadow: 0 2px 0 rgba(255,255,255,.4), 0 -2px 0 rgba(0,255,255,.45);
+  filter: none;
+}
+.streamly-glitch-blocks {
+  background:
+    repeating-linear-gradient(90deg, transparent 0 6px, #00faff 6px 10px, #ff005e 10px 13px, transparent 13px 26px) 0 14% / 100% 4px no-repeat,
+    repeating-linear-gradient(90deg, #f5ff00 0 2px, transparent 2px 14px, #00ff73 14px 18px, transparent 18px 32px) 0 33% / 100% 2px no-repeat,
+    repeating-linear-gradient(90deg, transparent 0 13px, #ff005e 13px 19px, #00faff 19px 24px, transparent 24px 37px) 0 52% / 100% 7px no-repeat,
+    repeating-linear-gradient(90deg, transparent 0 7px, #8b5cff 7px 11px, #f5ff00 11px 14px, transparent 14px 40px) 0 73% / 100% 3px no-repeat,
+    repeating-linear-gradient(90deg, #00ff73 0 4px, transparent 4px 27px, #00faff 27px 31px, transparent 31px 46px) 0 89% / 100% 5px no-repeat;
+}
+.streamly-glitch-color {
+  background: repeating-linear-gradient(0deg, transparent 0 21px, rgba(255,0,90,.23) 21px 23px, rgba(0,255,255,.2) 23px 25px, transparent 25px 47px);
+}
+@keyframes streamly-rgb-blackout {
+  0% { opacity: 0; }
+  7% { opacity: .96; }
+  22% { opacity: .72; }
+  36% { opacity: 1; }
+  52% { opacity: .94; }
+  68% { opacity: 1; }
+  82% { opacity: .85; }
+  100% { opacity: 0; }
+}
+@keyframes streamly-rgb-noise {
+  0% { transform: translate(0,0) skewX(0); background-position: 0 0, 0 0, 0 0; }
+  25% { transform: translate(-19px,8px) skewX(3deg); background-position: 23px 5px, -49px 17px, 31px -9px; }
+  50% { transform: translate(14px,-14px) skewX(-5deg); background-position: -41px 19px, 37px -22px, -26px 12px; }
+  75% { transform: translate(-7px,4px) skewX(2deg); background-position: 11px -13px, -21px 34px, 49px 7px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .streamly-glitch-overlay { display: none; }
+}
