@@ -2,6 +2,7 @@
 - [ ] Show live anime on the homepage without requiring an admin import
 - [ ] Restore account creation for the requested administrator — deferred until the homepage is fixed
 - [ ] Add username/password signup with optional email, ordinary non-admin accounts, authenticator setup and one-use password recovery codes
+- [ ] Show recovery codes after signup with screenshot/save acknowledgement and forgotten-password recovery
 - [ ] Bundle MHA search results and provide season switching
 - [ ] Replace invented upcoming anime dates with live release information
 - [ ] Show age ratings in search and anime details
