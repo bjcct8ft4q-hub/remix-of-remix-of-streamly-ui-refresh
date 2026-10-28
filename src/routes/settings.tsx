@@ -96,7 +96,7 @@ async function searchAvatarAnime(term: string): Promise<{ title: string; mediaId
 export const Route = createFileRoute("/settings")({ component: Settings, head: () => ({ meta: [{ title: "Settings — Streamly" }] }) });
 function Settings() {
   const { preference, setPreference } = useAudioPreference();
-  const { user } = useAuth();
+  const { user, username } = useAuth();
   const queryClient = useQueryClient();
 
   const [bannerUrl, setBannerUrl] = useState(() => typeof user?.user_metadata?.profile_banner_url === "string" ? user.user_metadata.profile_banner_url : "");
@@ -230,10 +230,10 @@ function Settings() {
         <button type="button" onClick={() => { setSettingsTab("security"); document.getElementById("settings-section-security")?.scrollIntoView({ behavior: "smooth", block: "start" }); }} aria-current={settingsTab === "security" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition flex items-center gap-2.5 ${settingsTab === "security" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}><LockKeyhole className="h-4 w-4 shrink-0" aria-hidden="true" /><span>Security</span></button>
         <div className="streamly-settings-account-info mt-auto hidden border-t border-border/60 px-3 pt-5 text-[11px] text-muted-foreground md:block">
           <p className="mb-3 text-[10px] font-bold uppercase tracking-widest">Account info</p>
-          <p className="font-semibold">User ID</p>
-          <p className="mb-3 break-all text-[10px]">{user?.id ?? "Not signed in"}</p>
-          <p className="font-semibold">Email</p>
-          <p className="mb-3 break-all text-[10px]">{user?.email ?? "Not signed in"}</p>
+          <p className="font-semibold">Username</p>
+          <p className="mb-3 break-words text-[11px] text-foreground">{user ? (accountName || username || "Loading…") : "Not signed in"}</p>
+          <p className="font-semibold">Recovery email</p>
+          <p className="mb-3 break-words text-[11px]">{user ? (accountEmail || "Not set") : "Not signed in"}</p>
           <p className="font-semibold">Status</p>
           <p className="font-semibold text-foreground"><span className="mr-1 text-primary">●</span>{user ? user.email_confirmed_at ? "Verified" : "Unverified" : "Guest"}</p>
         </div>
