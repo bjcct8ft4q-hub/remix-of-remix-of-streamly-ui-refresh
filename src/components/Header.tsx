@@ -58,7 +58,7 @@ export function Header() {
               <MenuLink to="/" icon={Home} active={home} onClick={() => setMenuOpen(false)}>Home</MenuLink>
               <MenuLink to="/browse" icon={Search} active={pathname === "/browse"} onClick={() => setMenuOpen(false)}>Search</MenuLink>
               <MenuLink to="/browse" icon={Library} active={pathname === "/browse"} onClick={() => setMenuOpen(false)}>All series</MenuLink>
-              <div className="my-1 border-t border-border/40" />
+              <MenuLabel>More</MenuLabel>
               <Link to="/schedule" onClick={() => setMenuOpen(false)} className={`flex h-11 items-center gap-3 rounded px-3 text-sm hover:bg-primary/10 hover:text-primary ${pathname === "/schedule" ? "text-primary" : "text-muted-foreground"}`}><CalendarDays className="h-4 w-4" />Weekly Schedule</Link>
               <Link to="/news" onClick={() => setMenuOpen(false)} className={`flex h-11 items-center gap-3 rounded px-3 text-sm hover:bg-primary/10 hover:text-primary ${pathname === "/news" ? "text-primary" : "text-muted-foreground"}`}><Bell className="h-4 w-4" />News & Updates</Link>
               <Link to="/watch-together" onClick={() => setMenuOpen(false)} className={`flex h-11 items-center gap-3 rounded px-3 text-sm hover:bg-primary/10 hover:text-primary ${pathname.startsWith("/watch-together") ? "text-primary" : "text-muted-foreground"}`}><Users className="h-4 w-4" />Watch Together</Link>
