@@ -24,6 +24,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
   useEffect(() => {
     document.documentElement.classList.toggle("halloween", halloween);
+    const favicon = document.querySelector<HTMLLinkElement>('link[data-streamly-favicon]');
+    if (favicon) favicon.href = halloween ? "/favicon-halloween.svg" : "/favicon.svg";
   }, [halloween]);
   const toggleHalloween = () => {
     setHalloween((current) => {
