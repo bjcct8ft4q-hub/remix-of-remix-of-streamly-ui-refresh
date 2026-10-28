@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_credentials: {
+        Row: {
+          created_at: string
+          recovery_email: string | null
+          user_id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          recovery_email?: string | null
+          user_id: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          recovery_email?: string | null
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      account_rate_limits: {
+        Row: {
+          attempts: number
+          key: string
+          window_start: string
+        }
+        Insert: {
+          attempts?: number
+          key: string
+          window_start?: string
+        }
+        Update: {
+          attempts?: number
+          key?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
+      account_recovery_codes: {
+        Row: {
+          code_hash: string
+          created_at: string
+          id: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          id?: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          id?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       admin_bootstrap: {
         Row: {
           claimed: boolean
@@ -35,12 +98,43 @@ export type Database = {
         }
         Relationships: []
       }
+      anime_comments: {
+        Row: {
+          anilist_id: number
+          body: string
+          created_at: string
+          episode: number
+          id: string
+          spoiler: boolean
+          user_id: string
+        }
+        Insert: {
+          anilist_id: number
+          body: string
+          created_at?: string
+          episode: number
+          id?: string
+          spoiler?: boolean
+          user_id: string
+        }
+        Update: {
+          anilist_id?: number
+          body?: string
+          created_at?: string
+          episode?: number
+          id?: string
+          spoiler?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       comments: {
         Row: {
           body: string
           created_at: string
           episode_id: string
           id: string
+          spoiler: boolean
           user_id: string
         }
         Insert: {
@@ -48,6 +142,7 @@ export type Database = {
           created_at?: string
           episode_id: string
           id?: string
+          spoiler?: boolean
           user_id: string
         }
         Update: {
@@ -55,6 +150,7 @@ export type Database = {
           created_at?: string
           episode_id?: string
           id?: string
+          spoiler?: boolean
           user_id?: string
         }
         Relationships: [
@@ -256,16 +352,19 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          preferred_audio: string
           username: string | null
         }
         Insert: {
           created_at?: string
           id: string
+          preferred_audio?: string
           username?: string | null
         }
         Update: {
           created_at?: string
           id?: string
+          preferred_audio?: string
           username?: string | null
         }
         Relationships: []
@@ -431,7 +530,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_account_rate_limit: {
+        Args: { p_key: string; p_limit: number }
+        Returns: boolean
+      }
       claim_import_run: { Args: never; Returns: boolean }
+      consume_account_recovery_code: {
+        Args: { p_hash: string; p_user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
