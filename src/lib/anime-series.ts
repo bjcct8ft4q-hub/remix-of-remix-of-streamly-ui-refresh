@@ -1,11 +1,12 @@
 import type { AnimeSummary } from "@/lib/kitsune";
 
 export type SeasonEntry = AnimeSummary & { relations?: { edges: { relationType: string; node: AnimeSummary }[] } };
-const tv = (a: AnimeSummary) => a.format === "TV" || a.format === "TV_SHORT";
+const tv = (a: AnimeSummary) => a.format === "TV" || a.format === "TV_SHORT" || a.format === "ONA";
 const name = (a: AnimeSummary) => (a.title.english || a.title.romaji).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 const baseName = (a: AnimeSummary) => name(a)
   .replace(/(?:\s+|^)(?:season|series|part|cour)\s*(?:[0-9]+|ii|iii|iv|v|vi|vii|viii|ix|x)\b.*$/i, "")
   .replace(/\s+(?:2nd|3rd|4th|5th|6th|7th|8th|9th)\s+season\b.*$/i, "")
+  .replace(/\s+(?:ii|iii|iv|v|vi|vii|viii|ix|x|[2-9])$/i, "")
   .trim();
 
 /** Prefer explicit sequel links; use conservative numbered-season title matching when AniList omits links. */
