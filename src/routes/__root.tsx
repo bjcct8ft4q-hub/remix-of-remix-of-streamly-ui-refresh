@@ -179,34 +179,37 @@ function ThemeToggle() {
     document.documentElement.classList.remove("streamly-screen-glitch");
     if (audio.current) void audio.current.close();
   }, []);
-  const playStatic = () => {
+  // Two different glitch bursts, timed to the supplied reference:
+  // the first is longer and harsher; the return-to-blue burst is shorter.
+  const playStatic = (returningToBlue: boolean) => {
     try {
       const ctx = new AudioContext();
       audio.current = ctx;
-      const duration = 0.72;
+      const duration = returningToBlue ? 0.31 : 0.62;
       const length = Math.floor(ctx.sampleRate * duration);
       const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
       const samples = buffer.getChannelData(0);
       for (let i = 0; i < length; i++) {
         const t = i / ctx.sampleRate;
-        const gate = Math.sin(t * 93) > 0.05 ? 1 : 0.18;
-        samples[i] = (Math.random() * 2 - 1) * gate;
+        const stutter = Math.sin(t * (returningToBlue ? 115 : 85)) > 0.15 ? 1 : 0.12;
+        const crunch = Math.sin(t * 2150) * 0.14;
+        samples[i] = ((Math.random() * 2 - 1) + crunch) * stutter;
       }
       const source = ctx.createBufferSource();
       source.buffer = buffer;
       const filter = ctx.createBiquadFilter();
       filter.type = "bandpass";
-      filter.frequency.value = 1850;
-      filter.Q.value = 0.65;
+      filter.frequency.value = returningToBlue ? 2300 : 1650;
+      filter.Q.value = 0.8;
       const gain = ctx.createGain();
       gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.075, ctx.currentTime + 0.025);
-      gain.gain.setValueAtTime(0.055, ctx.currentTime + 0.38);
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.7);
+      gain.gain.linearRampToValueAtTime(0.075, ctx.currentTime + 0.018);
+      gain.gain.setValueAtTime(0.055, ctx.currentTime + duration * 0.7);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration - 0.01);
       source.connect(filter).connect(gain).connect(ctx.destination);
       source.start();
       source.onended = () => { if (audio.current === ctx) audio.current = null; void ctx.close(); };
-    } catch { /* Audio is optional if blocked by the browser. */ }
+    } catch { /* Browsers may block audio; the theme still switches. */ }
   };
   const changeTheme = () => {
     if (busy.current) return;
@@ -217,14 +220,14 @@ function ThemeToggle() {
     busy.current = true;
     document.documentElement.classList.add("streamly-screen-glitch");
     setGlitch(true);
-    playStatic();
-    timers.current.push(window.setTimeout(() => toggleHalloween(), 390));
+    playStatic(halloween);
+    timers.current.push(window.setTimeout(() => toggleHalloween(), halloween ? 190 : 390));
     timers.current.push(window.setTimeout(() => {
       setGlitch(false);
       document.documentElement.classList.remove("streamly-screen-glitch");
       busy.current = false;
       timers.current = [];
-    }, 900));
+    }, halloween ? 500 : 900));
   };
   return <>
     {glitch && <div className="streamly-glitch-overlay" aria-hidden="true"><div className="streamly-glitch-noise" /><div className="streamly-glitch-scanlines" /><div className="streamly-glitch-tear streamly-glitch-tear-one" /><div className="streamly-glitch-tear streamly-glitch-tear-two" /><div className="streamly-glitch-blocks" /><div className="streamly-glitch-color" /></div>}
