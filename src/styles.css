@@ -161,3 +161,62 @@ html { scrollbar-width: thin; scrollbar-color: var(--primary) var(--background);
 .halloween-theme-toggle:hover { opacity: 1; }
 .halloween-theme-toggle:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; border-radius: 6px; }
 @media (prefers-reduced-motion: reduce) { .halloween-theme-toggle { animation: none; } }
+
+
+/* Theme-aware sign-in and registration modal */
+.streamly-auth {
+  isolation: isolate;
+  background-color: var(--background);
+  background-image:
+    radial-gradient(circle at 92% 0%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 35%),
+    repeating-linear-gradient(115deg, transparent 0 36px, color-mix(in oklab, var(--foreground) 3%, transparent) 37px 38px),
+    radial-gradient(circle, color-mix(in oklab, var(--foreground) 8%, transparent) 1px, transparent 1.5px);
+  background-size: auto, auto, 18px 18px;
+}
+.streamly-auth-label {
+  display: block;
+  position: relative;
+  color: var(--muted-foreground);
+  font-size: .75rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.streamly-auth-tab {
+  position: relative;
+  padding: 0 0 13px;
+  color: var(--muted-foreground);
+  font-weight: 750;
+  transition: color .2s;
+}
+.streamly-auth-tab:hover, .streamly-auth-tab-active { color: var(--primary); }
+.streamly-auth-tab-active::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--primary);
+  box-shadow: 0 0 12px color-mix(in oklab, var(--primary) 50%, transparent);
+}
+.streamly-auth-eye {
+  position: absolute;
+  right: 12px;
+  bottom: 13px;
+  padding: 4px;
+  color: var(--muted-foreground);
+}
+.streamly-auth-eye:hover { color: var(--primary); }
+.streamly-auth-submit {
+  min-height: 52px;
+  border-radius: 3px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.streamly-auth-submit:hover { background: color-mix(in oklab, var(--primary) 86%, white); }
