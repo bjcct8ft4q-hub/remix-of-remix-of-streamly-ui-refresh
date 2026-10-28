@@ -72,7 +72,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Streamly — Watch the latest series" },
+      { title: "Streamly | Discover Anime" },
       { name: "description", content: "Stream the latest series episodes on Streamly." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
