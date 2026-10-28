@@ -102,19 +102,20 @@ async function fetchFilteredAnime(f: Filters): Promise<{ media: AnimeSummary[]; 
     return { media: found, total: json.data?.Page?.pageInfo?.total ?? 0 };
   }
   // Retry a word stem when AniList's exact search finds no titles.
-  const words = resolveAnimeSearch(f.q).split(/\s+/);
-  const longest = [...words].sort((a, b) => b.length - a.length)[0];
-  const stem = longest.slice(0, Math.max(3, longest.length - 2));
-  if (stem.length < 3) return { media: [], total: 0 };
-  const fallbackResponse = await fetch("https://graphql.anilist.co", {
-    method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ query: `query ($search: String) { Page(page: 1, perPage: 48) { media(type: ANIME, search: $search, isAdult: false, sort: SEARCH_MATCH) { id title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore } } }`, variables: { search: stem } }),
-  });
-  if (!fallbackResponse.ok) return { media: [], total: 0 };
-  const fallbackJson = await fallbackResponse.json();
-  const candidates: AnimeSummary[] = fallbackJson.data?.Page?.media ?? [];
-  const media = candidates.filter((anime) => matchesAnimeTitle(anime.title.english || "", f.q) || matchesAnimeTitle(anime.title.romaji, f.q));
-  return { media, total: media.length };
+  const words = resolveAnimeSearch(f.q).split(/\s+/).filter((word) => word.length >= 4);
+  const attempts = [...words].sort((a, b) => a.length - b.length).map((word) => word.slice(0, Math.max(3, word.length - 2)));
+  for (const stem of [...new Set(attempts)].slice(0, 3)) {
+    const fallbackResponse = await fetch("https://graphql.anilist.co", {
+      method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ query: `query ($search: String) { Page(page: 1, perPage: 48) { media(type: ANIME, search: $search, isAdult: false, sort: SEARCH_MATCH) { id title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore } } }`, variables: { search: stem } }),
+    });
+    if (!fallbackResponse.ok) continue;
+    const fallbackJson = await fallbackResponse.json();
+    const candidates: AnimeSummary[] = fallbackJson.data?.Page?.media ?? [];
+    const media = candidates.filter((anime) => matchesAnimeTitle(anime.title.english || "", f.q) || matchesAnimeTitle(anime.title.romaji, f.q));
+    if (media.length) return { media, total: media.length };
+  }
+  return { media: [], total: 0 };
 }
 
 function Browse() {
