@@ -74,3 +74,13 @@ html:not(.halloween) .streamly-settings-nav::after,html:not(.halloween) .streaml
  .streamly-settings-heading {display:none!important;}
 }
 .streamly-settings-content > section,.streamly-settings-content > div[id^="settings-section-"] {scroll-margin-top:16px;margin-bottom:60px!important;}
+
+/* Settings navigation visual refresh */
+.streamly-settings-nav {gap:10px!important;padding:26px 15px!important}
+.streamly-settings-nav:before {padding:0 13px 15px!important;letter-spacing:.17em!important}
+.streamly-settings-nav > button {display:flex!important;align-items:center!important;gap:13px!important;min-height:46px!important;width:100%!important;padding:12px 14px!important;border:1px solid transparent!important;border-radius:10px!important;text-align:left!important;font-size:13px!important;transition:background-color .2s,color .2s,border-color .2s!important}
+.streamly-settings-nav > button svg {width:17px;height:17px;flex-shrink:0}
+.streamly-settings-nav > button:hover {background:hsl(var(--primary)/.08)!important;border-color:hsl(var(--primary)/.15)!important}
+.streamly-settings-nav > button[aria-current="page"] {background:hsl(var(--primary)/.13)!important;color:hsl(var(--primary))!important;border-color:hsl(var(--primary)/.22)!important;box-shadow:inset 3px 0 0 hsl(var(--primary))!important}
+.streamly-settings-nav > button:focus-visible {outline:2px solid hsl(var(--primary));outline-offset:2px}
+@media(max-width:767px){.streamly-settings-nav{gap:5px!important;padding:12px!important}.streamly-settings-nav > button{min-height:42px!important;width:auto!important;flex-shrink:0}}
