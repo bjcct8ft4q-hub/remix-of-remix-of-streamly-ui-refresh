@@ -2,7 +2,7 @@ import { queryOptions } from "@tanstack/react-query";
 import type { AnimeSummary } from "@/lib/kitsune";
 import { groupAnimeSeasons } from "@/lib/anime-series";
 
-export type CatalogAnime = AnimeSummary & { description: string | null };
+export type CatalogAnime = AnimeSummary & { description: string | null; genres: string[] };
 export type AnimeCatalog = { trending: CatalogAnime[]; popular: CatalogAnime[]; airing: CatalogAnime[] };
 
 const fields = `id idMal isAdult title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore genres description(asHtml: false) relations { edges { relationType node { id format } } }`;
