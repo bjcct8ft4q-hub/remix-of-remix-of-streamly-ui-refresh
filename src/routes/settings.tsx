@@ -201,6 +201,15 @@ function Settings() {
         <button type="button" onClick={() => setSettingsTab("playback")} aria-current={settingsTab === "playback" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "playback" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Preferences</button>
         <button type="button" onClick={() => setSettingsTab("sync")} aria-current={settingsTab === "sync" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "sync" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Sync</button>
         <button type="button" onClick={() => setSettingsTab("security")} aria-current={settingsTab === "security" ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${settingsTab === "security" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Security</button>
+        <div className="streamly-settings-account-info mt-auto hidden border-t border-border/60 px-3 pt-5 text-[11px] text-muted-foreground md:block">
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest">Account info</p>
+          <p className="font-semibold">User ID</p>
+          <p className="mb-3 break-all text-[10px]">{user?.id ?? "Not signed in"}</p>
+          <p className="font-semibold">Email</p>
+          <p className="mb-3 break-all text-[10px]">{user?.email ?? "Not signed in"}</p>
+          <p className="font-semibold">Status</p>
+          <p className="font-semibold text-foreground"><span className="mr-1 text-primary">●</span>{user ? user.email_confirmed_at ? "Verified" : "Unverified" : "Guest"}</p>
+        </div>
       </nav>
       <div className="streamly-settings-content min-w-0">
         {settingsTab === "sync" && <section className="space-y-6"><div className="rounded-xl border border-border bg-card p-6"><h2 className="text-xl font-bold">AniList Sync</h2><p className="mt-3 text-sm text-muted-foreground">Streamly uses AniList for anime information. Connecting your personal AniList account and syncing watch progress is not available yet.</p><p className="mt-4 text-sm text-muted-foreground">Your Streamly watch history is not being sent to AniList.</p><button type="button" disabled className="mt-5 rounded-lg border border-border px-5 py-2 text-sm opacity-50">Connect — Coming soon</button></div><div className="rounded-xl border border-border bg-card p-6"><h2 className="text-lg font-bold">Data Management</h2><p className="mt-2 text-sm text-muted-foreground">Watchlist import and export are not available yet. These controls will appear when secure data transfer is implemented.</p></div></section>}
