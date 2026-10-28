@@ -66,6 +66,7 @@ export function matchesAnimeTitle(title: string, query: string): boolean {
   const words = name.split(" ");
   const maxErrors = term.length >= 7 ? 2 : term.length >= 4 ? 1 : 0;
   if (!maxErrors) return false;
-  return words.some((word) => Math.abs(word.length - term.length) <= maxErrors && editDistance(word, term) <= maxErrors)
+  const terms = term.split(" ");
+  return terms.every((part) => words.some((word) => word.includes(part) || (Math.abs(word.length - part.length) <= maxErrors && editDistance(word, part) <= maxErrors)))
     || (Math.abs(name.length - term.length) <= maxErrors && editDistance(name, term) <= maxErrors);
 }
