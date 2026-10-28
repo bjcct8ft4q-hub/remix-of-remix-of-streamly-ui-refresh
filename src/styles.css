@@ -250,5 +250,30 @@ html.streamly-theme-ready :where(header, nav, aside, main, footer, section, arti
 @media (prefers-reduced-motion: reduce) {
   html.streamly-theme-ready, html.streamly-theme-ready body,
   html.streamly-theme-ready :where(header, nav, aside, main, footer, section, article, button, a, input, textarea, [role="dialog"], [role="tab"]) { transition-duration: 0ms; }
-  .streamly-theme-wipe { display: none; }
+  .streamly-theme-wipe {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none;
+  opacity: 0;
+  transform-origin: 100% 100%;
+  background:
+    radial-gradient(circle at 95% 95%, var(--theme-sweep-glow) 0%, transparent 55%),
+    linear-gradient(115deg, transparent 20%, var(--theme-sweep-soft) 48%, transparent 76%);
+  animation: streamly-theme-sweep 900ms cubic-bezier(.22,1,.36,1) both;
 }
+.streamly-theme-wipe-halloween {
+  --theme-sweep-glow: rgba(255, 119, 0, .30);
+  --theme-sweep-soft: rgba(255, 119, 0, .12);
+}
+.streamly-theme-wipe-blue {
+  --theme-sweep-glow: rgba(0, 163, 255, .28);
+  --theme-sweep-soft: rgba(0, 163, 255, .12);
+}
+@keyframes streamly-theme-sweep {
+  0% { opacity: 0; clip-path: circle(0% at 96% 96%); }
+  30% { opacity: 1; }
+  75% { opacity: .8; clip-path: circle(145% at 96% 96%); }
+  100% { opacity: 0; clip-path: circle(145% at 96% 96%); }
+}
+
