@@ -14,10 +14,16 @@ const avatarShows = [
   { title: "Demon Slayer", mediaId: 101922 },
   { title: "Attack on Titan", mediaId: 16498 },
   { title: "One Piece", mediaId: 21 },
+  { title: "JoJo’s Bizarre Adventure", mediaId: 14719 },
+  { title: "Hellsing", mediaId: 270 },
+  { title: "Tokyo Ghoul", mediaId: 20605 },
+  { title: "Cyberpunk: Edgerunners", mediaId: 120377 },
+  { title: "Cyberpunk: Edgerunners 2", mediaId: 195539 },
 ];
 async function fetchCharacterAvatars(): Promise<AvatarCollection[]> {
   const query = `query ($id: Int) { Media(id: $id, type: ANIME) { characters(sort: [ROLE, RELEVANCE, ID], perPage: 12) { nodes { id name { full } image { large } } } } }`;
   const collections = await Promise.all(avatarShows.filter((show) => show.mediaId > 0).map(async (show) => {
+    try {
     const response = await fetch("https://graphql.anilist.co", {
       method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({ query, variables: { id: show.mediaId } }),
@@ -31,8 +37,9 @@ async function fetchCharacterAvatars(): Promise<AvatarCollection[]> {
         id: character.id, name: character.name.full, image: character.image.large,
       }));
     return { ...show, characters };
+    } catch { return { ...show, characters: [] as CharacterAvatar[] }; }
   }));
-  const extraNames = ["Aoi Todo", "Hiromi Higuruma", "Toji Fushiguro"];
+  const extraNames = ["Aoi Todo", "Hiromi Higuruma", "Toji Fushiguro", "Kokichi Muta"];
   const extras = await Promise.all(extraNames.map(async (characterName) => {
     try {
       const response = await fetch("https://graphql.anilist.co", {
@@ -66,7 +73,7 @@ function Settings() {
   const [avatarMessage, setAvatarMessage] = useState("");
   const [avatarSaving, setAvatarSaving] = useState(false);
   const [avatarChoice, setAvatarChoice] = useState<string | null>(null);
-  const { data: animeAvatars, isPending: avatarsLoading, isError: avatarsError, refetch: retryAvatars } = useQuery({ queryKey: ["anime-avatar-collections-v2"], queryFn: fetchCharacterAvatars, staleTime: 60 * 60 * 1000, retry: 1 });
+  const { data: animeAvatars, isPending: avatarsLoading, isError: avatarsError, refetch: retryAvatars } = useQuery({ queryKey: ["anime-avatar-collections-v3"], queryFn: fetchCharacterAvatars, staleTime: 60 * 60 * 1000, retry: 1 });
   const uploadAvatar = async (file?: File) => {
     if (!file || !user) return;
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) { setAvatarMessage("Choose a JPG, PNG or WebP image."); return; }
