@@ -12,6 +12,7 @@ import { mediaError, uploadMedia, withDeadline } from "@/lib/media";
 import { uploadEpisodeVideos, validateEpisodeVideos, type AudioVersion } from "@/lib/episode-video";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { StatusIncidentManager } from "@/components/StatusIncidentManager";
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
@@ -415,7 +416,7 @@ function Admin() {
   const qc = useQueryClient();
   const { data = [] } = useQuery({ ...seriesListQuery(), enabled: isAdmin });
   const [selected, setSelected] = useState<string | null>(null);
-  const [tab, setTab] = useState<"overview" | "analytics" | "reports" | "content">("overview");
+  const [tab, setTab] = useState<"overview" | "analytics" | "reports" | "content" | "status">("overview");
 
   if (loading) return <main className="pt-32 text-center text-muted-foreground">Loading...</main>;
   if (!user)
@@ -442,7 +443,7 @@ function Admin() {
         <Link to="/" className="rounded-lg border border-border px-4 py-2 text-sm font-semibold hover:border-primary">View website</Link>
       </div>
       <nav aria-label="Admin sections" className="mb-8 flex flex-wrap gap-2 border-b border-border pb-4">
-        {(["overview","analytics","reports","content"] as const).map((section)=><button key={section} type="button" aria-current={tab === section ? "page" : undefined} onClick={()=>setTab(section)} className={`rounded-lg px-4 py-2.5 text-sm font-bold capitalize transition ${tab === section ? "bg-primary text-primary-foreground" : "border border-border bg-card text-muted-foreground hover:text-foreground"}`}>{section === "content" ? "Content manager" : section}</button>)}
+        {(["overview","analytics","reports","content","status"] as const).map((section)=><Button key={section} type="button" variant={tab === section ? "default" : "outline"} aria-current={tab === section ? "page" : undefined} onClick={()=>setTab(section)} className="capitalize">{section === "content" ? "Content manager" : section === "status" ? "Status & incidents" : section}</Button>)}
       </nav>
       {tab === "overview" && <div className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-3">
@@ -457,6 +458,7 @@ function Admin() {
       </div>}
       {tab === "analytics" && <AnalyticsPanel />}
       {tab === "reports" && <ReportManager />}
+      {tab === "status" && <StatusIncidentManager />}
       {tab === "content" && <div className="space-y-8">
         <h2 className="text-2xl font-extrabold">Content manager</h2>
         <SeriesForm onDone={() => qc.invalidateQueries({ queryKey: ["series"] })} />

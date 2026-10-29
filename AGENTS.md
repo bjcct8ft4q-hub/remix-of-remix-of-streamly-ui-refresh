@@ -10,3 +10,5 @@
 <!-- LOVABLE:END -->
 
 - The homepage reads a cached AniList catalog and links to the live anime pages, independently of administrator-managed uploads, so an empty local catalog does not hide streaming anime.
+- Service health uses a fixed-target public GET endpoint with shared HTTP caching; checks never accept arbitrary URLs, and blocked probes remain unverified rather than claiming an outage.
+- Incident responses are stored in a public-readable table with administrator-only writes enforced by database role policies; browser visibility is not authorization.
