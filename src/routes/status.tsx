@@ -58,7 +58,7 @@ function StatusPage() {
     refetchInterval: STATUS_REFRESH_MS,
     retry: false,
   });
-  const rows = SERVICE_NAMES.map(name => { const live = checks.data?.find(service => service.name === name); const background = cloudflareMonitor.data?.services?.find(service => service.name === name); return live ?? background ?? { name, state: "unknown" as const, detail: checks.isError ? "Checks unavailable" : "Checking…", duration: null, checkedAt: "" }; });
+  const rows = SERVICE_NAMES.map(name => { const live = checks.data?.find(service => service.name === name); const background = cloudflareMonitor.data?.services?.find(service => service.name === name); return live ?? (name === "Cloudflare" ? { name, state: "unknown" as const, detail: "Live Cloudflare status unavailable; older background results are not used as current status.", duration: null, checkedAt: "" } : background) ?? { name, state: "unknown" as const, detail: checks.isError ? "Checks unavailable" : "Checking…", duration: null, checkedAt: "" }; });
   const active = incidents.data?.filter(i => i.status !== "resolved") ?? [];
   const cloudflareStartedAt = "2026-10-29T00:37:00Z";
   const cloudflareResolvedAt = cloudflareMonitor.data?.resolvedAt ?? "2026-10-29T08:28:00Z";
