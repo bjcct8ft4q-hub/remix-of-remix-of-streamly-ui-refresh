@@ -22,10 +22,7 @@ async function probe(name: string, url: string): Promise<ServiceCheck> {
     if (name === "Cloudflare" && !response.ok) {
       detail = `Official Cloudflare status unavailable (HTTP ${response.status}); outage not confirmed`;
     } else if (name === "Cloudflare" && response.ok) {
-      const data = await response.json() as { page?: { updated_at?: string }; status?: { indicator?: string; description?: string } };
-      const updatedAt = Date.parse(data.page?.updated_at ?? "");
-      const stale = !Number.isFinite(updatedAt) || Date.now() - updatedAt > 24 * 60 * 60 * 1000 || updatedAt > Date.now() + 5 * 60 * 1000;
-      if (stale) return { ...base, state: "unknown", detail: "Cloudflare API returned an outdated status; refusing to report a stale outage. Check the official Cloudflare status page.", duration: Date.now() - start };
+      const data = await response.json() as { status?: { indicator?: string; description?: string } };
       const indicator = data.status?.indicator;
       state = indicator === "none" ? "operational" : indicator === "critical" ? "outage" : indicator === "major" || indicator === "minor" ? "degraded" : "unknown";
       detail = indicator === "major" ? "Cloudflare reports a partial system outage affecting some services or regions; This does not mean all of Cloudflare is down." : indicator === "critical" ? "Cloudflare reports a critical system-wide disruption." : data.status?.description ?? "Official status unavailable";
