@@ -51,18 +51,19 @@ function StatusPage() {
   const rows = checks.data ?? SERVICE_NAMES.map(name => ({ name, state: "unknown" as const, detail: checks.isError ? "Checks unavailable" : "Checking…", duration: null, checkedAt: "" }));
   const active = incidents.data?.filter(i => i.status !== "resolved") ?? [];
   const cloudflare = checks.data?.find(check => check.name === "Cloudflare");
-  const cloudflareResolved = cloudflare?.state === "operational";
   const cloudflareStartedAt = "2026-10-29T00:37:00Z";
-  const [cloudflareResolvedAt, setCloudflareResolvedAt] = useState<string | null>(null);
-  useEffect(() => {
-    try { setCloudflareResolvedAt(localStorage.getItem("streamly-cloudflare-resolved-at")); } catch { /* Optional local history. */ }
-  }, []);
-  useEffect(() => {
-    if (!cloudflareResolved || !cloudflare?.checkedAt || cloudflareResolvedAt) return;
-    setCloudflareResolvedAt(cloudflare.checkedAt);
-    try { localStorage.setItem("streamly-cloudflare-resolved-at", cloudflare.checkedAt); } catch { /* Optional local history. */ }
-  }, [cloudflareResolved, cloudflare?.checkedAt, cloudflareResolvedAt]);
-  const isCloudflareIncidentResolved = Boolean(cloudflareResolvedAt) || cloudflareResolved;
+  const cloudflareMonitor = useQuery({
+    queryKey: ["streamly-cloudflare-background-monitor"],
+    queryFn: async () => {
+      const response = await fetch("https://qngywqkmrtehlwprtaao.supabase.co/functions/v1/streamly-cloudflare-monitor", { cache: "no-store" });
+      if (!response.ok) throw new Error("Background monitor unavailable");
+      return response.json() as Promise<{ resolvedAt: string | null; lastCheckedAt: string | null; indicator: string }>;
+    },
+    refetchInterval: STATUS_REFRESH_MS,
+    retry: false,
+  });
+  const cloudflareResolvedAt = cloudflareMonitor.data?.resolvedAt ?? null;
+  const isCloudflareIncidentResolved = Boolean(cloudflareResolvedAt);
   const recordedStats = incidentStats(incidents.data ?? []);
   const cloudflareMinutes = isCloudflareIncidentResolved && cloudflareResolvedAt
     ? Math.max(0, Math.round((Date.parse(cloudflareResolvedAt) - Date.parse(cloudflareStartedAt)) / 60000)) : 0;
@@ -124,7 +125,7 @@ function StatusPage() {
         </article>
         {incidents.data?.map(i => <article key={i.id} className="mt-4 rounded-xl border border-border bg-card p-5 shadow-sm"><div className="flex flex-wrap items-start justify-between gap-2"><h3 className="break-words font-bold">{i.title}</h3><span className={i.status === "resolved" ? "text-status-good" : "text-status-warning"}>{i.status}</span></div><p className="mt-2 text-xs text-muted-foreground">{i.service} · {new Date(i.started_at).toLocaleString()}{i.resolved_at ? ` · Resolved ${new Date(i.resolved_at).toLocaleString()}` : ""}</p><p className="mt-3 whitespace-pre-wrap break-words text-sm">{i.body}</p></article>)}
       </section>
-      <div className="mt-10 flex flex-col items-center gap-3 border-t border-border pt-6"><Button variant="outline" disabled={checks.isFetching || incidents.isFetching} onClick={() => { void checks.refetch(); void incidents.refetch(); }}><RefreshCw size={16} className={checks.isFetching ? "animate-spin motion-reduce:animate-none" : ""} />{checks.isFetching ? "Refreshing…" : "Refresh"}</Button><p className="text-xs text-muted-foreground">Refreshes every five minutes while this page is open.</p><p className="text-sm font-medium text-muted-foreground" role="timer">Refreshing in <span className="tabular-nums text-foreground">{String(Math.floor(secondsRemaining / 60)).padStart(2, "0")}:{String(secondsRemaining % 60).padStart(2, "0")}</span></p></div>
+      <div className="mt-10 flex flex-col items-center gap-3 border-t border-border pt-6"><Button variant="outline" disabled={checks.isFetching || incidents.isFetching} onClick={() => { void checks.refetch(); void incidents.refetch(); void cloudflareMonitor.refetch(); }}><RefreshCw size={16} className={checks.isFetching ? "animate-spin motion-reduce:animate-none" : ""} />{checks.isFetching ? "Refreshing…" : "Refresh"}</Button><p className="text-xs text-muted-foreground">Refreshes every five minutes while this page is open.</p><p className="text-sm font-medium text-muted-foreground" role="timer">Refreshing in <span className="tabular-nums text-foreground">{String(Math.floor(secondsRemaining / 60)).padStart(2, "0")}:{String(secondsRemaining % 60).padStart(2, "0")}</span></p></div>
     </div>
   </main>;
 }
