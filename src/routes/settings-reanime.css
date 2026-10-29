@@ -330,3 +330,16 @@ body:has(main.streamly-settings) [data-site-footer] {
   }
   .streamly-settings { padding-left:clamp(240px,19vw,320px)!important; }
 }
+
+/* Remove mismatched solid panels behind account/security section headings and forms. */
+.streamly-settings-content #settings-section-security,
+.streamly-settings-content #settings-section-security > div,
+.streamly-settings-content #settings-section-security > section,
+.streamly-settings-content #settings-section-security > form,
+.streamly-settings-content #settings-section-security > div > div {
+  background:transparent!important;
+  background-color:transparent!important;
+}
+.streamly-settings-content #settings-section-security input {
+  background-color:#090b0f!important;
+}
