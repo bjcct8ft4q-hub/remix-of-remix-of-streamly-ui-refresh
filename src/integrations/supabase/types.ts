@@ -98,6 +98,27 @@ export type Database = {
         }
         Relationships: []
       }
+      anime_age_ratings: {
+        Row: {
+          mal_id: number
+          rating: string | null
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          mal_id: number
+          rating?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          mal_id?: number
+          rating?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       anime_comments: {
         Row: {
           anilist_id: number
@@ -435,6 +456,42 @@ export type Database = {
           tmdb_id?: number | null
           total_episodes?: number | null
           type?: string | null
+        }
+        Relationships: []
+      }
+      status_incidents: {
+        Row: {
+          body: string
+          id: string
+          resolved_at: string | null
+          service: string
+          severity: string
+          started_at: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          id?: string
+          resolved_at?: string | null
+          service: string
+          severity?: string
+          started_at?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          id?: string
+          resolved_at?: string | null
+          service?: string
+          severity?: string
+          started_at?: string
+          status?: string
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }

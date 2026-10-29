@@ -1,4 +1,7 @@
 # Streamly roadmap
+- [ ] Repair preview and verify status page loads
+- [ ] Add live website, AniList, Cloudflare and video-provider status checks with five-minute refresh and a bottom Refresh button
+- [ ] Add admin incident publishing/editing, public incident history and incident statistics
 - [ ] Show live anime on the homepage without requiring an admin import
 - [ ] Restore account creation for the requested administrator — deferred until the homepage is fixed
 - [ ] Add username/password signup with optional email, ordinary non-admin accounts, authenticator setup and one-use password recovery codes
