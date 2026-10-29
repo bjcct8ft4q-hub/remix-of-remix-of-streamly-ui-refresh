@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Search, LogOut, Shield, UserRound, Menu, Home, Library, ChevronDown, X, Settings, CalendarDays, Users, Bell, History, Bookmark, AtSign, type LucideIcon } from "lucide-react";
+import { Search, LogOut, Shield, UserRound, Menu, Home, Library, ChevronDown, X, Settings, CalendarDays, Users, Bell, History, Bookmark, AtSign, Wrench, type LucideIcon } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useEffect, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -17,7 +17,7 @@ function MenuLabel({ children }: { children: ReactNode }) {
   return <div className="flex items-center gap-2 px-3 pb-2 pt-3 text-xs font-bold uppercase tracking-wider text-muted-foreground"><span className="h-3 w-0.5 bg-primary" />{children}<span className="flex-1 border-t border-dashed border-border" /></div>;
 }
 
-function MenuLink({ to, icon: Icon, active, onClick, children }: { to: "/" | "/browse" | "/admin" | "/my-list" | "/settings" | "/schedule" | "/news"; icon: LucideIcon; active: boolean; onClick: () => void; children: ReactNode }) {
+function MenuLink({ to, icon: Icon, active, onClick, children }: { to: "/" | "/browse" | "/admin" | "/my-list" | "/settings" | "/schedule" | "/news" | "/status"; icon: LucideIcon; active: boolean; onClick: () => void; children: ReactNode }) {
   return <Button asChild variant="ghost" className={`h-11 w-full justify-start gap-3 ${active ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}><Link to={to} onClick={onClick} aria-current={active ? "page" : undefined}><span className="flex h-6 w-6 items-center justify-center border border-border bg-muted/40"><Icon className="h-4 w-4" /></span>{children}</Link></Button>;
 }
 
@@ -68,6 +68,7 @@ export function Header() {
               <MenuLink to="/schedule" icon={CalendarDays} active={pathname === "/schedule"} onClick={() => setMenuOpen(false)}>Weekly Schedule</MenuLink>
               <MenuLink to="/news" icon={Bell} active={pathname === "/news"} onClick={() => setMenuOpen(false)}>News & Updates</MenuLink>
               <MenuLink to="/my-list" icon={Library} active={pathname === "/my-list"} onClick={() => setMenuOpen(false)}>My list</MenuLink>
+              <MenuLink to="/status" icon={Wrench} active={pathname === "/status"} onClick={() => setMenuOpen(false)}>Status</MenuLink>
               <MenuLink to="/settings" icon={Settings} active={pathname === "/settings"} onClick={() => setMenuOpen(false)}>Settings</MenuLink>
               {isAdmin && (
                 <>
