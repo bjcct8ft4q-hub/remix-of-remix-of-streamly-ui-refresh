@@ -12,12 +12,29 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as BrowseRouteImport } from './routes/browse'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as ContinueWatchingRouteImport } from './routes/continue-watching'
+import { Route as FriendsRouteImport } from './routes/friends'
 import { Route as MyListRouteImport } from './routes/my-list'
+import { Route as NewsRouteImport } from './routes/news'
+import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PublicProfileRouteImport } from './routes/public-profile'
+import { Route as ScheduleRouteImport } from './routes/schedule'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as StatusRouteImport } from './routes/status'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as WatchGoalsRouteImport } from './routes/watch-goals'
+import { Route as WatchlistRouteImport } from './routes/watchlist'
 import { Route as AnimeIdRouteImport } from './routes/anime.$id'
 import { Route as SeriesIdRouteImport } from './routes/series.$id'
 import { Route as WatchEpisodeIdRouteImport } from './routes/watch.$episodeId'
 import { Route as AnimeIdWatchRouteImport } from './routes/anime.$id_.watch'
+import { Route as ApiAccountDeleteRouteImport } from './routes/api/account/delete'
 import { Route as ApiPublicProxyRouteImport } from './routes/api/public/proxy'
+import { Route as ApiPublicAgeRatingIdRouteImport } from './routes/api/public/age-rating/$id'
+import { Route as ApiPublicJobsAgeRatingsRouteImport } from './routes/api/public/jobs/age-ratings'
 import { Route as ApiPublicJobsAnilistSyncRouteImport } from './routes/api/public/jobs/anilist-sync'
 import { Route as ApiPublicKitsuneSplatRouteImport } from './routes/api/public/kitsune/$'
 
@@ -36,9 +53,79 @@ const BrowseRoute = BrowseRouteImport.update({
   path: '/browse',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContinueWatchingRoute = ContinueWatchingRouteImport.update({
+  id: '/continue-watching',
+  path: '/continue-watching',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FriendsRoute = FriendsRouteImport.update({
+  id: '/friends',
+  path: '/friends',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MyListRoute = MyListRouteImport.update({
   id: '/my-list',
   path: '/my-list',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NewsRoute = NewsRouteImport.update({
+  id: '/news',
+  path: '/news',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PublicProfileRoute = PublicProfileRouteImport.update({
+  id: '/public-profile',
+  path: '/public-profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScheduleRoute = ScheduleRouteImport.update({
+  id: '/schedule',
+  path: '/schedule',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StatusRoute = StatusRouteImport.update({
+  id: '/status',
+  path: '/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WatchGoalsRoute = WatchGoalsRouteImport.update({
+  id: '/watch-goals',
+  path: '/watch-goals',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WatchlistRoute = WatchlistRouteImport.update({
+  id: '/watchlist',
+  path: '/watchlist',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AnimeIdRoute = AnimeIdRouteImport.update({
@@ -61,9 +148,24 @@ const AnimeIdWatchRoute = AnimeIdWatchRouteImport.update({
   path: '/anime/$id/watch',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAccountDeleteRoute = ApiAccountDeleteRouteImport.update({
+  id: '/api/account/delete',
+  path: '/api/account/delete',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicProxyRoute = ApiPublicProxyRouteImport.update({
   id: '/api/public/proxy',
   path: '/api/public/proxy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicAgeRatingIdRoute = ApiPublicAgeRatingIdRouteImport.update({
+  id: '/api/public/age-rating/$id',
+  path: '/api/public/age-rating/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicJobsAgeRatingsRoute = ApiPublicJobsAgeRatingsRouteImport.update({
+  id: '/api/public/jobs/age-ratings',
+  path: '/api/public/jobs/age-ratings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicJobsAnilistSyncRoute =
@@ -82,12 +184,29 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/browse': typeof BrowseRoute
+  '/contact': typeof ContactRoute
+  '/continue-watching': typeof ContinueWatchingRoute
+  '/friends': typeof FriendsRoute
   '/my-list': typeof MyListRoute
+  '/news': typeof NewsRoute
+  '/notifications': typeof NotificationsRoute
+  '/privacy': typeof PrivacyRoute
+  '/profile': typeof ProfileRoute
+  '/public-profile': typeof PublicProfileRoute
+  '/schedule': typeof ScheduleRoute
+  '/settings': typeof SettingsRoute
+  '/status': typeof StatusRoute
+  '/terms': typeof TermsRoute
+  '/watch-goals': typeof WatchGoalsRoute
+  '/watchlist': typeof WatchlistRoute
   '/anime/$id': typeof AnimeIdRoute
   '/series/$id': typeof SeriesIdRoute
   '/watch/$episodeId': typeof WatchEpisodeIdRoute
   '/anime/$id/watch': typeof AnimeIdWatchRoute
+  '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/public/proxy': typeof ApiPublicProxyRoute
+  '/api/public/age-rating/$id': typeof ApiPublicAgeRatingIdRoute
+  '/api/public/jobs/age-ratings': typeof ApiPublicJobsAgeRatingsRoute
   '/api/public/jobs/anilist-sync': typeof ApiPublicJobsAnilistSyncRoute
   '/api/public/kitsune/$': typeof ApiPublicKitsuneSplatRoute
 }
@@ -95,12 +214,29 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/browse': typeof BrowseRoute
+  '/contact': typeof ContactRoute
+  '/continue-watching': typeof ContinueWatchingRoute
+  '/friends': typeof FriendsRoute
   '/my-list': typeof MyListRoute
+  '/news': typeof NewsRoute
+  '/notifications': typeof NotificationsRoute
+  '/privacy': typeof PrivacyRoute
+  '/profile': typeof ProfileRoute
+  '/public-profile': typeof PublicProfileRoute
+  '/schedule': typeof ScheduleRoute
+  '/settings': typeof SettingsRoute
+  '/status': typeof StatusRoute
+  '/terms': typeof TermsRoute
+  '/watch-goals': typeof WatchGoalsRoute
+  '/watchlist': typeof WatchlistRoute
   '/anime/$id': typeof AnimeIdRoute
   '/series/$id': typeof SeriesIdRoute
   '/watch/$episodeId': typeof WatchEpisodeIdRoute
   '/anime/$id/watch': typeof AnimeIdWatchRoute
+  '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/public/proxy': typeof ApiPublicProxyRoute
+  '/api/public/age-rating/$id': typeof ApiPublicAgeRatingIdRoute
+  '/api/public/jobs/age-ratings': typeof ApiPublicJobsAgeRatingsRoute
   '/api/public/jobs/anilist-sync': typeof ApiPublicJobsAnilistSyncRoute
   '/api/public/kitsune/$': typeof ApiPublicKitsuneSplatRoute
 }
@@ -109,12 +245,29 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/browse': typeof BrowseRoute
+  '/contact': typeof ContactRoute
+  '/continue-watching': typeof ContinueWatchingRoute
+  '/friends': typeof FriendsRoute
   '/my-list': typeof MyListRoute
+  '/news': typeof NewsRoute
+  '/notifications': typeof NotificationsRoute
+  '/privacy': typeof PrivacyRoute
+  '/profile': typeof ProfileRoute
+  '/public-profile': typeof PublicProfileRoute
+  '/schedule': typeof ScheduleRoute
+  '/settings': typeof SettingsRoute
+  '/status': typeof StatusRoute
+  '/terms': typeof TermsRoute
+  '/watch-goals': typeof WatchGoalsRoute
+  '/watchlist': typeof WatchlistRoute
   '/anime/$id': typeof AnimeIdRoute
   '/series/$id': typeof SeriesIdRoute
   '/watch/$episodeId': typeof WatchEpisodeIdRoute
   '/anime/$id_/watch': typeof AnimeIdWatchRoute
+  '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/public/proxy': typeof ApiPublicProxyRoute
+  '/api/public/age-rating/$id': typeof ApiPublicAgeRatingIdRoute
+  '/api/public/jobs/age-ratings': typeof ApiPublicJobsAgeRatingsRoute
   '/api/public/jobs/anilist-sync': typeof ApiPublicJobsAnilistSyncRoute
   '/api/public/kitsune/$': typeof ApiPublicKitsuneSplatRoute
 }
@@ -124,12 +277,29 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/browse'
+    | '/contact'
+    | '/continue-watching'
+    | '/friends'
     | '/my-list'
+    | '/news'
+    | '/notifications'
+    | '/privacy'
+    | '/profile'
+    | '/public-profile'
+    | '/schedule'
+    | '/settings'
+    | '/status'
+    | '/terms'
+    | '/watch-goals'
+    | '/watchlist'
     | '/anime/$id'
     | '/series/$id'
     | '/watch/$episodeId'
     | '/anime/$id/watch'
+    | '/api/account/delete'
     | '/api/public/proxy'
+    | '/api/public/age-rating/$id'
+    | '/api/public/jobs/age-ratings'
     | '/api/public/jobs/anilist-sync'
     | '/api/public/kitsune/$'
   fileRoutesByTo: FileRoutesByTo
@@ -137,12 +307,29 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/browse'
+    | '/contact'
+    | '/continue-watching'
+    | '/friends'
     | '/my-list'
+    | '/news'
+    | '/notifications'
+    | '/privacy'
+    | '/profile'
+    | '/public-profile'
+    | '/schedule'
+    | '/settings'
+    | '/status'
+    | '/terms'
+    | '/watch-goals'
+    | '/watchlist'
     | '/anime/$id'
     | '/series/$id'
     | '/watch/$episodeId'
     | '/anime/$id/watch'
+    | '/api/account/delete'
     | '/api/public/proxy'
+    | '/api/public/age-rating/$id'
+    | '/api/public/jobs/age-ratings'
     | '/api/public/jobs/anilist-sync'
     | '/api/public/kitsune/$'
   id:
@@ -150,12 +337,29 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/browse'
+    | '/contact'
+    | '/continue-watching'
+    | '/friends'
     | '/my-list'
+    | '/news'
+    | '/notifications'
+    | '/privacy'
+    | '/profile'
+    | '/public-profile'
+    | '/schedule'
+    | '/settings'
+    | '/status'
+    | '/terms'
+    | '/watch-goals'
+    | '/watchlist'
     | '/anime/$id'
     | '/series/$id'
     | '/watch/$episodeId'
     | '/anime/$id_/watch'
+    | '/api/account/delete'
     | '/api/public/proxy'
+    | '/api/public/age-rating/$id'
+    | '/api/public/jobs/age-ratings'
     | '/api/public/jobs/anilist-sync'
     | '/api/public/kitsune/$'
   fileRoutesById: FileRoutesById
@@ -164,12 +368,29 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   BrowseRoute: typeof BrowseRoute
+  ContactRoute: typeof ContactRoute
+  ContinueWatchingRoute: typeof ContinueWatchingRoute
+  FriendsRoute: typeof FriendsRoute
   MyListRoute: typeof MyListRoute
+  NewsRoute: typeof NewsRoute
+  NotificationsRoute: typeof NotificationsRoute
+  PrivacyRoute: typeof PrivacyRoute
+  ProfileRoute: typeof ProfileRoute
+  PublicProfileRoute: typeof PublicProfileRoute
+  ScheduleRoute: typeof ScheduleRoute
+  SettingsRoute: typeof SettingsRoute
+  StatusRoute: typeof StatusRoute
+  TermsRoute: typeof TermsRoute
+  WatchGoalsRoute: typeof WatchGoalsRoute
+  WatchlistRoute: typeof WatchlistRoute
   AnimeIdRoute: typeof AnimeIdRoute
   SeriesIdRoute: typeof SeriesIdRoute
   WatchEpisodeIdRoute: typeof WatchEpisodeIdRoute
   AnimeIdWatchRoute: typeof AnimeIdWatchRoute
+  ApiAccountDeleteRoute: typeof ApiAccountDeleteRoute
   ApiPublicProxyRoute: typeof ApiPublicProxyRoute
+  ApiPublicAgeRatingIdRoute: typeof ApiPublicAgeRatingIdRoute
+  ApiPublicJobsAgeRatingsRoute: typeof ApiPublicJobsAgeRatingsRoute
   ApiPublicJobsAnilistSyncRoute: typeof ApiPublicJobsAnilistSyncRoute
   ApiPublicKitsuneSplatRoute: typeof ApiPublicKitsuneSplatRoute
 }
@@ -197,11 +418,109 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BrowseRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/continue-watching': {
+      id: '/continue-watching'
+      path: '/continue-watching'
+      fullPath: '/continue-watching'
+      preLoaderRoute: typeof ContinueWatchingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/friends': {
+      id: '/friends'
+      path: '/friends'
+      fullPath: '/friends'
+      preLoaderRoute: typeof FriendsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/my-list': {
       id: '/my-list'
       path: '/my-list'
       fullPath: '/my-list'
       preLoaderRoute: typeof MyListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/news': {
+      id: '/news'
+      path: '/news'
+      fullPath: '/news'
+      preLoaderRoute: typeof NewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/public-profile': {
+      id: '/public-profile'
+      path: '/public-profile'
+      fullPath: '/public-profile'
+      preLoaderRoute: typeof PublicProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/schedule': {
+      id: '/schedule'
+      path: '/schedule'
+      fullPath: '/schedule'
+      preLoaderRoute: typeof ScheduleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/status': {
+      id: '/status'
+      path: '/status'
+      fullPath: '/status'
+      preLoaderRoute: typeof StatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/watch-goals': {
+      id: '/watch-goals'
+      path: '/watch-goals'
+      fullPath: '/watch-goals'
+      preLoaderRoute: typeof WatchGoalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/watchlist': {
+      id: '/watchlist'
+      path: '/watchlist'
+      fullPath: '/watchlist'
+      preLoaderRoute: typeof WatchlistRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/anime/$id': {
@@ -232,11 +551,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AnimeIdWatchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/account/delete': {
+      id: '/api/account/delete'
+      path: '/api/account/delete'
+      fullPath: '/api/account/delete'
+      preLoaderRoute: typeof ApiAccountDeleteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/proxy': {
       id: '/api/public/proxy'
       path: '/api/public/proxy'
       fullPath: '/api/public/proxy'
       preLoaderRoute: typeof ApiPublicProxyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/age-rating/$id': {
+      id: '/api/public/age-rating/$id'
+      path: '/api/public/age-rating/$id'
+      fullPath: '/api/public/age-rating/$id'
+      preLoaderRoute: typeof ApiPublicAgeRatingIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/jobs/age-ratings': {
+      id: '/api/public/jobs/age-ratings'
+      path: '/api/public/jobs/age-ratings'
+      fullPath: '/api/public/jobs/age-ratings'
+      preLoaderRoute: typeof ApiPublicJobsAgeRatingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/jobs/anilist-sync': {
@@ -260,12 +600,29 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   BrowseRoute: BrowseRoute,
+  ContactRoute: ContactRoute,
+  ContinueWatchingRoute: ContinueWatchingRoute,
+  FriendsRoute: FriendsRoute,
   MyListRoute: MyListRoute,
+  NewsRoute: NewsRoute,
+  NotificationsRoute: NotificationsRoute,
+  PrivacyRoute: PrivacyRoute,
+  ProfileRoute: ProfileRoute,
+  PublicProfileRoute: PublicProfileRoute,
+  ScheduleRoute: ScheduleRoute,
+  SettingsRoute: SettingsRoute,
+  StatusRoute: StatusRoute,
+  TermsRoute: TermsRoute,
+  WatchGoalsRoute: WatchGoalsRoute,
+  WatchlistRoute: WatchlistRoute,
   AnimeIdRoute: AnimeIdRoute,
   SeriesIdRoute: SeriesIdRoute,
   WatchEpisodeIdRoute: WatchEpisodeIdRoute,
   AnimeIdWatchRoute: AnimeIdWatchRoute,
+  ApiAccountDeleteRoute: ApiAccountDeleteRoute,
   ApiPublicProxyRoute: ApiPublicProxyRoute,
+  ApiPublicAgeRatingIdRoute: ApiPublicAgeRatingIdRoute,
+  ApiPublicJobsAgeRatingsRoute: ApiPublicJobsAgeRatingsRoute,
   ApiPublicJobsAnilistSyncRoute: ApiPublicJobsAnilistSyncRoute,
   ApiPublicKitsuneSplatRoute: ApiPublicKitsuneSplatRoute,
 }

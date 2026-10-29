@@ -459,6 +459,42 @@ export type Database = {
         }
         Relationships: []
       }
+      status_incidents: {
+        Row: {
+          body: string
+          id: string
+          resolved_at: string | null
+          service: string
+          severity: string
+          started_at: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          id?: string
+          resolved_at?: string | null
+          service: string
+          severity?: string
+          started_at?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          id?: string
+          resolved_at?: string | null
+          service?: string
+          severity?: string
+          started_at?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
