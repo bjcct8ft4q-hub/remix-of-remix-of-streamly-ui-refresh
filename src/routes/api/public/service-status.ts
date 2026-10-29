@@ -22,7 +22,7 @@ async function probe(name: string, url: string): Promise<ServiceCheck> {
     } else if (name === "Cloudflare" && response.ok) {
       const data = await response.json() as { status?: { indicator?: string; description?: string } };
       const indicator = data.status?.indicator;
-      state = indicator === "none" ? "operational" : indicator === "major" || indicator === "critical" ? "degraded" : indicator === "minor" ? "degraded" : "unknown";
+      state = indicator === "none" ? "operational" : indicator === "major" || indicator === "critical" ? "outage" : indicator === "minor" ? "degraded" : "unknown";
       detail = indicator === "major" || indicator === "critical" ? `Cloudflare reports service disruption: ${data.status?.description ?? "See official status page"}` : data.status?.description ?? "Official status unavailable";
     } else if (name === "AniList" && response.ok) {
       const data = await response.json() as { data?: { Page?: { media?: unknown[] } }; errors?: unknown[] };
