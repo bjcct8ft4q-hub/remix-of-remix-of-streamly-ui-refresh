@@ -292,3 +292,26 @@ body:has(main.streamly-settings) [data-site-footer] {
  .streamly-settings-content{height:auto!important;max-height:none!important;overflow:visible!important;padding:18px 0 70px!important}
  .streamly-settings-content section .rounded-xl.border,.streamly-settings-content section .rounded-2xl.border{padding:15px!important}
 }
+
+/* Align the settings sidebar to the left viewport edge instead of the centred content column. */
+@media(min-width:768px){
+ .streamly-settings{
+   padding-left:clamp(250px,19vw,320px)!important;
+   padding-right:clamp(24px,3vw,52px)!important;
+ }
+ .streamly-settings-nav{
+   position:fixed!important;
+   left:clamp(16px,3vw,52px)!important;
+   top:64px!important;
+   bottom:0!important;
+   height:calc(100dvh - 64px)!important;
+   width:200px!important;
+   padding:22px 12px!important;
+   border-right:1px solid #20242b!important;
+ }
+ .streamly-settings-heading,.streamly-settings-grid{
+   margin-left:0!important;
+   margin-right:0!important;
+ }
+ .streamly-settings-content{max-width:790px!important}
+}
