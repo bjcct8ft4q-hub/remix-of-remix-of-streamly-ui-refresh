@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Activity, AlertCircle, CheckCircle2, Clock3, RefreshCw, Server } from "lucide-react";
+import { Activity, AlertCircle, CheckCircle2, Clock3, RefreshCw, Server, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { incidentsQuery, serviceStatusQuery } from "@/lib/status-queries";
 import { SERVICE_NAMES, STATUS_REFRESH_MS, incidentStats, type ServiceCheck, type ServiceState } from "@/lib/status-model";
@@ -59,7 +59,7 @@ function StatusPage() {
     <div className="mx-auto max-w-4xl">
       <header className="mb-10 text-center">
         <div className={`mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-border ${issues || active.length ? "text-status-warning" : "text-status-good"}`}>
-          {checks.isFetching ? <RefreshCw size={28} className="animate-spin motion-reduce:animate-none" /> : issues || active.length ? <AlertCircle size={30} /> : <CheckCircle2 size={30} />}
+          {checks.isFetching ? <RefreshCw size={28} className="animate-spin motion-reduce:animate-none" /> : issues || active.length ? <Info size={28} className="block shrink-0" strokeWidth={2.25} /> : <CheckCircle2 size={30} />}
         </div>
         <p className="mb-2 text-xs font-bold uppercase tracking-widest text-primary">Streamly service status</p>
         <h1 className="text-3xl font-extrabold sm:text-4xl">{headline}</h1>
