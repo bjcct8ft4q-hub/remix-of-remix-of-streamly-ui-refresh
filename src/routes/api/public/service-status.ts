@@ -2,12 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { httpState, type ServiceCheck } from "@/lib/status-model";
 
 const providers = [
-  ["Anikoto", "https://anikototv.to"], ["KickAssAnime", "https://kaa.lt"],
-  ["AniZone", "https://anizone.to"], ["ReAnime", "https://reanime.to"],
-  ["AniWaves", "https://aniwaves.ru"], ["AnimeGG", "https://www.animegg.org"],
-  ["AnimeNoSub", "https://animenosub.to"], ["AnimeOnsen", "https://www.animeonsen.xyz"],
-  ["AnimeDunya", "https://anime-dunya.com"], ["MKissa", "https://mkissa.to"],
-  ["Senshi", "https://senshi.to"], ["AniPM", "https://ani.pm"],
+  ["Anikoto", "https://anikototv.to"], ["ReAnime", "https://reanime.to"],
+  ["AniWaves", "https://aniwaves.ru"], ["MKissa", "https://mkissa.to"],
 ] as const;
 
 async function probe(name: string, url: string): Promise<ServiceCheck> {
@@ -19,13 +15,15 @@ async function probe(name: string, url: string): Promise<ServiceCheck> {
       signal: AbortSignal.timeout(8000),
       ...(name === "AniList" ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: "{ Page(page:1,perPage:1) { media(type:ANIME) { id } } }" }) } : {}),
     });
-    let state = httpState(response.status);
+    let state = name === "Cloudflare" ? "unknown" as const : httpState(response.status);
     let detail = state === "operational" ? "Site reachable; playback not tested" : state === "outage" ? `Service returned HTTP ${response.status}` : `Check blocked or unsupported (HTTP ${response.status}); outage unconfirmed`;
-    if (name === "Cloudflare" && response.ok) {
+    if (name === "Cloudflare" && !response.ok) {
+      detail = `Official Cloudflare status unavailable (HTTP ${response.status}); outage not confirmed`;
+    } else if (name === "Cloudflare" && response.ok) {
       const data = await response.json() as { status?: { indicator?: string; description?: string } };
       const indicator = data.status?.indicator;
-      state = indicator === "none" ? "operational" : indicator === "major" || indicator === "critical" ? "outage" : indicator === "minor" ? "degraded" : "unknown";
-      detail = data.status?.description ?? "Official status unavailable";
+      state = indicator === "none" ? "operational" : indicator === "major" || indicator === "critical" ? "degraded" : indicator === "minor" ? "degraded" : "unknown";
+      detail = indicator === "major" || indicator === "critical" ? `Cloudflare reports service disruption: ${data.status?.description ?? "See official status page"}` : data.status?.description ?? "Official status unavailable";
     } else if (name === "AniList" && response.ok) {
       const data = await response.json() as { data?: { Page?: { media?: unknown[] } }; errors?: unknown[] };
       state = data.data?.Page?.media?.length ? "operational" : "unknown";
