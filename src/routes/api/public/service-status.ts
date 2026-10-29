@@ -23,7 +23,7 @@ async function probe(name: string, url: string): Promise<ServiceCheck> {
       const data = await response.json() as { status?: { indicator?: string; description?: string } };
       const indicator = data.status?.indicator;
       state = indicator === "none" ? "operational" : indicator === "critical" ? "outage" : indicator === "major" || indicator === "minor" ? "degraded" : "unknown";
-      detail = indicator === "major" ? "Cloudflare reports a partial system outage affecting some services or regions; this does not mean all of Cloudflare is down." : indicator === "critical" ? "Cloudflare reports a critical system-wide disruption." : data.status?.description ?? "Official status unavailable";
+      detail = indicator === "major" ? "Cloudflare reports a partial system outage affecting some services or regions; This does not mean all of Cloudflare is down." : indicator === "critical" ? "Cloudflare reports a critical system-wide disruption." : data.status?.description ?? "Official status unavailable";
     } else if (name === "AniList" && response.ok) {
       const data = await response.json() as { data?: { Page?: { media?: unknown[] } }; errors?: unknown[] };
       state = data.data?.Page?.media?.length ? "operational" : "unknown";
