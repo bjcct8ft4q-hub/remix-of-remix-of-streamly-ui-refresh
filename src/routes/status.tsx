@@ -91,7 +91,15 @@ function StatusPage() {
       <section className="mt-10"><h2 className="text-2xl font-bold">Past incidents</h2>
         {incidents.isPending && <p className="mt-4 text-muted-foreground">Loading incidents…</p>}
         {incidents.isError && <p role="alert" className="mt-4 text-destructive">Incident history could not be loaded.</p>}
-        {incidents.data?.length === 0 && <p className="mt-4 border-y border-border py-6 text-muted-foreground">No published incident reports.</p>}
+        <article className="mt-4 border-b border-border py-5" aria-label="Cloudflare partial service disruption advisory">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <h3 className="break-words font-bold">Cloudflare partial service disruption</h3>
+            <span className="shrink-0 rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-yellow-500" aria-label="Risk severity: Medium">Medium</span>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">Cloudflare · Streamly advisory reported <time dateTime="2026-10-29T00:37:00Z">{new Date("2026-10-29T00:37:00Z").toLocaleString("en-GB", { dateStyle: "long", timeStyle: "short", timeZone: "Europe/London" })} (UK time)</time></p>
+          <p className="mt-3 whitespace-pre-wrap break-words text-sm">Some parts of Cloudflare have experienced partial system outages affecting certain services and regions. This does not mean Cloudflare is completely down, and many of its services may still be available to use.</p>
+          <p className="mt-2 text-xs text-muted-foreground">This is a historical advisory, not a live outage confirmation. Check the current Cloudflare service status above for updates.</p>
+        </article>
         {incidents.data?.map(i => <article key={i.id} className="border-b border-border py-5"><div className="flex flex-wrap items-start justify-between gap-2"><h3 className="break-words font-bold">{i.title}</h3><span className={i.status === "resolved" ? "text-status-good" : "text-status-warning"}>{i.status}</span></div><p className="mt-2 text-xs text-muted-foreground">{i.service} · {new Date(i.started_at).toLocaleString()}{i.resolved_at ? ` · Resolved ${new Date(i.resolved_at).toLocaleString()}` : ""}</p><p className="mt-3 whitespace-pre-wrap break-words text-sm">{i.body}</p></article>)}
       </section>
       <div className="mt-10 flex flex-col items-center gap-3 border-t border-border pt-6"><Button variant="outline" disabled={checks.isFetching || incidents.isFetching} onClick={() => { void checks.refetch(); void incidents.refetch(); }}><RefreshCw size={16} className={checks.isFetching ? "animate-spin motion-reduce:animate-none" : ""} />{checks.isFetching ? "Refreshing…" : "Refresh"}</Button><p className="text-xs text-muted-foreground">Refreshes every five minutes while this page is open.</p><p className="text-sm font-medium text-muted-foreground" role="timer">Refreshing in <span className="tabular-nums text-foreground">{String(Math.floor(secondsRemaining / 60)).padStart(2, "0")}:{String(secondsRemaining % 60).padStart(2, "0")}</span></p></div>
