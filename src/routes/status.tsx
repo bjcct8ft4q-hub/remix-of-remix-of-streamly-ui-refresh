@@ -50,7 +50,10 @@ function StatusPage() {
   }, [checks.data]);
   const rows = checks.data ?? SERVICE_NAMES.map(name => ({ name, state: "unknown" as const, detail: checks.isError ? "Checks unavailable" : "Checking…", duration: null, checkedAt: "" }));
   const active = incidents.data?.filter(i => i.status !== "resolved") ?? [];
-  const stats = incidentStats(incidents.data ?? []);
+  // Include the published Cloudflare advisory displayed in Past incidents.
+  // It is currently active (medium severity) and has no resolution time.
+  const recordedStats = incidentStats(incidents.data ?? []);
+  const stats = { ...recordedStats, total: recordedStats.total + 1, active: recordedStats.active + 1 };
   const issues = rows.filter(row => row.state === "outage" || row.state === "degraded").length;
   const unknown = rows.filter(row => row.state === "unknown").length;
   const headline = checks.isPending ? "Checking services" : issues || active.length ? "Some services need attention" : unknown ? "Available services are responding" : "All services operational";
@@ -86,7 +89,7 @@ function StatusPage() {
         <p className="mt-4 text-xs leading-relaxed text-muted-foreground">Cloudflare uses its official status report. Video-source checks measure reachability, not video playback. Blocked or timed-out checks are unverified. Bars reflect this browser session, not continuous uptime.</p>
       </section>
       <section className="mt-8 grid grid-cols-2 gap-5 border-y border-border py-5 sm:grid-cols-4" aria-label="Incident statistics">
-        {[["Published incidents", stats.total], ["Active", stats.active], ["Resolved", stats.resolved], ["Resolved incident minutes", stats.minutes]].map(([label, value]) => <div key={label}><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 text-2xl font-bold">{incidents.isError ? "—" : value}</p></div>)}
+        {[["Published incidents", stats.total], ["Active", stats.active], ["Resolved", stats.resolved], ["Resolved incident minutes", stats.minutes]].map(([label, value]) => <div key={label}><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 text-2xl font-bold">{incidents.isError ? (label === "Published incidents" || label === "Active" ? 1 : 0) : value}</p></div>)}
       </section>
       <section className="mt-10"><h2 className="text-2xl font-bold">Past incidents</h2>
         {incidents.isPending && <p className="mt-4 text-muted-foreground">Loading incidents…</p>}
