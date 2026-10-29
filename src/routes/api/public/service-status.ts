@@ -22,8 +22,8 @@ async function probe(name: string, url: string): Promise<ServiceCheck> {
     } else if (name === "Cloudflare" && response.ok) {
       const data = await response.json() as { status?: { indicator?: string; description?: string } };
       const indicator = data.status?.indicator;
-      state = indicator === "none" ? "operational" : indicator === "major" || indicator === "critical" ? "outage" : indicator === "minor" ? "degraded" : "unknown";
-      detail = indicator === "major" || indicator === "critical" ? `Cloudflare reports service disruption: ${data.status?.description ?? "See official status page"}` : data.status?.description ?? "Official status unavailable";
+      state = indicator === "none" ? "operational" : indicator === "critical" ? "outage" : indicator === "major" || indicator === "minor" ? "degraded" : "unknown";
+      detail = indicator === "major" ? "Cloudflare reports a partial system outage affecting some services or regions; this does not mean all of Cloudflare is down." : indicator === "critical" ? "Cloudflare reports a critical system-wide disruption." : data.status?.description ?? "Official status unavailable";
     } else if (name === "AniList" && response.ok) {
       const data = await response.json() as { data?: { Page?: { media?: unknown[] } }; errors?: unknown[] };
       state = data.data?.Page?.media?.length ? "operational" : "unknown";
@@ -42,6 +42,6 @@ export const Route = createFileRoute("/api/public/service-status")({
       probe("Cloudflare", "https://www.cloudflarestatus.com/api/v2/summary.json"),
       ...providers.map(([name, url]) => probe(name, url)),
     ]);
-    return Response.json({ services }, { headers: { "Cache-Control": "public, max-age=300, s-maxage=300" } });
+    return Response.json({ services }, { headers: { "Cache-Control": "no-store, max-age=0" } });
   } } },
 });
