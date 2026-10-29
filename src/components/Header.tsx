@@ -50,7 +50,7 @@ export function Header() {
   }, [menuOpen]);
 
   return (
-    <header className="relative z-30 flex flex-wrap items-center gap-x-2 gap-y-2 bg-background px-3 py-3 sm:gap-x-3 sm:gap-y-3 sm:px-6">
+    <header className={`${pathname.startsWith("/settings") ? "sticky top-0" : "relative"} z-30 flex flex-wrap items-center gap-x-2 gap-y-2 bg-background px-3 py-3 sm:gap-x-3 sm:gap-y-3 sm:px-6`}> 
 
       <div className="relative shrink-0">
         <Button variant="ghost" size="icon" aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-expanded={menuOpen} onClick={() => setMenuOpen((o) => !o)} className="relative h-9 w-9 rounded-sm border border-transparent text-muted-foreground transition-all duration-200 hover:border-primary/30 hover:bg-primary/10 hover:text-primary data-[state=open]:bg-primary/10">
