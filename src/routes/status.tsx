@@ -48,10 +48,6 @@ function StatusPage() {
       return next;
     });
   }, [checks.data]);
-  const rows = cloudflareMonitor.data?.services?.length ? SERVICE_NAMES.map(name => cloudflareMonitor.data.services.find(service => service.name === name) ?? { name, state: "unknown" as const, detail: "Awaiting background check", duration: null, checkedAt: "" }) : (checks.data ?? SERVICE_NAMES.map(name => ({ name, state: "unknown" as const, detail: checks.isError ? "Checks unavailable" : "Checking…", duration: null, checkedAt: "" })));
-  const active = incidents.data?.filter(i => i.status !== "resolved") ?? [];
-  const cloudflare = checks.data?.find(check => check.name === "Cloudflare");
-  const cloudflareStartedAt = "2026-10-29T00:37:00Z";
   const cloudflareMonitor = useQuery({
     queryKey: ["streamly-cloudflare-background-monitor"],
     queryFn: async () => {
@@ -62,6 +58,9 @@ function StatusPage() {
     refetchInterval: STATUS_REFRESH_MS,
     retry: false,
   });
+  const rows = cloudflareMonitor.data?.services?.length ? SERVICE_NAMES.map(name => cloudflareMonitor.data.services.find(service => service.name === name) ?? { name, state: "unknown" as const, detail: "Awaiting background check", duration: null, checkedAt: "" }) : (checks.data ?? SERVICE_NAMES.map(name => ({ name, state: "unknown" as const, detail: checks.isError ? "Checks unavailable" : "Checking…", duration: null, checkedAt: "" })));
+  const active = incidents.data?.filter(i => i.status !== "resolved") ?? [];
+  const cloudflareStartedAt = "2026-10-29T00:37:00Z";
   const cloudflareResolvedAt = cloudflareMonitor.data?.resolvedAt ?? null;
   const isCloudflareIncidentResolved = Boolean(cloudflareResolvedAt);
   const recordedStats = incidentStats(incidents.data ?? []);
