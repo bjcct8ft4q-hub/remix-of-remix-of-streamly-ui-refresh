@@ -343,3 +343,23 @@ body:has(main.streamly-settings) [data-site-footer] {
 .streamly-settings-content #settings-section-security input {
   background-color:#090b0f!important;
 }
+
+/* Consistent card surfaces for account, password and deletion settings. */
+.streamly-settings-content #settings-section-security > section {
+  background:#0c0e12!important;
+  background-color:#0c0e12!important;
+  border:1px solid #252b35!important;
+  border-radius:14px!important;
+  padding:24px!important;
+  box-shadow:0 6px 24px rgba(0,0,0,.12);
+}
+.streamly-settings-content #settings-section-security > section:last-of-type {
+  border-color:rgba(239,68,68,.32)!important;
+}
+.streamly-settings-content #settings-section-security > section > h2 {
+  margin:0 0 8px!important;
+  background:transparent!important;
+}
+@media(max-width:767px){
+ .streamly-settings-content #settings-section-security > section{padding:16px!important}
+}
