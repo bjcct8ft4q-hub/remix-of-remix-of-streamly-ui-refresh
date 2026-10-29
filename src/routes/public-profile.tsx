@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Info, Link2, Check, UserRound, HeartPulse } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
@@ -8,7 +9,20 @@ import { AccountAvatar } from "@/components/AccountAvatar";
 import { Trophy, Film, Bookmark, CalendarDays, Settings, Users, Sparkles, Activity, ShieldCheck, Crown, Code2, Shield } from "lucide-react";
 export const Route = createFileRoute("/public-profile")({ component: PublicProfile, head: () => ({ meta: [{ title: "Public Profile | Streamly" }] }) });
 function PublicProfile() {
-  const { user, username, openAuth } = useAuth();
+  const { user, username } = useAuth();
+  const [guestSearch, setGuestSearch] = useState("");
+  const requestedUsername = typeof window === "undefined" ? "" : new URLSearchParams(window.location.search).get("username")?.trim() ?? "";
+  const publicLookup = useQuery({
+    queryKey: ["public-profile-lookup", requestedUsername],
+    enabled: !!requestedUsername,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("id, username").ilike("username", requestedUsername).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    retry: false,
+  });
+  const viewingOtherUser = !!requestedUsername && publicLookup.data?.id !== user?.id;
   const history = useQuery(historyQuery(user?.id));
   const watchlist = useQuery(watchlistQuery(user?.id));
   const watched = history.data?.length ?? 0;
@@ -62,7 +76,21 @@ function PublicProfile() {
   const [range, setRange] = useState<30 | 90 | 365>(30);
   const recent = activityDays.slice(-range);
   return <main className="min-h-screen bg-[#050505] pb-24 text-white">
-    {!user ? <div className="mx-auto max-w-4xl px-6 pt-20"><h1 className="text-3xl font-bold">Profile</h1><button onClick={() => openAuth("signin")} className="mt-5 rounded-md bg-primary px-5 py-2 font-semibold">Sign in</button></div> : <>
+    {(!user || viewingOtherUser) ? <div className="mx-auto max-w-4xl px-6 pt-28">
+      <h1 className="text-3xl font-extrabold">Public profiles</h1>
+      <p className="mt-2 text-sm text-gray-400">Find Streamly members without signing in. Private watchlists and account details stay hidden.</p>
+      <form className="mt-6 flex max-w-xl gap-2" onSubmit={(event) => { event.preventDefault(); const name = guestSearch.trim().replace(/^@/, ""); if (name) window.location.assign("/public-profile?username=" + encodeURIComponent(name)); }}>
+        <input aria-label="Search username" value={guestSearch} onChange={event => setGuestSearch(event.target.value)} placeholder="Search by username" className="min-w-0 flex-1 rounded-lg border border-white/20 bg-[#111] px-4 py-3 text-white" />
+        <button type="submit" className="rounded-lg bg-primary px-5 py-3 font-semibold text-black">Search</button>
+      </form>
+      {requestedUsername && <div className="mt-10 rounded-xl border border-white/10 bg-[#0c0e12] p-7">
+        {publicLookup.isLoading ? <p className="text-gray-400">Looking up profile…</p> : publicLookup.isError ? <p className="text-gray-400">Public profiles could not be loaded. Check public profile read permissions.</p> : !publicLookup.data ? <p className="text-gray-400">No public profile found for @{requestedUsername}.</p> : <>
+          <div className="flex items-center gap-4"><div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/15 text-2xl font-bold text-primary">{publicLookup.data.username.slice(0,1).toUpperCase()}</div><div><h2 className="text-2xl font-bold">{publicLookup.data.username}</h2><p className="text-sm text-gray-400">@{publicLookup.data.username}</p></div></div>
+          <p className="mt-6 text-sm text-gray-400">Private activity and watchlists are not displayed.</p>
+          <button type="button" onClick={() => { void navigator.clipboard.writeText(window.location.href); }} className="mt-4 inline-flex items-center gap-2 rounded-lg border border-white/20 px-3 py-2 text-sm"><Link2 size={14}/> Copy profile URL</button>
+        </>}
+      </div>}
+    </div> : <>
     {tab === "watchlist" ? <>
       <div className="relative h-[320px] w-full overflow-hidden bg-gradient-to-r from-[#11263a] via-[#121b2a] to-[#050505] sm:h-[420px] lg:h-[480px]">
         {banner && <img src={banner} alt="Profile banner" className="h-full w-full object-cover" />}
