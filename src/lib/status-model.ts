@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const STATUS_REFRESH_MS = 5 * 60 * 1000;
-export const SERVICE_NAMES = ["Streamly website", "AniList", "Cloudflare", "Anikoto", "KickAssAnime", "AniZone", "ReAnime", "AniWaves", "AnimeGG", "AnimeNoSub", "AnimeOnsen", "AnimeDunya", "MKissa", "Senshi", "AniPM"] as const;
+export const SERVICE_NAMES = ["Streamly website", "AniList", "Cloudflare", "Anikoto", "ReAnime", "AniWaves", "MKissa"] as const;
 export type ServiceState = "operational" | "degraded" | "outage" | "unknown";
 export type ServiceCheck = { name: string; state: ServiceState; detail: string; duration: number | null; checkedAt: string };
 export const incidentSchema = z.object({
