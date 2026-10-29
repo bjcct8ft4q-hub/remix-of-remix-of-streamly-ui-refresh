@@ -50,19 +50,38 @@ function StatusPage() {
   }, [checks.data]);
   const rows = checks.data ?? SERVICE_NAMES.map(name => ({ name, state: "unknown" as const, detail: checks.isError ? "Checks unavailable" : "Checking…", duration: null, checkedAt: "" }));
   const active = incidents.data?.filter(i => i.status !== "resolved") ?? [];
-  // Include the published Cloudflare advisory displayed in Past incidents.
-  // It is currently active (medium severity) and has no resolution time.
+  const cloudflare = checks.data?.find(check => check.name === "Cloudflare");
+  const cloudflareResolved = cloudflare?.state === "operational";
+  const cloudflareStartedAt = "2026-10-29T00:37:00Z";
+  const [cloudflareResolvedAt, setCloudflareResolvedAt] = useState<string | null>(null);
+  useEffect(() => {
+    try { setCloudflareResolvedAt(localStorage.getItem("streamly-cloudflare-resolved-at")); } catch { /* Optional local history. */ }
+  }, []);
+  useEffect(() => {
+    if (!cloudflareResolved || !cloudflare?.checkedAt || cloudflareResolvedAt) return;
+    setCloudflareResolvedAt(cloudflare.checkedAt);
+    try { localStorage.setItem("streamly-cloudflare-resolved-at", cloudflare.checkedAt); } catch { /* Optional local history. */ }
+  }, [cloudflareResolved, cloudflare?.checkedAt, cloudflareResolvedAt]);
+  const isCloudflareIncidentResolved = Boolean(cloudflareResolvedAt) || cloudflareResolved;
   const recordedStats = incidentStats(incidents.data ?? []);
-  const stats = { ...recordedStats, total: recordedStats.total + 1, active: recordedStats.active + 1 };
+  const cloudflareMinutes = isCloudflareIncidentResolved && cloudflareResolvedAt
+    ? Math.max(0, Math.round((Date.parse(cloudflareResolvedAt) - Date.parse(cloudflareStartedAt)) / 60000)) : 0;
+  const stats = {
+    ...recordedStats,
+    total: recordedStats.total + 1,
+    active: recordedStats.active + (isCloudflareIncidentResolved ? 0 : 1),
+    resolved: recordedStats.resolved + (isCloudflareIncidentResolved ? 1 : 0),
+    minutes: recordedStats.minutes + cloudflareMinutes,
+  };
   const issues = rows.filter(row => row.state === "outage" || row.state === "degraded").length;
   const unknown = rows.filter(row => row.state === "unknown").length;
-  const headline = checks.isPending ? "Checking services" : issues || active.length ? "Some services need attention" : unknown ? "Available services are responding" : "All services operational";
+  const headline = checks.isPending ? "Checking services" : issues || active.length || !isCloudflareIncidentResolved ? "Some services need attention" : unknown ? "Available services are responding" : "All services operational";
   const checkedAt = checks.data?.[0]?.checkedAt;
   return <main className="min-h-screen bg-background px-4 pb-24 pt-24 text-foreground sm:px-8">
     <div className="mx-auto max-w-4xl">
       <header className="mb-10 text-center">
-        <div className={`mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-border ${issues || active.length ? "text-status-warning" : "text-status-good"}`}>
-          {checks.isFetching ? <RefreshCw size={28} className="animate-spin motion-reduce:animate-none" /> : issues || active.length ? <Info size={28} className="block shrink-0" strokeWidth={2.25} /> : <CheckCircle2 size={30} />}
+        <div className={`mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-border ${issues || active.length || !isCloudflareIncidentResolved ? "text-status-warning" : "text-status-good"}`}>
+          {checks.isFetching ? <RefreshCw size={28} className="animate-spin motion-reduce:animate-none" /> : issues || active.length || !isCloudflareIncidentResolved ? <Info size={28} className="block shrink-0" strokeWidth={2.25} /> : <CheckCircle2 size={30} />}
         </div>
         <p className="mb-2 text-xs font-bold uppercase tracking-widest text-primary">Streamly service status</p>
         <h1 className="text-3xl font-extrabold sm:text-4xl">{headline}</h1>
@@ -89,7 +108,7 @@ function StatusPage() {
         <p className="mt-4 text-xs leading-relaxed text-muted-foreground">Cloudflare uses its official status report. Video-source checks measure reachability, not video playback. Blocked or timed-out checks are unverified. Bars reflect this browser session, not continuous uptime.</p>
       </section>
       <section className="mt-8 grid grid-cols-2 gap-5 border-y border-border py-5 sm:grid-cols-4" aria-label="Incident statistics">
-        {[["Published incidents", stats.total], ["Active", stats.active], ["Resolved", stats.resolved], ["Resolved incident minutes", stats.minutes]].map(([label, value]) => <div key={label}><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 text-2xl font-bold">{incidents.isError ? (label === "Published incidents" || label === "Active" ? 1 : 0) : value}</p></div>)}
+        {[["Published incidents", stats.total], ["Active", stats.active], ["Resolved", stats.resolved], ["Resolved incident minutes", stats.minutes]].map(([label, value]) => <div key={label}><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 text-2xl font-bold">{value}</p></div>)}
       </section>
       <section className="mt-10"><h2 className="text-2xl font-bold">Past incidents</h2>
         {incidents.isPending && <p className="mt-4 text-muted-foreground">Loading incidents…</p>}
@@ -97,9 +116,10 @@ function StatusPage() {
         <article className="mt-4 rounded-xl border border-border bg-card p-5 shadow-sm" aria-label="Cloudflare partial service disruption advisory">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <h3 className="break-words font-bold">Cloudflare partial service disruption</h3>
-            <span className="shrink-0 rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-yellow-500" aria-label="Risk severity: Medium">Medium</span>
+            <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide ${isCloudflareIncidentResolved ? "border-green-500/40 bg-green-500/10 text-green-500" : "border-yellow-500/40 bg-yellow-500/10 text-yellow-500"}`} aria-label={isCloudflareIncidentResolved ? "Incident resolved" : "Risk severity: Medium"}>{isCloudflareIncidentResolved ? "Resolved" : "Medium"}</span>
           </div>
           <p className="mt-2 text-xs text-muted-foreground">Cloudflare · Streamly advisory reported <time dateTime="2026-10-29T00:37:00Z">{new Date("2026-10-29T00:37:00Z").toLocaleString("en-GB", { dateStyle: "long", timeStyle: "short", timeZone: "Europe/London" })} (UK time)</time></p>
+          {isCloudflareIncidentResolved && cloudflareResolvedAt && <p className="mt-1 text-xs text-status-good">Resolved {new Date(cloudflareResolvedAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</p>}
           <p className="mt-3 whitespace-pre-wrap break-words text-sm">Some parts of Cloudflare have experienced partial system outages affecting certain services and regions. This does not mean Cloudflare is completely down, and many of its services may still be available to use.</p>
         </article>
         {incidents.data?.map(i => <article key={i.id} className="mt-4 rounded-xl border border-border bg-card p-5 shadow-sm"><div className="flex flex-wrap items-start justify-between gap-2"><h3 className="break-words font-bold">{i.title}</h3><span className={i.status === "resolved" ? "text-status-good" : "text-status-warning"}>{i.status}</span></div><p className="mt-2 text-xs text-muted-foreground">{i.service} · {new Date(i.started_at).toLocaleString()}{i.resolved_at ? ` · Resolved ${new Date(i.resolved_at).toLocaleString()}` : ""}</p><p className="mt-3 whitespace-pre-wrap break-words text-sm">{i.body}</p></article>)}
