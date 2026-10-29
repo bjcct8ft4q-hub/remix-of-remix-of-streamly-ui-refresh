@@ -16,13 +16,19 @@ function PublicProfile() {
   const banner = typeof user?.user_metadata?.profile_banner_url === "string" && user.user_metadata.profile_banner_url.startsWith("https://") ? user.user_metadata.profile_banner_url : "";
   const stats = [{ label: "Episodes watched", value: watched, icon: Film }, { label: "Anime explored", value: series, icon: Sparkles }, { label: "In my list", value: watchlist.data?.length ?? 0, icon: Bookmark }];
   const memberSince = user ? new Date(user.created_at) : new Date();
-  const role = typeof user?.app_metadata?.role === "string" ? user.app_metadata.role.toLowerCase() : "";
+  // Staff badges are sourced from trusted auth metadata, never a public username.
+  const roleValues = [user?.app_metadata?.role, ...(Array.isArray(user?.app_metadata?.roles) ? user.app_metadata.roles : [])]
+    .filter((value): value is string => typeof value === "string")
+    .map(value => value.toLowerCase());
   const roleBadges = [
     { role: "owner", label: "Owner", Icon: Crown, style: "text-amber-400 border-amber-400/40 bg-amber-400/10" },
     { role: "moderator", label: "Moderator", Icon: Shield, style: "text-emerald-400 border-emerald-400/40 bg-emerald-400/10" },
     { role: "developer", label: "Developer", Icon: Code2, style: "text-violet-400 border-violet-400/40 bg-violet-400/10" },
-  ].filter(badge => role === badge.role);
-  const badges = <div className="flex items-center gap-1.5" aria-label="Profile badges"><span title="Streamly member" className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-sky-400/40 bg-sky-400/10 text-sky-400"><ShieldCheck size={14}/></span>{roleBadges.map(({role:badgeRole,label,Icon,style})=><span key={badgeRole} title={label} aria-label={label} className={`inline-flex h-6 w-6 items-center justify-center rounded-full border ${style}`}><Icon size={14}/></span>)}</div>;
+  ].filter(badge => roleValues.includes(badge.role));
+  const badges = <div className="flex items-center gap-1.5" aria-label="Profile badges">
+    {roleBadges.map(({role:badgeRole,label,Icon,style})=><span key={badgeRole} title={label} aria-label={label} className={`inline-flex h-6 w-6 items-center justify-center rounded-full border ${style}`}><Icon size={14}/></span>)}
+    <span title="Verified" aria-label="Verified" className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-sky-400/40 bg-sky-400/10 text-sky-400"><ShieldCheck size={14}/></span>
+  </div>;
   const profileBio = typeof user?.user_metadata?.bio === "string" ? user.user_metadata.bio : "";
   const displayName = typeof user?.user_metadata?.display_name === "string" ? user.user_metadata.display_name : username;
   const activityDays = Array.from({ length: 364 }, (_, index) => {
