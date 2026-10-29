@@ -92,16 +92,15 @@ function PublicProfile() {
       </div>}
     </div> : <>
     {tab === "watchlist" ? <>
-      <div className="relative h-[320px] w-full overflow-hidden bg-gradient-to-r from-[#11263a] via-[#121b2a] to-[#050505] sm:h-[420px] lg:h-[480px]">
+      <div className="relative h-[240px] w-full overflow-hidden bg-gradient-to-r from-[#11263a] via-[#121b2a] to-[#050505] sm:h-[420px] lg:h-[480px]">
         {banner && <img src={banner} alt="Profile banner" className="h-full w-full object-cover" />}
         <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-black/25 to-black/10" />
       </div>
-      <div className="relative mx-auto -mt-12 w-full max-w-[920px] px-4 sm:-mt-20 sm:px-5">
-        <div className="grid min-w-0 grid-cols-1 gap-3 border-b border-white/10 pb-6 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-end sm:gap-6">
+      <div className="relative mx-auto -mt-10 w-full max-w-[920px] px-4 sm:-mt-20 sm:px-5">
+        <div className="grid min-w-0 grid-cols-1 gap-5 border-b border-white/10 pb-6 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-end sm:gap-6">
           <div className="relative z-10 w-fit shrink-0 rounded-full border-4 border-[#050505] bg-[#111] shadow-xl"><AccountAvatar size="lg" /></div>
-          <div className="min-w-0 w-full max-w-full pb-1">
-            <div className="flex min-w-0 flex-wrap items-center gap-2"><h1 className="min-w-0 max-w-full break-words text-xl font-extrabold sm:text-2xl">{displayName || username}</h1><div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">{badges}{profileActions}</div></div>
-            <p className="text-xs text-gray-400">@{username}</p>
+          <div className="min-w-0 w-full max-w-full pb-1 pt-3 sm:pt-0">
+            <div className="flex min-w-0 flex-col items-start gap-3"><h1 className="min-w-0 max-w-full break-words text-2xl font-extrabold sm:text-3xl">{displayName || username}</h1><p className="text-xs text-gray-400">@{username}</p><div className="flex w-full flex-wrap items-center gap-2">{badges}{profileActions}</div></div>
             {profileBio && <p className="mt-2 text-xs text-gray-200">{profileBio}</p>}
             <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-gray-400"><span className="flex items-center gap-1.5"><CalendarDays size={12}/> Joined {memberSince.toLocaleDateString("en-GB", {month:"long",year:"numeric"})}</span><span className="flex items-center gap-1.5"><Film size={12}/> {watched} episodes watched</span><span className="flex items-center gap-1.5"><Bookmark size={12}/> {watchlist.data?.length ?? 0} saved anime</span></p>
           </div>
