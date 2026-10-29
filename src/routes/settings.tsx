@@ -114,6 +114,7 @@ function Settings() {
   const fetchIdentity = useServerFn(getAccountIdentity);
   const updateIdentity = useServerFn(updateAccountIdentity);
   const [accountName, setAccountName] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [accountEmail, setAccountEmail] = useState("");
   const [identityStatus, setIdentityStatus] = useState("");
   const [identityBusy, setIdentityBusy] = useState(false);
@@ -123,6 +124,7 @@ function Settings() {
   const [passwordBusy, setPasswordBusy] = useState(false);
   useEffect(() => {
     if (!user) return;
+    setDisplayName(typeof user.user_metadata?.display_name === "string" ? user.user_metadata.display_name : "");
     let active = true;
     void fetchIdentity().then((value) => { if (active) { setAccountName(value.username); setAccountEmail(value.email); } }).catch(() => {});
     return () => { active = false; };
@@ -300,18 +302,23 @@ function Settings() {
         {true && <div id="settings-section-security" className="space-y-6"><h2 className="text-3xl font-bold">Security</h2>
           <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
             <h2 className="text-xl font-bold">Account details</h2>
-            <p className="mt-2 text-sm text-muted-foreground">Change your Streamly username or optional recovery email. Your username is what other people see and use to sign in.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Set a display name for the large white heading on your profile. Your unique username appears below it in smaller grey text and is used for account identification.</p>
             <form className="mt-5 space-y-4" onSubmit={async (event) => {
               event.preventDefault(); setIdentityStatus(""); setIdentityBusy(true);
               try {
                 const name = usernameSchema.parse(accountName);
+                const cleanDisplayName = displayName.trim();
+                if (cleanDisplayName.length > 40) throw new Error("Display name must be 40 characters or fewer.");
                 const saved = await updateIdentity({ data: { username: name, email: accountEmail.trim() } });
+                const displayResult = await supabase.auth.updateUser({ data: { display_name: cleanDisplayName || name } });
+                if (displayResult.error) throw displayResult.error;
                 setAccountName(saved.username); setAccountEmail(saved.email ?? "");
                 await queryClient.invalidateQueries({ queryKey: ["account-identity", user?.id] });
                 setIdentityStatus("Account details saved. Your new username is ready to use. Refresh if the header hasn't updated yet.");
               } catch (error) { setIdentityStatus(error instanceof Error ? error.message : "Couldn't save changes."); }
               finally { setIdentityBusy(false); }
             }}>
+              <label className="block text-sm font-semibold">Display name<input maxLength={40} value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="How your name appears on your profile" className="mt-2 block w-full rounded-lg border border-border bg-background p-3" /></label>
               <label className="block text-sm font-semibold">Username<input required minLength={3} maxLength={24} pattern="[a-zA-Z0-9_]+" autoComplete="username" value={accountName} onChange={(e) => setAccountName(e.target.value)} className="mt-2 block w-full rounded-lg border border-border bg-background p-3" /></label>
               <label className="block text-sm font-semibold">Recovery email (optional)<input type="email" autoComplete="email" value={accountEmail} onChange={(e) => setAccountEmail(e.target.value)} placeholder="you@example.com" className="mt-2 block w-full rounded-lg border border-border bg-background p-3" /></label>
               <p className="text-xs text-muted-foreground">Recovery email is optional. Streamly still uses your username to sign in. Changing these details doesn't require your old password, but you must be signed in.</p>
