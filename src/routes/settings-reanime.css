@@ -315,3 +315,18 @@ body:has(main.streamly-settings) [data-site-footer] {
  }
  .streamly-settings-content{max-width:790px!important}
 }
+
+/* Pin the settings rail flush against the left viewport edge on desktop. */
+@media (min-width:768px) {
+  .streamly-settings-nav {
+    left:0!important;
+    width:212px!important;
+    box-sizing:border-box!important;
+    padding-left:16px!important;
+    padding-right:12px!important;
+    border-left:0!important;
+    border-right:1px solid #20242b!important;
+    border-radius:0!important;
+  }
+  .streamly-settings { padding-left:clamp(240px,19vw,320px)!important; }
+}
