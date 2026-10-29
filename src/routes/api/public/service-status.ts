@@ -12,6 +12,7 @@ async function probe(name: string, url: string): Promise<ServiceCheck> {
   try {
     const response = await fetch(url, {
       method: name === "AniList" ? "POST" : name === "Cloudflare" ? "GET" : "HEAD",
+      cache: "no-store",
       signal: AbortSignal.timeout(8000),
       ...(name === "AniList" ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: "{ Page(page:1,perPage:1) { media(type:ANIME) { id } } }" }) } : {}),
     });
@@ -39,7 +40,7 @@ export const Route = createFileRoute("/api/public/service-status")({
   server: { handlers: { GET: async () => {
     const services = await Promise.all([
       probe("AniList", "https://graphql.anilist.co"),
-      probe("Cloudflare", "https://www.cloudflarestatus.com/api/v2/summary.json"),
+      probe("Cloudflare", "https://www.cloudflarestatus.com/api/v2/status.json"),
       ...providers.map(([name, url]) => probe(name, url)),
     ]);
     return Response.json({ services }, { headers: { "Cache-Control": "no-store, max-age=0" } });
