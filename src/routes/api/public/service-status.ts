@@ -10,6 +10,26 @@ async function probe(name: string, url: string): Promise<ServiceCheck> {
   const start = Date.now();
   const base = { name, checkedAt: new Date().toISOString() };
   try {
+    if (name === "Cloudflare") {
+      // The public status JSON endpoint has sometimes returned months-old snapshots.
+      // Prefer the official live overview, and never turn an undated API snapshot into a live outage.
+      try {
+        const overview = await fetch("https://www.cloudflarestatus.com/?streamly_check=" + Date.now(), {
+          cache: "no-store",
+          headers: { "Accept": "text/html", "User-Agent": "StreamlyStatusMonitor/1.0 (+https://streamlyio.vercel.app/status)" },
+          signal: AbortSignal.timeout(8000),
+        });
+        if (overview.ok) {
+          const html = await overview.text();
+          if (/No known service issues/i.test(html)) {
+            return { ...base, state: "operational", detail: "Cloudflare official overview: No known service issues", duration: Date.now() - start };
+          }
+          if (/Partial System Outage|Major Service Outage|Minor Service Outage/i.test(html)) {
+            return { ...base, state: "degraded", detail: "Cloudflare official overview reports a service issue", duration: Date.now() - start };
+          }
+        }
+      } catch { /* The official page may block automated requests; use the API with freshness validation. */ }
+    }
     const requestUrl = name === "Cloudflare" ? `${url}?_=${Date.now()}` : url;
     const response = await fetch(requestUrl, {
       method: name === "AniList" ? "POST" : name === "Cloudflare" ? "GET" : "HEAD",
@@ -23,6 +43,10 @@ async function probe(name: string, url: string): Promise<ServiceCheck> {
       detail = `Official Cloudflare status unavailable (HTTP ${response.status}); outage not confirmed`;
     } else if (name === "Cloudflare" && response.ok) {
       const data = await response.json() as { status?: { indicator?: string; description?: string } };
+      const sourceUpdatedAt = Date.parse((data as { page?: { updated_at?: string } }).page?.updated_at ?? "");
+      if (!Number.isFinite(sourceUpdatedAt) || Date.now() - sourceUpdatedAt > 60 * 60 * 1000) {
+        return { ...base, state: "unknown", detail: "Cloudflare API response is stale; current status could not be verified. See cloudflarestatus.com.", duration: Date.now() - start };
+      }
       const indicator = data.status?.indicator;
       state = indicator === "none" ? "operational" : indicator === "critical" ? "outage" : indicator === "major" || indicator === "minor" ? "degraded" : "unknown";
       detail = indicator === "major" ? "Cloudflare reports a partial system outage affecting some services or regions; This does not mean all of Cloudflare is down." : indicator === "critical" ? "Cloudflare reports a critical system-wide disruption." : data.status?.description ?? "Official status unavailable";
