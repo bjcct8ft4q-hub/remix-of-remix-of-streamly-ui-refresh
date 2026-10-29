@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Activity, AlertCircle, CheckCircle2, Clock3, RefreshCw, Server } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { incidentsQuery, serviceStatusQuery } from "@/lib/status-queries";
-import { SERVICE_NAMES, incidentStats, type ServiceCheck, type ServiceState } from "@/lib/status-model";
+import { SERVICE_NAMES, STATUS_REFRESH_MS, incidentStats, type ServiceCheck, type ServiceState } from "@/lib/status-model";
 
 export const Route = createFileRoute("/status")({
   component: StatusPage,
@@ -24,6 +24,15 @@ function StatusPage() {
   const checks = useQuery(serviceStatusQuery());
   const incidents = useQuery(incidentsQuery());
   const [history, setHistory] = useState<Record<string, ServiceCheck[]>>({});
+  const [secondsRemaining, setSecondsRemaining] = useState(Math.ceil(STATUS_REFRESH_MS / 1000));
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const elapsed = Date.now() - (checks.dataUpdatedAt || Date.now());
+      const remaining = Math.ceil((STATUS_REFRESH_MS - (elapsed % STATUS_REFRESH_MS)) / 1000);
+      setSecondsRemaining(Math.max(0, remaining));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [checks.dataUpdatedAt]);
   useEffect(() => {
     try { const value = JSON.parse(sessionStorage.getItem(storageKey) ?? "{}"); if (value && typeof value === "object" && !Array.isArray(value)) setHistory(value); } catch { /* History is optional. */ }
   }, []);
@@ -85,7 +94,7 @@ function StatusPage() {
         {incidents.data?.length === 0 && <p className="mt-4 border-y border-border py-6 text-muted-foreground">No published incident reports.</p>}
         {incidents.data?.map(i => <article key={i.id} className="border-b border-border py-5"><div className="flex flex-wrap items-start justify-between gap-2"><h3 className="break-words font-bold">{i.title}</h3><span className={i.status === "resolved" ? "text-status-good" : "text-status-warning"}>{i.status}</span></div><p className="mt-2 text-xs text-muted-foreground">{i.service} · {new Date(i.started_at).toLocaleString()}{i.resolved_at ? ` · Resolved ${new Date(i.resolved_at).toLocaleString()}` : ""}</p><p className="mt-3 whitespace-pre-wrap break-words text-sm">{i.body}</p></article>)}
       </section>
-      <div className="mt-10 flex flex-col items-center gap-3 border-t border-border pt-6"><Button variant="outline" disabled={checks.isFetching || incidents.isFetching} onClick={() => { void checks.refetch(); void incidents.refetch(); }}><RefreshCw size={16} className={checks.isFetching ? "animate-spin motion-reduce:animate-none" : ""} />{checks.isFetching ? "Refreshing…" : "Refresh"}</Button><p className="text-xs text-muted-foreground">Refreshes every five minutes while this page is open.</p></div>
+      <div className="mt-10 flex flex-col items-center gap-3 border-t border-border pt-6"><Button variant="outline" disabled={checks.isFetching || incidents.isFetching} onClick={() => { void checks.refetch(); void incidents.refetch(); }}><RefreshCw size={16} className={checks.isFetching ? "animate-spin motion-reduce:animate-none" : ""} />{checks.isFetching ? "Refreshing…" : "Refresh"}</Button><p className="text-xs text-muted-foreground">Refreshes every five minutes while this page is open.</p><p className="text-sm font-medium text-muted-foreground" role="timer">Refreshing in <span className="tabular-nums text-foreground">{String(Math.floor(secondsRemaining / 60)).padStart(2, "0")}:{String(secondsRemaining % 60).padStart(2, "0")}</span></p></div>
     </div>
   </main>;
 }
