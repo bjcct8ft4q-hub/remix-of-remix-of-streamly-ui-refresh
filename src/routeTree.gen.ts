@@ -33,6 +33,7 @@ import { Route as WatchEpisodeIdRouteImport } from './routes/watch.$episodeId'
 import { Route as AnimeIdWatchRouteImport } from './routes/anime.$id_.watch'
 import { Route as ApiAccountDeleteRouteImport } from './routes/api/account/delete'
 import { Route as ApiPublicProxyRouteImport } from './routes/api/public/proxy'
+import { Route as ApiPublicServiceStatusRouteImport } from './routes/api/public/service-status'
 import { Route as ApiPublicAgeRatingIdRouteImport } from './routes/api/public/age-rating/$id'
 import { Route as ApiPublicJobsAgeRatingsRouteImport } from './routes/api/public/jobs/age-ratings'
 import { Route as ApiPublicJobsAnilistSyncRouteImport } from './routes/api/public/jobs/anilist-sync'
@@ -158,6 +159,11 @@ const ApiPublicProxyRoute = ApiPublicProxyRouteImport.update({
   path: '/api/public/proxy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicServiceStatusRoute = ApiPublicServiceStatusRouteImport.update({
+  id: '/api/public/service-status',
+  path: '/api/public/service-status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicAgeRatingIdRoute = ApiPublicAgeRatingIdRouteImport.update({
   id: '/api/public/age-rating/$id',
   path: '/api/public/age-rating/$id',
@@ -205,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/anime/$id/watch': typeof AnimeIdWatchRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/public/proxy': typeof ApiPublicProxyRoute
+  '/api/public/service-status': typeof ApiPublicServiceStatusRoute
   '/api/public/age-rating/$id': typeof ApiPublicAgeRatingIdRoute
   '/api/public/jobs/age-ratings': typeof ApiPublicJobsAgeRatingsRoute
   '/api/public/jobs/anilist-sync': typeof ApiPublicJobsAnilistSyncRoute
@@ -235,6 +242,7 @@ export interface FileRoutesByTo {
   '/anime/$id/watch': typeof AnimeIdWatchRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/public/proxy': typeof ApiPublicProxyRoute
+  '/api/public/service-status': typeof ApiPublicServiceStatusRoute
   '/api/public/age-rating/$id': typeof ApiPublicAgeRatingIdRoute
   '/api/public/jobs/age-ratings': typeof ApiPublicJobsAgeRatingsRoute
   '/api/public/jobs/anilist-sync': typeof ApiPublicJobsAnilistSyncRoute
@@ -266,6 +274,7 @@ export interface FileRoutesById {
   '/anime/$id_/watch': typeof AnimeIdWatchRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/public/proxy': typeof ApiPublicProxyRoute
+  '/api/public/service-status': typeof ApiPublicServiceStatusRoute
   '/api/public/age-rating/$id': typeof ApiPublicAgeRatingIdRoute
   '/api/public/jobs/age-ratings': typeof ApiPublicJobsAgeRatingsRoute
   '/api/public/jobs/anilist-sync': typeof ApiPublicJobsAnilistSyncRoute
@@ -298,6 +307,7 @@ export interface FileRouteTypes {
     | '/anime/$id/watch'
     | '/api/account/delete'
     | '/api/public/proxy'
+    | '/api/public/service-status'
     | '/api/public/age-rating/$id'
     | '/api/public/jobs/age-ratings'
     | '/api/public/jobs/anilist-sync'
@@ -328,6 +338,7 @@ export interface FileRouteTypes {
     | '/anime/$id/watch'
     | '/api/account/delete'
     | '/api/public/proxy'
+    | '/api/public/service-status'
     | '/api/public/age-rating/$id'
     | '/api/public/jobs/age-ratings'
     | '/api/public/jobs/anilist-sync'
@@ -358,6 +369,7 @@ export interface FileRouteTypes {
     | '/anime/$id_/watch'
     | '/api/account/delete'
     | '/api/public/proxy'
+    | '/api/public/service-status'
     | '/api/public/age-rating/$id'
     | '/api/public/jobs/age-ratings'
     | '/api/public/jobs/anilist-sync'
@@ -389,6 +401,7 @@ export interface RootRouteChildren {
   AnimeIdWatchRoute: typeof AnimeIdWatchRoute
   ApiAccountDeleteRoute: typeof ApiAccountDeleteRoute
   ApiPublicProxyRoute: typeof ApiPublicProxyRoute
+  ApiPublicServiceStatusRoute: typeof ApiPublicServiceStatusRoute
   ApiPublicAgeRatingIdRoute: typeof ApiPublicAgeRatingIdRoute
   ApiPublicJobsAgeRatingsRoute: typeof ApiPublicJobsAgeRatingsRoute
   ApiPublicJobsAnilistSyncRoute: typeof ApiPublicJobsAnilistSyncRoute
@@ -565,6 +578,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicProxyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/service-status': {
+      id: '/api/public/service-status'
+      path: '/api/public/service-status'
+      fullPath: '/api/public/service-status'
+      preLoaderRoute: typeof ApiPublicServiceStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/age-rating/$id': {
       id: '/api/public/age-rating/$id'
       path: '/api/public/age-rating/$id'
@@ -621,6 +641,7 @@ const rootRouteChildren: RootRouteChildren = {
   AnimeIdWatchRoute: AnimeIdWatchRoute,
   ApiAccountDeleteRoute: ApiAccountDeleteRoute,
   ApiPublicProxyRoute: ApiPublicProxyRoute,
+  ApiPublicServiceStatusRoute: ApiPublicServiceStatusRoute,
   ApiPublicAgeRatingIdRoute: ApiPublicAgeRatingIdRoute,
   ApiPublicJobsAgeRatingsRoute: ApiPublicJobsAgeRatingsRoute,
   ApiPublicJobsAnilistSyncRoute: ApiPublicJobsAnilistSyncRoute,
