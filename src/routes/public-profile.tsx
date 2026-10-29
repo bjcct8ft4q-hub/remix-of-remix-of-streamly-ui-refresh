@@ -34,7 +34,9 @@ function PublicProfile() {
   const roleValues = [user?.app_metadata?.role, ...(Array.isArray(user?.app_metadata?.roles) ? user.app_metadata.roles : [])]
     .filter((value): value is string => typeof value === "string")
     .map(value => value.toLowerCase());
-  // The site owner account receives its staff display badges only when its admin role is verified by user_roles.\n  const isOwnerAccount = isAdmin && username?.toLowerCase() === "vraith";\n  const roleBadges = [
+  // Staff display badges require a verified administrator role.
+  const isOwnerAccount = isAdmin && username?.toLowerCase() === "vraith";
+  const roleBadges = [
     { role: "owner", label: "Owner", Icon: Crown, style: "text-amber-400 border-amber-400/40 bg-amber-400/10" },
     { role: "moderator", label: "Moderator", Icon: Shield, style: "text-emerald-400 border-emerald-400/40 bg-emerald-400/10" },
     { role: "developer", label: "Developer", Icon: Code2, style: "text-violet-400 border-violet-400/40 bg-violet-400/10" },
@@ -85,7 +87,7 @@ function PublicProfile() {
       </form>
       {requestedUsername && <div className="mt-10 rounded-xl border border-white/10 bg-[#0c0e12] p-7">
         {publicLookup.isLoading ? <p className="text-gray-400">Looking up profile…</p> : publicLookup.isError ? <p className="text-gray-400">Public profiles could not be loaded. Check public profile read permissions.</p> : !publicLookup.data ? <p className="text-gray-400">No public profile found for @{requestedUsername}.</p> : <>
-          <div className="flex items-center gap-4"><div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/15 text-2xl font-bold text-primary">{publicLookup.data.username.slice(0,1).toUpperCase()}</div><div><h2 className="text-2xl font-bold">{publicLookup.data.username}</h2><p className="text-sm text-gray-400">@{publicLookup.data.username}</p></div></div>
+          <div className="flex items-center gap-4"><div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/15 text-2xl font-bold text-primary">{publicLookup.data.username?.slice(0,1).toUpperCase()}</div><div><h2 className="text-2xl font-bold">{publicLookup.data.username}</h2><p className="text-sm text-gray-400">@{publicLookup.data.username}</p></div></div>
           <p className="mt-6 text-sm text-gray-400">Private activity and watchlists are not displayed.</p>
           <button type="button" onClick={() => { void navigator.clipboard.writeText(window.location.href); }} className="mt-4 inline-flex items-center gap-2 rounded-lg border border-white/20 px-3 py-2 text-sm"><Link2 size={14}/> Copy profile URL</button>
         </>}
