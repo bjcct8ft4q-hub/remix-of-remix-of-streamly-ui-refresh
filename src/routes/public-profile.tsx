@@ -48,7 +48,7 @@ function PublicProfile() {
 
   const [range, setRange] = useState<30 | 90 | 365>(30);
   const recent = activityDays.slice(-range);
-  return <main className="min-h-screen bg-[#050505] pb-24 pt-16 text-white">
+  return <main className="min-h-screen bg-[#050505] pb-24 text-white">
     {!user ? <div className="mx-auto max-w-4xl px-6 pt-20"><h1 className="text-3xl font-bold">Profile</h1><button onClick={() => openAuth("signin")} className="mt-5 rounded-md bg-primary px-5 py-2 font-semibold">Sign in</button></div> : <>
     {tab === "watchlist" ? <>
       <div className="relative h-[320px] w-full overflow-hidden bg-gradient-to-r from-[#11263a] via-[#121b2a] to-[#050505] sm:h-[420px] lg:h-[480px]">
