@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { historyQuery, watchlistQuery } from "@/lib/library";
 import { AccountAvatar } from "@/components/AccountAvatar";
+import { ProfileBadges } from "@/components/ProfileBadges";
 import { Trophy, Film, Bookmark, CalendarDays, Settings, Users, Sparkles, Activity, ShieldCheck, Crown, Code2, Shield } from "lucide-react";
 export const Route = createFileRoute("/public-profile")({ component: PublicProfile, head: () => ({ meta: [{ title: "Public Profile | Streamly" }] }) });
 function PublicProfile() {
@@ -41,10 +42,7 @@ function PublicProfile() {
     { role: "moderator", label: "Moderator", Icon: Shield, style: "text-emerald-400 border-emerald-400/40 bg-emerald-400/10" },
     { role: "developer", label: "Developer", Icon: Code2, style: "text-violet-400 border-violet-400/40 bg-violet-400/10" },
   ].filter(badge => isOwnerAccount || roleValues.includes(badge.role));
-  const badges = <div className="flex items-center gap-1.5" aria-label="Profile badges">
-    {roleBadges.map(({role:badgeRole,label,Icon,style})=><span key={badgeRole} title={label} aria-label={label} className={`inline-flex h-6 w-6 items-center justify-center rounded-full border ${style}`}><Icon size={14}/></span>)}
-    <span title="Verified" aria-label="Verified" className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-sky-400/40 bg-sky-400/10 text-sky-400"><ShieldCheck size={14}/></span>
-  </div>;
+  const badges = <ProfileBadges episodes={watched} shows={series} saved={watchlist.data?.length ?? 0} isAdmin={isAdmin} />;
   const profileBio = typeof user?.user_metadata?.bio === "string" ? user.user_metadata.bio : "";
   const displayName = typeof user?.user_metadata?.display_name === "string" ? user.user_metadata.display_name : username;
   const activityDays = Array.from({ length: 364 }, (_, index) => {
