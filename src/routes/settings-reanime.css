@@ -363,3 +363,20 @@ body:has(main.streamly-settings) [data-site-footer] {
 @media(max-width:767px){
  .streamly-settings-content #settings-section-security > section{padding:16px!important}
 }
+
+/* Match the Preferences panel to the Account and Security cards. */
+.streamly-settings-content #settings-section-playback {
+  background:#0c0e12!important;
+  background-color:#0c0e12!important;
+  border:1px solid #252b35!important;
+  border-radius:14px!important;
+  padding:24px!important;
+  box-shadow:0 6px 24px rgba(0,0,0,.12);
+}
+.streamly-settings-content #settings-section-playback > h2:first-child {
+  margin-top:0!important;
+  background:transparent!important;
+}
+@media(max-width:767px){
+  .streamly-settings-content #settings-section-playback{padding:16px!important}
+}
