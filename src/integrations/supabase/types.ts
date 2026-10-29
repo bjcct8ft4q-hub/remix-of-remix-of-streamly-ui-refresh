@@ -98,6 +98,27 @@ export type Database = {
         }
         Relationships: []
       }
+      anime_age_ratings: {
+        Row: {
+          mal_id: number
+          rating: string | null
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          mal_id: number
+          rating?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          mal_id?: number
+          rating?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       anime_comments: {
         Row: {
           anilist_id: number
