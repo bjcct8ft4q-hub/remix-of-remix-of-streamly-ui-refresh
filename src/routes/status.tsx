@@ -93,20 +93,20 @@ function StatusPage() {
         <h2 className="mb-3 flex items-center gap-2 font-bold"><Server size={18} className="text-primary" />Services</h2>
         <div className="divide-y divide-border border-y border-border">
           {rows.map(row => {
-            const saved = cloudflareMonitor.data?.services?.find(service => service.name === row.name)?.samples;
-            const samples = saved?.length ? saved : (history[row.name] ?? []);
+            const saved = row.name === "Cloudflare" ? undefined : cloudflareMonitor.data?.services?.find(service => service.name === row.name)?.samples;
+            const samples = row.name === "Cloudflare" ? (history[row.name] ?? []) : saved?.length ? saved : (history[row.name] ?? []);
             const confirmed = samples.filter(s => s.state !== "unknown");
             const percent = confirmed.length ? Math.round(confirmed.filter(s => s.state === "operational").length / confirmed.length * 100) : null;
             return <details key={row.name} className="group py-4">
-              <summary className="cursor-pointer list-none"><div className="flex items-center justify-between gap-4"><div className="flex min-w-0 items-center gap-3"><Activity size={18} className={`shrink-0 ${stateClass[row.state]}`} /><div><h3 className="font-semibold">{row.name}</h3><p className="mt-1 text-xs text-muted-foreground">{row.duration === null ? "No response time" : `${row.duration} ms`}</p></div></div><span className={`shrink-0 text-sm font-semibold ${stateClass[row.state]}`}>{checks.isPending ? "Checking" : labels[row.state]}</span></div>
+              <summary className="cursor-pointer list-none"><div className="flex items-center justify-between gap-4"><div className="flex min-w-0 items-center gap-3"><Activity size={18} className={`shrink-0 ${stateClass[row.state]}`} /><div><h3 className="font-semibold">{row.name === "Cloudflare" ? "Cloudflare overall status" : row.name}</h3><p className="mt-1 text-xs text-muted-foreground">{row.duration === null ? "No response time" : `${row.duration} ms`}</p></div></div><span className={`shrink-0 text-sm font-semibold ${stateClass[row.state]}`}>{checks.isPending ? "Checking" : labels[row.state]}</span></div>
               <div className="mt-4 flex h-6 gap-0.5" aria-label={`${row.name} sampled checks`}>
                 {Array.from({ length: 288 }, (_, index) => { const length = 288; const sample = samples[index - (length - samples.length)]; return <span key={index} title={sample ? `${new Date(sample.checkedAt).toLocaleString()}: ${labels[sample.state]}` : "No check recorded"} className={`min-w-0 flex-1 rounded-sm ${sample ? barClass[sample.state] : "bg-muted"}`} />; })}
               </div><div className="mt-2 flex justify-between gap-3 text-xs text-muted-foreground"><span>Earlier checks</span><span>{percent === null ? "No confirmed samples" : `${percent}% of ${confirmed.length} confirmed checks successful`}</span><span>Latest</span></div></summary>
-              <p className="mt-3 text-sm text-muted-foreground">{row.detail}</p>
+              <p className="mt-3 text-sm text-muted-foreground">{row.detail}</p>{row.name === "Cloudflare" && <p className="mt-2 text-xs text-muted-foreground">The Streamly advisory was resolved at 08:28 UK time on 29 October. The overall Cloudflare indicator is reported separately by Cloudflare and may remain degraded for other ongoing issues. Previous orange checks are historical, not a current incident.</p>}
             </details>;
           })}
         </div>
-        <p className="mt-4 text-xs leading-relaxed text-muted-foreground">Cloudflare uses its official status report. Video-source checks measure reachability, not video playback. Blocked or timed-out checks are unverified. All service bars use server-side checks retained for up to 24 hours when background monitoring is available.</p>
+        <p className="mt-4 text-xs leading-relaxed text-muted-foreground">Cloudflare shows its provider-wide status, which can remain degraded even after an individual incident is resolved. Video-source checks measure reachability, not video playback. Blocked or timed-out checks are unverified. All service bars use server-side checks retained for up to 24 hours when background monitoring is available.</p>
       </section>
       <section className="mt-8 grid grid-cols-2 gap-5 border-y border-border py-5 sm:grid-cols-4" aria-label="Incident statistics">
         {[["Published incidents", stats.total], ["Active", stats.active], ["Resolved", stats.resolved], ["Resolved incident minutes", stats.minutes]].map(([label, value]) => <div key={label}><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 text-2xl font-bold">{value}</p></div>)}
