@@ -58,10 +58,10 @@ function StatusPage() {
     refetchInterval: STATUS_REFRESH_MS,
     retry: false,
   });
-  const rows = cloudflareMonitor.data?.services?.length ? SERVICE_NAMES.map(name => cloudflareMonitor.data.services.find(service => service.name === name) ?? { name, state: "unknown" as const, detail: "Awaiting background check", duration: null, checkedAt: "" }) : (checks.data ?? SERVICE_NAMES.map(name => ({ name, state: "unknown" as const, detail: checks.isError ? "Checks unavailable" : "Checking…", duration: null, checkedAt: "" })));
+  const rows = SERVICE_NAMES.map(name => { const live = checks.data?.find(service => service.name === name); const background = cloudflareMonitor.data?.services?.find(service => service.name === name); return live ?? background ?? { name, state: "unknown" as const, detail: checks.isError ? "Checks unavailable" : "Checking…", duration: null, checkedAt: "" }; });
   const active = incidents.data?.filter(i => i.status !== "resolved") ?? [];
   const cloudflareStartedAt = "2026-10-29T00:37:00Z";
-  const cloudflareResolvedAt = cloudflareMonitor.data?.resolvedAt ?? null;
+  const cloudflareResolvedAt = cloudflareMonitor.data?.resolvedAt ?? "2026-10-29T08:28:00Z";
   const isCloudflareIncidentResolved = Boolean(cloudflareResolvedAt);
   const recordedStats = incidentStats(incidents.data ?? []);
   const cloudflareMinutes = isCloudflareIncidentResolved && cloudflareResolvedAt
@@ -75,7 +75,7 @@ function StatusPage() {
   };
   const issues = rows.filter(row => row.state === "outage" || row.state === "degraded").length;
   const unknown = rows.filter(row => row.state === "unknown").length;
-  const headline = checks.isPending ? "Checking services" : issues || active.length || !isCloudflareIncidentResolved ? "Some services need attention" : unknown ? "Available services are responding" : "All services operational";
+  const headline = checks.isPending && !cloudflareMonitor.data ? "Checking services" : issues || active.length ? "Some services need attention" : unknown ? "Available services are responding" : "All services operational";
   const checkedAt = cloudflareMonitor.data?.lastCheckedAt ?? checks.data?.[0]?.checkedAt;
   return <main className="min-h-screen bg-background px-4 pb-24 pt-24 text-foreground sm:px-8">
     <div className="mx-auto max-w-4xl">
