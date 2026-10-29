@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { historyQuery, watchlistQuery } from "@/lib/library";
 import { AccountAvatar } from "@/components/AccountAvatar";
-import { Trophy, Film, Bookmark, CalendarDays, Settings, Users, Sparkles, Activity, ShieldCheck } from "lucide-react";
+import { Trophy, Film, Bookmark, CalendarDays, Settings, Users, Sparkles, Activity, ShieldCheck, Crown, Code2, Shield } from "lucide-react";
 export const Route = createFileRoute("/public-profile")({ component: PublicProfile, head: () => ({ meta: [{ title: "Public Profile | Streamly" }] }) });
 function PublicProfile() {
   const { user, username, openAuth } = useAuth();
@@ -16,6 +16,13 @@ function PublicProfile() {
   const banner = typeof user?.user_metadata?.profile_banner_url === "string" && user.user_metadata.profile_banner_url.startsWith("https://") ? user.user_metadata.profile_banner_url : "";
   const stats = [{ label: "Episodes watched", value: watched, icon: Film }, { label: "Anime explored", value: series, icon: Sparkles }, { label: "In my list", value: watchlist.data?.length ?? 0, icon: Bookmark }];
   const memberSince = user ? new Date(user.created_at) : new Date();
+  const role = typeof user?.app_metadata?.role === "string" ? user.app_metadata.role.toLowerCase() : "";
+  const roleBadges = [
+    { role: "owner", label: "Owner", Icon: Crown, style: "text-amber-400 border-amber-400/40 bg-amber-400/10" },
+    { role: "moderator", label: "Moderator", Icon: Shield, style: "text-emerald-400 border-emerald-400/40 bg-emerald-400/10" },
+    { role: "developer", label: "Developer", Icon: Code2, style: "text-violet-400 border-violet-400/40 bg-violet-400/10" },
+  ].filter(badge => role === badge.role);
+  const badges = <div className="flex items-center gap-1.5" aria-label="Profile badges"><span title="Streamly member" className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-sky-400/40 bg-sky-400/10 text-sky-400"><ShieldCheck size={14}/></span>{roleBadges.map(({role:badgeRole,label,Icon,style})=><span key={badgeRole} title={label} aria-label={label} className={`inline-flex h-6 w-6 items-center justify-center rounded-full border ${style}`}><Icon size={14}/></span>)}</div>;
   const profileBio = typeof user?.user_metadata?.bio === "string" ? user.user_metadata.bio : "";
   const displayName = typeof user?.user_metadata?.display_name === "string" ? user.user_metadata.display_name : username;
   const activityDays = Array.from({ length: 364 }, (_, index) => {
@@ -59,10 +66,10 @@ function PublicProfile() {
         <div className="flex flex-wrap items-end gap-4 border-b border-white/10 pb-7 sm:gap-6">
           <div className="relative z-10 shrink-0 rounded-full border-4 border-[#050505] bg-[#111] shadow-xl"><AccountAvatar size="lg" /></div>
           <div className="min-w-0 flex-1 pb-1">
-            <div className="flex flex-wrap items-center gap-2"><h1 className="break-words text-xl font-extrabold sm:text-2xl">{displayName || username}</h1><ShieldCheck size={17} className="text-primary" aria-label="Streamly member" />{profileActions}</div>
+            <div className="flex flex-wrap items-center gap-2"><h1 className="break-words text-xl font-extrabold sm:text-2xl">{displayName || username}</h1>{badges}{profileActions}</div>
             <p className="text-xs text-gray-400">@{username}</p>
             {profileBio && <p className="mt-2 text-xs text-gray-200">{profileBio}</p>}
-            <p className="mt-2 flex items-center gap-1.5 text-[11px] text-gray-400"><CalendarDays size={12}/> Joined {memberSince.toLocaleDateString("en-GB", {month:"long",year:"numeric"})}</p>
+            <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-gray-400"><span className="flex items-center gap-1.5"><CalendarDays size={12}/> Joined {memberSince.toLocaleDateString("en-GB", {month:"long",year:"numeric"})}</span><span className="flex items-center gap-1.5"><Film size={12}/> {watched} episodes watched</span><span className="flex items-center gap-1.5"><Bookmark size={12}/> {watchlist.data?.length ?? 0} saved anime</span></p>
           </div>
           <div className="flex gap-7 pb-2 text-center">{[{label:"COMPLETED",value:series},{label:"EPISODES",value:watched},{label:"PLANNING",value:watchlist.data?.length ?? 0}].map(item=><div key={item.label}><strong className="block text-xl font-black">{item.value}</strong><span className="text-[9px] font-bold tracking-wide text-gray-400">{item.label}</span></div>)}</div>
         </div>
@@ -71,7 +78,7 @@ function PublicProfile() {
       </div>
     </> : <div className="mx-auto max-w-[920px] px-5 pt-12">
       <button onClick={()=>setTab("watchlist")} className="mb-5 text-xs text-gray-400 hover:text-white">← Profile</button>
-      <div className="mb-8 flex flex-wrap items-center gap-4"><AccountAvatar size="lg"/><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><h1 className="text-2xl font-extrabold">{displayName || username}</h1>{profileActions}</div><p className="text-xs text-gray-400">@{username} · Activity</p></div><div className="text-xs text-gray-400">Member since {memberSince.toLocaleDateString("en-GB",{month:"long",year:"numeric"})}</div></div>
+      <div className="mb-8 flex flex-wrap items-center gap-4"><AccountAvatar size="lg"/><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><h1 className="text-2xl font-extrabold">{displayName || username}</h1>{badges}{profileActions}</div><p className="text-xs text-gray-400">@{username} · Activity</p></div><div className="text-xs text-gray-400">Member since {memberSince.toLocaleDateString("en-GB",{month:"long",year:"numeric"})}</div></div>
       <section className="rounded-lg border border-white/10 bg-[#0d0e11] p-4"><h2 className="text-sm font-bold">Past year</h2><p className="mt-1 text-xs text-gray-400">{activeDays} active days</p><div className="mt-5 grid grid-flow-col grid-rows-7 gap-[3px] overflow-x-auto">{activityDays.map((day,i)=><div key={i} title={day.date.toDateString()+": "+day.count+" episodes"} className="h-[10px] w-[10px] rounded-[2px]" style={{background:day.count===0?"#1c1e23":day.count===1?"#123e66":day.count<4?"#0879c5":"#1e9bff"}}/>)}</div><p className="mt-3 text-right text-[10px] text-gray-400">Less ▪ ▪ ▪ More</p></section>
       <div className="mt-8 flex gap-6 border-b border-white/10">{([30,90,365] as const).map(n=><button key={n} onClick={()=>setRange(n)} className={`border-b-2 pb-3 text-xs ${range===n?"border-primary text-white":"border-transparent text-gray-400"}`}>{n===365?"1 year":n+" days"}</button>)}</div>
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">{[{name:"Episodes",value:recent.reduce((sum,d)=>sum+d.count,0)},{name:"Anime",value:series},{name:"Watchlist",value:watchlist.data?.length??0},{name:"Active days",value:recent.filter(d=>d.count>0).length}].map(stat=><div key={stat.name} className="rounded-lg border border-white/10 bg-[#0d0e11] p-4"><p className="text-xs text-gray-400">{stat.name}</p><p className="mt-3 text-2xl font-black">{stat.value}</p></div>)}</div>
