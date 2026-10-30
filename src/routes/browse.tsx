@@ -75,12 +75,12 @@ function FilterPicker({ label, value, options, onChange }: { label: string; valu
 }
 
 
-async function fetchFilteredAnime(f: Filters): Promise<{ media: AnimeSummary[]; total: number }> {
+async function fetchFilteredAnime(f: Filters, page: number): Promise<{ media: AnimeSummary[]; total: number; hasNextPage: boolean }> {
   const variables = {
     search: resolveAnimeSearch(f.q) || undefined,
-    genre: anilistGenres.has(f.genre) ? f.genre : undefined,
+    genreIn: f.genre.split(",").filter(g => anilistGenres.has(g)),
     // For tag-based categories, use the AniList tag filter. A demographic takes precedence.
-    tag: f.demographic || (!anilistGenres.has(f.genre) ? f.genre : "") || f.tag || undefined,
+    tag: f.demographic || f.tag || undefined,
     adult: false,
     season: f.season || undefined,
     origin: f.origin || undefined,
@@ -90,10 +90,10 @@ async function fetchFilteredAnime(f: Filters): Promise<{ media: AnimeSummary[]; 
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({
-      query: `query ($search: String, $genre: String, $tag: String, $year: Int, $status: MediaStatus, $format: MediaFormat, $adult: Boolean, $season: MediaSeason, $origin: CountryCode) {
-        Page(page: 1, perPage: 48) {
-          pageInfo { total }
-          media(type: ANIME, search: $search, genre: $genre, tag: $tag, seasonYear: $year, status: $status, format: $format, isAdult: $adult, season: $season, countryOfOrigin: $origin, sort: POPULARITY_DESC) {
+      query: `query ($search: String, $genreIn: [String], $tag: String, $year: Int, $status: MediaStatus, $format: MediaFormat, $adult: Boolean, $season: MediaSeason, $origin: CountryCode) {
+        Page(page: ${page}, perPage: 48) {
+          pageInfo { total hasNextPage }
+          media(type: ANIME, search: $search, genre_in: $genreIn, tag: $tag, seasonYear: $year, status: $status, format: $format, isAdult: $adult, season: $season, countryOfOrigin: $origin, sort: POPULARITY_DESC) {
             id idMal title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore isAdult relations { edges { relationType node { id format } } }
           }
         }
@@ -106,7 +106,7 @@ async function fetchFilteredAnime(f: Filters): Promise<{ media: AnimeSummary[]; 
   if (json.errors?.length) throw new Error("Unable to apply those filters.");
   const found: AnimeSummary[] = json.data?.Page?.media ?? [];
   if (found.length || !f.q.trim() || f.q.trim().length < 5) {
-    return { media: groupAnimeSeasons(found), total: groupAnimeSeasons(found).length };
+    return { media: groupAnimeSeasons(found), total: json.data?.Page?.pageInfo?.total ?? found.length, hasNextPage: !!json.data?.Page?.pageInfo?.hasNextPage };
   }
   // Retry a word stem when AniList's exact search finds no titles.
   const words = resolveAnimeSearch(f.q).split(/\s+/).filter((word) => word.length >= 4);
@@ -120,9 +120,9 @@ async function fetchFilteredAnime(f: Filters): Promise<{ media: AnimeSummary[]; 
     const fallbackJson = await fallbackResponse.json();
     const candidates: AnimeSummary[] = fallbackJson.data?.Page?.media ?? [];
     const media = candidates.filter((anime) => matchesAnimeTitle(anime.title.english || "", f.q) || matchesAnimeTitle(anime.title.romaji, f.q));
-    if (media.length) return { media: groupAnimeSeasons(media), total: groupAnimeSeasons(media).length };
+    if (media.length) return { media: groupAnimeSeasons(media), total: media.length, hasNextPage: false };
   }
-  return { media: [], total: 0 };
+  return { media: [], total: 0, hasNextPage: false };
 }
 
 function Browse() {
@@ -130,28 +130,30 @@ function Browse() {
   const [draft, setDraft] = useState<Filters>({ ...empty, q });
   const [applied, setApplied] = useState<Filters>({ ...empty, q });
   const [expanded, setExpanded] = useState(false);
+  const [page, setPage] = useState(1);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { data: series = [] } = useQuery(seriesListQuery());
-  const results = useQuery({ queryKey: ["filtered-anime", applied], queryFn: () => fetchFilteredAnime(applied), staleTime: 5 * 60 * 1000, retry: 1 });
+  const results = useQuery({ queryKey: ["filtered-anime", applied, page], queryFn: () => fetchFilteredAnime(applied, page), staleTime: 5 * 60 * 1000, retry: 1 });
   const imported = series.filter((s) => {
     const term = applied.q.trim().toLowerCase();
     return (!term || matchesAnimeTitle(s.title, term) || s.genres.some((g) => g.toLowerCase().includes(term)))
-      && (!applied.genre || s.genres.some((g) => g.toLowerCase() === applied.genre.toLowerCase()))
+      && (!applied.genre || applied.genre.split(",").some(genre => s.genres.some((g) => g.toLowerCase() === genre.toLowerCase())))
       && (!applied.year || s.premiered?.includes(applied.year))
       && (!applied.format || s.type?.toUpperCase().replaceAll(" ", "_") === applied.format)
       && !applied.tag && !applied.status && !applied.demographic && !applied.ageRating && !applied.season && !applied.origin;
   });
   const set = (key: keyof Filters, value: string) => setDraft((prev) => ({ ...prev, [key]: value }));
+  const apply = () => { setPage(1); setApplied({ ...draft }); };
   const field = (label: string, key: keyof Filters, options: [string, string][]) =>
     <FilterPicker label={label} value={draft[key]} options={options} onChange={(v) => set(key, v)} />;
   return (
     <main className="mx-auto w-full max-w-none px-4 pb-24 pt-3 sm:px-5 md:px-6 md:pt-3">
       <div className="mb-4 flex items-center justify-between gap-3"><h1 className="border-l-4 border-primary pl-3 text-xl font-extrabold sm:text-2xl">Search Anime</h1><span className="hidden text-xs font-semibold uppercase tracking-wider text-muted-foreground lg:inline">Explore the anime catalogue</span></div>
-      <form onSubmit={(e) => { e.preventDefault(); setApplied({ ...draft }); }} className="space-y-3">
+      <form onSubmit={(e) => { e.preventDefault(); apply(); }} className="space-y-3">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-7 lg:items-end">
           <label className="relative col-span-2 block min-w-0 lg:col-span-1"><span className="mb-2 block text-sm font-semibold">Search</span><Search className="pointer-events-none absolute bottom-3.5 left-4 h-5 w-5 text-muted-foreground" /><input aria-label="Search anime" placeholder="Search by anime title or abbreviation…" value={draft.q} onChange={(e) => set("q", e.target.value)} className="w-full rounded-md border border-border bg-card py-3 pl-12 pr-4 text-sm outline-none focus:border-primary" /></label>
           <div className="col-span-2 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:col-span-6 lg:grid-cols-6">
-            {field("Genres", "genre", genreOptions)}
+            <div className="min-w-0"><span className="mb-2 block text-sm font-semibold">Genres</span><details className="relative group"><summary className={selectClass + " cursor-pointer list-none truncate"}>{draft.genre ? `${draft.genre.split(",").length} genres selected` : "Any genres"} <ChevronDown size={14} className="float-right mt-0.5" /></summary><div className="absolute z-40 mt-1 max-h-72 w-64 overflow-y-auto rounded-lg border border-primary/60 bg-card p-2 shadow-2xl"><button type="button" className="mb-2 text-xs text-primary underline" onClick={() => set("genre", "")}>Clear genres</button>{genreOptions.map(([key, name]) => <label key={key} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-primary/10"><input type="checkbox" className="accent-primary" checked={draft.genre.split(",").includes(key)} onChange={() => { const selected = draft.genre.split(",").filter(Boolean); set("genre", (selected.includes(key) ? selected.filter(g => g !== key) : [...selected, key]).join(",")); }} />{name}</label>)}</div></details></div>
             {field("Year", "year", years.map((y) => [y, y]))}
             {field("Tags", "tag", tagOptions)}
             {field("Status", "status", statuses as [string, string][])}
@@ -161,7 +163,7 @@ function Browse() {
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
           <button type="submit" className="flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90"><Filter size={16} />Apply filters</button>
-          <button type="button" onClick={() => { setDraft({ ...empty }); setApplied({ ...empty }); }} className="flex items-center gap-2 rounded-md border border-border bg-card px-4 py-2.5 text-sm hover:text-primary"><RotateCcw size={16} />Reset</button>
+          <button type="button" onClick={() => { setDraft({ ...empty }); setApplied({ ...empty }); setPage(1); }} className="flex items-center gap-2 rounded-md border border-border bg-card px-4 py-2.5 text-sm hover:text-primary"><RotateCcw size={16} />Reset</button>
           <button type="button" onClick={() => setExpanded(!expanded)} aria-expanded={expanded} className="flex items-center gap-2 rounded-md border border-border bg-card px-4 py-2.5 text-sm hover:text-primary">More filters <ChevronDown size={16} className={expanded ? "rotate-180" : ""} /></button>
         </div>
         {expanded && <div className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-card/60 p-4 sm:grid-cols-4">{field("Demographics", "demographic", demographics)}{field("Season", "season", seasons)}{field("Origin", "origin", origins)}<p className="col-span-2 self-end text-xs text-muted-foreground sm:col-span-1">AniList age flags are not official age classifications.</p></div>}
@@ -174,13 +176,14 @@ function Browse() {
             ["Status", "status", statuses as [string, string][]],
             ["Origin", "origin", origins],
           ] as [string, keyof Filters, [string, string][]][]).map(([label, key, options]) => <fieldset key={key} className="overflow-hidden rounded-lg border border-border bg-card/70 p-3"><legend className="sr-only">{label}</legend><h2 className="mb-3 border-l-2 border-primary pl-2 text-sm font-bold">{label}</h2><div className="space-y-2">{options.map(([value, name]) => <label key={value} className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground hover:text-foreground"><input type="radio" name={key} checked={draft[key] === value} onChange={() => set(key, draft[key] === value ? "" : value)} className="accent-primary" />{name}</label>)}<button type="button" onClick={() => set(key, "")} className="text-xs text-primary underline">Any {label.toLowerCase()}</button></div></fieldset>)}
-          <button type="button" onClick={() => setApplied({ ...draft })} className="w-full rounded bg-primary py-2 text-sm font-bold text-primary-foreground">Apply sidebar filters</button>
+          <button type="button" onClick={apply} className="w-full rounded bg-primary py-2 text-sm font-bold text-primary-foreground">Apply sidebar filters</button>
         </aside>}
         <div className="min-w-0 flex-1">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><p className="text-sm text-muted-foreground">{results.isLoading ? "Searching anime…" : results.isError ? "Search unavailable" : `${(results.data?.total ?? 0).toLocaleString()} anime results found`}</p><button type="button" onClick={() => setSidebarOpen(!sidebarOpen)} className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-primary">{sidebarOpen ? "Hide sidebar" : "Show sidebar"}</button></div>
           {results.isError && <div role="alert" className="mb-5 text-sm text-destructive">{results.error.message} <button className="ml-2 underline" onClick={() => void results.refetch()}>Retry</button></div>}
           {!!imported.length && <section className="mb-8"><h2 className="mb-4 text-lg font-bold">Available on Streamly</h2><div className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-9">{imported.map((series) => <SeriesCard key={series.id} s={series} />)}</div></section>}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7">{results.data?.media.map((anime) => <AnimeCard key={anime.id} a={anime} />)}</div>
+          {!results.isLoading && !results.isError && <nav aria-label="Anime results pages" className="mt-8 flex items-center justify-center gap-4"><button type="button" disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="rounded-md border border-border px-4 py-2 disabled:opacity-40">Previous</button><span className="text-sm">Page {page}</span><button type="button" disabled={!results.data?.hasNextPage} onClick={() => setPage(p => p + 1)} className="rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground disabled:opacity-40">Next</button></nav>}
           {!results.isLoading && !results.isError && !results.data?.media.length && !imported.length && <p className="py-12 text-center text-muted-foreground">No anime matched your filters. Try resetting them.</p>}
         </div>
       </div>
