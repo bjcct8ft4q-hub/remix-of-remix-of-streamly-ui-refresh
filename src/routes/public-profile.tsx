@@ -84,12 +84,24 @@ function PublicProfile() {
         <input aria-label="Search username" value={guestSearch} onChange={event => setGuestSearch(event.target.value)} placeholder="Search by username" className="min-w-0 flex-1 rounded-lg border border-white/20 bg-[#111] px-4 py-3 text-white" />
         <button type="submit" className="rounded-lg bg-primary px-5 py-3 font-semibold text-black">Search</button>
       </form>
-      {requestedUsername && <div className="mt-10 rounded-xl border border-white/10 bg-[#0c0e12] p-7">
-        {publicLookup.isLoading ? <p className="text-gray-400">Looking up profile…</p> : publicLookup.isError ? <p className="text-gray-400">Public profiles could not be loaded. Check public profile read permissions.</p> : !publicLookup.data ? <p className="text-gray-400">No public profile found for @{requestedUsername}.</p> : <>
-          <div className="flex items-center gap-4"><div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/15 text-2xl font-bold text-primary">{publicLookup.data.username?.slice(0,1).toUpperCase()}</div><div><h2 className="text-2xl font-bold">{publicLookup.data.username}</h2><p className="text-sm text-gray-400">@{publicLookup.data.username}</p>{publicAdmin.data && <span className="mt-2 inline-flex items-center gap-1 rounded-md border border-rose-400/50 bg-rose-400/10 px-2 py-1 text-xs font-semibold text-rose-400"><ShieldCheck size={14}/> Administrator</span>}</div></div>
-          <p className="mt-6 text-sm text-gray-400">Private activity and watchlists are not displayed.</p>
-          <button type="button" onClick={() => { void navigator.clipboard.writeText(window.location.origin + "/" + encodeURIComponent(publicLookup.data?.username || requestedUsername)); }} className="mt-4 inline-flex items-center gap-2 rounded-lg border border-white/20 px-3 py-2 text-sm"><Link2 size={14}/> Copy profile URL</button>
-        </>}
+      {requestedUsername && <div className="mt-8">
+        {publicLookup.isLoading ? <p className="text-gray-400">Looking up profile…</p> : publicLookup.isError ? <p className="text-gray-400">Public profile could not be loaded.</p> : !publicLookup.data ? <p className="text-gray-400">No public profile found for @{requestedUsername}.</p> : <section className="overflow-hidden rounded-xl border border-white/10 bg-[#0d0e11]">
+          <div className="h-48 bg-gradient-to-r from-[#11263a] via-[#121b2a] to-[#050505] sm:h-64"/>
+          <div className="relative -mt-10 px-5 pb-8 sm:px-8">
+            <div className="flex flex-wrap items-end gap-5">
+              <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full border-4 border-[#050505] bg-primary/20 text-4xl font-black text-primary">{publicLookup.data.username?.slice(0,1).toUpperCase()}</div>
+              <div className="min-w-0 pb-1"><h2 className="break-words text-2xl font-extrabold sm:text-3xl">{publicLookup.data.username}</h2><p className="text-sm text-gray-400">@{publicLookup.data.username}</p>
+                {publicAdmin.data && <span className="mt-2 inline-flex items-center gap-1 rounded-md border border-rose-400/50 bg-rose-400/10 px-2 py-1 text-xs font-semibold text-rose-400"><ShieldCheck size={14}/> Administrator</span>}
+              </div>
+            </div>
+            <div className="mt-6 flex flex-wrap items-center gap-3 border-b border-white/10 pb-6">
+              <button type="button" onClick={() => { void navigator.clipboard.writeText(window.location.origin + "/" + encodeURIComponent(publicLookup.data!.username)); setCopied(true); }} className="inline-flex items-center gap-2 rounded-lg border border-white/20 px-3 py-2 text-sm hover:border-primary"><Link2 size={14}/>{copied ? "Copied profile URL" : "Copy profile URL"}</button>
+            </div>
+            <div className="mt-5 grid grid-cols-3 gap-2 rounded-xl border border-white/10 bg-white/5 p-5 text-center"><div><strong className="block text-lg">—</strong><span className="text-[10px] text-gray-400">COMPLETED</span></div><div><strong className="block text-lg">—</strong><span className="text-[10px] text-gray-400">EPISODES</span></div><div><strong className="block text-lg">—</strong><span className="text-[10px] text-gray-400">PLANNING</span></div></div>
+            <h3 className="mt-7 border-b border-white/10 pb-3 text-sm font-bold">Public watchlist</h3>
+            <p className="py-12 text-center text-sm text-gray-400">This member's private viewing activity and watchlist are not shared.</p>
+          </div>
+        </section>}
       </div>}
     </div> : <>
     {tab === "watchlist" ? <>
