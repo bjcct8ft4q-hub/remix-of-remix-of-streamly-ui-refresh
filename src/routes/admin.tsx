@@ -416,6 +416,17 @@ function Admin() {
   const qc = useQueryClient();
   const { data = [] } = useQuery({ ...seriesListQuery(), enabled: isAdmin });
   const [selected, setSelected] = useState<string | null>(null);
+  const [scareBusy, setScareBusy] = useState(false);
+  const triggerScare = async () => {
+    if (!window.confirm("Send a brief jumpscare to visitors who opted in?")) return;
+    setScareBusy(true);
+    try {
+      const { error } = await (supabase as any).from("site_jumpscares").insert({ triggered_by: user!.id });
+      if (error) throw error;
+      toast.success("Jumpscare sent to opted-in visitors");
+    } catch (err) { toast.error(err instanceof Error ? err.message : "Could not send jumpscare"); }
+    finally { setScareBusy(false); }
+  };
   const [tab, setTab] = useState<"overview" | "analytics" | "reports" | "content" | "status">("overview");
 
   if (loading) return <main className="pt-32 text-center text-muted-foreground">Loading...</main>;
@@ -445,7 +456,7 @@ function Admin() {
       <nav aria-label="Admin sections" className="mb-8 flex flex-wrap gap-2 border-b border-border pb-4">
         {(["overview","analytics","reports","content","status"] as const).map((section)=><Button key={section} type="button" variant={tab === section ? "default" : "outline"} aria-current={tab === section ? "page" : undefined} onClick={()=>setTab(section)} className="capitalize">{section === "content" ? "Content manager" : section === "status" ? "Status & incidents" : section}</Button>)}
       </nav>
-      {tab === "overview" && <div className="space-y-6">
+      {tab === "overview" && <div className="space-y-6">\n        <section className="rounded-xl border border-primary/30 bg-card p-6"><h2 className="text-xl font-extrabold">Site-wide jumpscare</h2><p className="my-3 text-sm text-muted-foreground">Trigger a brief visual scare for visitors who have enabled jumpscares. Audio follows browser permissions and visitor preferences.</p><Button type="button" disabled={scareBusy} onClick={() => void triggerScare()}>{scareBusy ? "Sending…" : "Trigger jumpscare"}</Button></section>
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="rounded-xl border border-border bg-card p-6"><p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Managed series</p><p className="mt-3 text-4xl font-black text-primary">{data.length}</p></div>
           <div className="rounded-xl border border-border bg-card p-6"><p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Uploaded episodes</p><p className="mt-3 text-4xl font-black text-primary">{data.reduce((n,s)=>n+(s.episodes?.[0]?.count ?? 0),0)}</p></div>
