@@ -75,24 +75,35 @@ function Grid({ title, items, loading, filters }: { title: string; items: S[]; l
 }
 
 type AiringItem = { airingAt: number; episode: number; media: { id: number; title: { english: string | null; romaji: string }; coverImage: { large: string | null } } };
-async function fetchUpcoming(): Promise<AiringItem[]> {
-  const now = Math.floor(Date.now() / 1000);
-  const response = await fetch("https://graphql.anilist.co", {
-    method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ query: `query ($start: Int, $end: Int) { Page(page: 1, perPage: 50) { airingSchedules(airingAt_greater: $start, airingAt_lesser: $end, sort: TIME) { airingAt episode media { id title { english romaji } coverImage { large } isAdult } } } }`, variables: { start: now - 1, end: now + 8 * 86400 } }),
-  });
-  if (!response.ok) throw new Error("Release schedule unavailable");
-  const json = await response.json();
-  if (json.errors?.length) throw new Error("Release schedule unavailable");
-  return (json.data?.Page?.airingSchedules ?? []).filter((item: AiringItem & { media: { isAdult?: boolean } }) => item.media && !item.media.isAdult);
+async function fetchUpcoming(dayStart: number, dayEnd: number): Promise<AiringItem[]> {
+  const all: AiringItem[] = [];
+  for (let page = 1; page <= 5; page++) {
+    const response = await fetch("https://graphql.anilist.co", {
+      method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        query: `query ($start: Int, $end: Int, $page: Int) { Page(page: $page, perPage: 50) { pageInfo { hasNextPage } airingSchedules(airingAt_greater: $start, airingAt_lesser: $end, sort: TIME) { airingAt episode media { id title { english romaji } coverImage { large } isAdult } } } }`,
+        variables: { start: dayStart - 1, end: dayEnd, page },
+      }),
+    });
+    if (!response.ok) throw new Error("Release schedule unavailable");
+    const json = await response.json();
+    if (json.errors?.length) throw new Error("Release schedule unavailable");
+    const result = json.data?.Page;
+    all.push(...(result?.airingSchedules ?? []).filter((item: AiringItem & { media: { isAdult?: boolean } }) => item.media && !item.media.isAdult));
+    if (!result?.pageInfo?.hasNextPage) break;
+  }
+  return all;
 }
 function Schedule() {
   const [sel, setSel] = useState(0);
-  const { data, isPending, isError, refetch } = useQuery({ queryKey: ["anilist-airing-schedule"], queryFn: fetchUpcoming, staleTime: 15 * 60 * 1000, refetchInterval: 30 * 60 * 1000 });
   const days = Array.from({ length: 7 }, (_, k) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + k); return d; });
   const key = (d: Date) => d.toLocaleDateString("en-CA");
   const selectedDate = days[sel] ?? days[0];
-  const items = (data ?? []).filter((item) => key(new Date(item.airingAt * 1000)) === key(selectedDate));
+  const dayStart = Math.floor(selectedDate.getTime() / 1000);
+  const nextDay = new Date(selectedDate); nextDay.setDate(nextDay.getDate() + 1);
+  const dayEnd = Math.floor(nextDay.getTime() / 1000);
+  const { data, isPending, isError, refetch } = useQuery({ queryKey: ["anilist-airing-schedule-day", dayStart], queryFn: () => fetchUpcoming(dayStart, dayEnd), staleTime: 15 * 60 * 1000, retry: 1 });
+  const items = (data ?? []).filter((item) => item.airingAt >= dayStart && item.airingAt < dayEnd);
   return <aside className="rounded-lg border border-border bg-card p-4">
     <div className="mb-4 flex items-center justify-between gap-2"><h2 className="text-xl font-extrabold">Upcoming Anime</h2><span className="text-xs text-muted-foreground">Next 7 days</span></div>
     <div className="grid grid-cols-7 gap-1.5 border-b border-border pb-4">{days.map((d, k) => <button key={key(d)} onClick={() => setSel(k)} aria-pressed={sel === k} className="flex flex-col items-center gap-1"><span className={`text-[10px] font-bold uppercase ${sel === k ? "text-primary" : "text-muted-foreground"}`}>{d.toLocaleDateString("en-GB", { weekday: "short" })}</span><span className={`grid h-9 w-full place-items-center rounded text-sm font-extrabold ${sel === k ? "bg-primary text-primary-foreground" : "bg-muted"}`}>{d.getDate()}</span></button>)}</div>
