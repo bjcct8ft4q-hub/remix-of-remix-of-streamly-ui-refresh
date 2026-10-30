@@ -7,14 +7,16 @@ import { historyQuery } from "@/lib/library";
 export function ContinueWatchingShelf({ compact = false }: { compact?: boolean }) {
   const { user } = useAuth();
   const history = useQuery(historyQuery(user?.id));
-  if (!user || history.isPending || history.isError) return null;
+  if (!user) return null;
+  if (history.isPending) return compact ? null : <p className="py-8 text-sm text-muted-foreground">Loading your watch history…</p>;
+  if (history.isError) return compact ? null : <div className="py-8 text-sm text-muted-foreground">Could not load your watch history. <button type="button" className="font-semibold text-primary underline" onClick={() => void history.refetch()}>Try again</button></div>;
   const seen = new Set<number>();
   const items = (history.data ?? []).filter((item) => {
     if (seen.has(item.anilist_id)) return false;
     seen.add(item.anilist_id);
     return true;
   }).slice(0, compact ? 6 : 30);
-  if (!items.length) return null;
+  if (!items.length) return compact ? null : <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">No saved episodes yet. Start watching an anime while signed in, and your progress will appear here.</div>;
   return <section className="space-y-4">
     <div className="flex items-center justify-between gap-3"><h2 className="border-l-[3px] border-primary pl-3 text-xl font-extrabold">Pick up where you left off</h2>{compact && <Link to="/continue-watching" className="flex items-center gap-1 text-sm font-semibold text-primary">View all <ArrowRight size={15} /></Link>}</div>
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">{items.map((item) => {
