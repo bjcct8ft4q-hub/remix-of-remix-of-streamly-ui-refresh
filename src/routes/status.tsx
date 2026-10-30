@@ -90,7 +90,6 @@ function StatusPage() {
         <p className="mt-3 flex items-center justify-center gap-2 text-sm text-muted-foreground"><Clock3 size={14} />Last checked: {checkedAt ? new Date(checkedAt).toLocaleString() : "Waiting for checks"}</p>
       </header>
       {checks.isError && <p role="alert" className="mb-5 text-destructive">Service checks could not be loaded. Try Refresh below.</p>}
-      {maintenanceActive && <section className="mb-6 border-l-2 border-status-warning pl-4"><h2 className="mb-2 font-bold">Active maintenance</h2><h3 className="font-semibold">Cloudflare Maintenance – Account Registration Issues</h3><p className="mt-2 text-sm text-muted-foreground">We are investigating reports of account registration failures during Cloudflare maintenance. Cloudflare-related verification for signup is being reviewed; other website security protections remain in place.</p></section>}
       {active.length > 0 && <section className="mb-6 border-l-2 border-status-warning pl-4"><h2 className="mb-2 font-bold">Active incidents</h2>{active.map(i => <div key={i.id} className="py-2"><h3 className="font-semibold">{i.title}</h3><p className="text-xs text-status-warning">{i.service} · {i.status}</p><p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted-foreground">{i.body}</p></div>)}</section>}
       <section>
         <h2 className="mb-3 flex items-center gap-2 font-bold"><Server size={18} className="text-primary" />Services</h2>
