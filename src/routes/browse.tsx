@@ -78,7 +78,7 @@ function FilterPicker({ label, value, options, onChange }: { label: string; valu
 async function fetchFilteredAnime(f: Filters, page: number): Promise<{ media: AnimeSummary[]; total: number; hasNextPage: boolean }> {
   const variables = {
     search: resolveAnimeSearch(f.q) || undefined,
-    genreIn: f.genre.split(",").filter(g => anilistGenres.has(g)),
+    genreIn: f.genre.split(",").filter(g => anilistGenres.has(g)).length ? f.genre.split(",").filter(g => anilistGenres.has(g)) : undefined,
     // For tag-based categories, use the AniList tag filter. A demographic takes precedence.
     tag: f.demographic || f.tag || undefined,
     adult: false,
@@ -183,7 +183,7 @@ function Browse() {
           {results.isError && <div role="alert" className="mb-5 text-sm text-destructive">{results.error.message} <button className="ml-2 underline" onClick={() => void results.refetch()}>Retry</button></div>}
           {!!imported.length && <section className="mb-8"><h2 className="mb-4 text-lg font-bold">Available on Streamly</h2><div className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-9">{imported.map((series) => <SeriesCard key={series.id} s={series} />)}</div></section>}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7">{results.data?.media.map((anime) => <AnimeCard key={anime.id} a={anime} />)}</div>
-          {!results.isLoading && !results.isError && <nav aria-label="Anime results pages" className="mt-8 flex items-center justify-center gap-4"><button type="button" disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="rounded-md border border-border px-4 py-2 disabled:opacity-40">Previous</button><span className="text-sm">Page {page}</span><button type="button" disabled={!results.data?.hasNextPage} onClick={() => setPage(p => p + 1)} className="rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground disabled:opacity-40">Next</button></nav>}
+          {!results.isLoading && !results.isError && <nav aria-label="Anime results pages" className="mt-8 flex items-center justify-center gap-4"><button type="button" disabled={results.isFetching || page === 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="rounded-md border border-border px-4 py-2 disabled:opacity-40">Previous</button><span className="text-sm">Page {page}</span><button type="button" disabled={results.isFetching || !results.data?.hasNextPage} onClick={() => setPage(p => p + 1)} className="rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground disabled:opacity-40">Next</button></nav>}
           {!results.isLoading && !results.isError && !results.data?.media.length && !imported.length && <p className="py-12 text-center text-muted-foreground">No anime matched your filters. Try resetting them.</p>}
         </div>
       </div>
