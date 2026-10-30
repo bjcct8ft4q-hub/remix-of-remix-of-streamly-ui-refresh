@@ -87,8 +87,16 @@ function PublicProfile() {
           <div className="grid min-w-0 grid-cols-1 gap-5 border-b border-white/10 pb-6 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-end sm:gap-6">
             <div className="relative z-10 flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-[#050505] bg-[#11263a] text-3xl font-bold text-primary shadow-xl sm:h-24 sm:w-24">{publicLookup.data.public_avatar_url ? <img src={publicLookup.data.public_avatar_url} alt={publicLookup.data.username+" avatar"} className="h-full w-full object-cover"/> : publicLookup.data.username?.charAt(0).toUpperCase()}</div>
             <div className="min-w-0 w-full pb-1 pt-3 sm:pt-0"><h1 className="break-words text-2xl font-extrabold sm:text-3xl">{publicLookup.data.public_display_name || publicLookup.data.username}</h1><p className="mt-2 text-xs text-gray-400">@{publicLookup.data.username}</p>
-              <div className="mt-3 flex flex-wrap items-center gap-2">{publicAdmin.data && <span className="inline-flex items-center gap-1 rounded-full border border-rose-400/40 bg-rose-400/10 px-2 py-1 text-xs font-semibold text-rose-400"><ShieldCheck size={14}/> Administrator</span>}
-                <button type="button" title="Copy Profile URL" onClick={async()=>{try{await navigator.clipboard.writeText(window.location.origin+"/"+encodeURIComponent(publicLookup.data!.username));setCopied(true);}catch{setCopied(false);}}} className="flex h-7 items-center gap-1 rounded-full border border-white/20 bg-black/60 px-2 text-xs text-gray-200 hover:text-primary">{copied?<Check size={14}/>:<Link2 size={14}/>} {copied?"Copied":"Copy profile URL"}</button>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <ProfileBadges isAdmin={!!publicAdmin.data} />
+                <div className="relative">
+                  <button type="button" aria-label="Profile information" title="Profile information" onClick={()=>setIdentityOpen(v=>!v)} className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white/80 hover:border-primary hover:text-primary"><Info size={15}/></button>
+                  {identityOpen && <div className="absolute left-0 top-9 z-50 w-56 rounded-lg border border-white/15 bg-[#121317] p-1.5 shadow-2xl">
+                    <div className="flex items-center gap-2 rounded-md px-2.5 py-2 text-xs text-gray-200"><UserRound size={14} className="text-gray-400"/>Also known as #{publicLookup.data.username}</div>
+                    <button type="button" onClick={async()=>{try{await navigator.clipboard.writeText(window.location.origin+"/"+encodeURIComponent(publicLookup.data!.username));setCopied(true);}catch{setCopied(false);}}} className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-xs text-gray-200 hover:bg-white/10">{copied?<Check size={14} className="text-emerald-400"/>:<Link2 size={14}/>} {copied?"Copied Profile URL":"Copy Profile URL"}</button>
+                  </div>}
+                </div>
+                <button type="button" title="Activity is private" aria-label="Activity is private" className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white/80"><HeartPulse size={15}/></button>
               </div>
             </div>
             <div className="col-span-full grid min-w-0 w-full grid-cols-3 gap-1 rounded-xl border border-white/10 bg-white/5 px-1 py-4 text-center sm:gap-7 sm:px-2">{["COMPLETED","EPISODES","PLANNING"].map(label=><div key={label}><strong className="block text-xl font-black">—</strong><span className="text-[9px] font-bold tracking-wide text-gray-400">{label}</span></div>)}</div>
