@@ -98,10 +98,11 @@ async function fetchFilteredAnime(f: Filters, page: number): Promise<{ media: An
     const json = await response.json();
     if (json.errors?.length) throw new Error("Recent episode airings could not be loaded.");
     const seen = new Set<number>();
+    type AiringAnime = AnimeSummary & { genres?: string[]; status?: string; countryOfOrigin?: string };
     const media: AnimeSummary[] = (json.data?.Page?.airingSchedules ?? [])
-      .map((item: { media?: AnimeSummary }) => item.media)
-      .filter((anime: AnimeSummary | undefined): anime is AnimeSummary => !!anime && !anime.isAdult)
-      .filter((anime: AnimeSummary) => {
+      .map((item: { media?: AiringAnime }) => item.media)
+      .filter((anime: AiringAnime | undefined): anime is AiringAnime => !!anime && !anime.isAdult)
+      .filter((anime: AiringAnime) => {
         if (seen.has(anime.id)) return false;
         seen.add(anime.id);
         return (!f.q || matchesAnimeTitle(anime.title.english || "", f.q) || matchesAnimeTitle(anime.title.romaji, f.q))
