@@ -41,11 +41,12 @@ export async function setInWatchlist(userId: string, anime: { id: number; title:
 }
 
 export async function saveProgress(row: { userId: string; anilistId: number; episode: number; audio: Audio; title: string; cover: string | null; progress: number; duration: number }) {
-  await supabase.from("watch_history").upsert(
+  const { error } = await supabase.from("watch_history").upsert(
     {
       user_id: row.userId, anilist_id: row.anilistId, episode: row.episode, audio: row.audio, title: row.title, cover_url: row.cover,
       progress_seconds: Math.floor(row.progress), duration_seconds: Math.floor(row.duration), updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id,anilist_id,episode" },
   );
+  if (error) throw error;
 }
