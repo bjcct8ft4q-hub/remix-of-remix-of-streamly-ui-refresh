@@ -43,7 +43,7 @@ function PublicProfile() {
     { role: "moderator", label: "Moderator", Icon: Shield, style: "text-emerald-400 border-emerald-400/40 bg-emerald-400/10" },
     { role: "developer", label: "Developer", Icon: Code2, style: "text-violet-400 border-violet-400/40 bg-violet-400/10" },
   ].filter(badge => isOwnerAccount || roleValues.includes(badge.role));
-  const badges = <ProfileBadges episodes={watched} shows={series} saved={watchlist.data?.length ?? 0} isAdmin={isAdmin} />;
+  const badges = <ProfileBadges episodes={watched} shows={series} saved={watchlist.data?.length ?? 0} isAdmin={isAdmin} isDeveloper={isAdmin && (isOwnerAccount || roleValues.includes("developer"))} />;
   const profileBio = typeof user?.user_metadata?.bio === "string" ? user.user_metadata.bio : "";
   const displayName = typeof user?.user_metadata?.display_name === "string" ? user.user_metadata.display_name : username;
   const activityDays = Array.from({ length: 364 }, (_, index) => {
@@ -56,6 +56,7 @@ function PublicProfile() {
   const activeDays = activityDays.filter((day) => day.count > 0).length;
   const [tab, setTab] = useState<"watchlist" | "activity">("watchlist");
   const [identityOpen, setIdentityOpen] = useState(false);
+  const [publicActivityOpen, setPublicActivityOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const copyProfile = async () => {
     try {
@@ -103,15 +104,15 @@ function PublicProfile() {
                       <button type="button" onClick={async()=>{try{await navigator.clipboard.writeText(window.location.origin+"/"+encodeURIComponent(publicLookup.data!.username));setCopied(true);}catch{setCopied(false);}}} className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-xs text-gray-200 hover:bg-white/10">{copied?<Check size={14}/>:<Link2 size={14}/>} {copied?"Copied Profile URL":"Copy Profile URL"}</button>
                     </div>}
                   </div>
-                  <span title="Activity is private" className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white/80"><HeartPulse size={15}/></span>
+                  <button type="button" onClick={()=>{setPublicActivityOpen(v=>!v);setIdentityOpen(false);}} title="View profile activity" aria-label="View profile activity" className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white/80 hover:border-primary hover:text-primary"><HeartPulse size={15}/></button>
                 </div>
               </div>
               <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-gray-400"><span className="flex items-center gap-1.5"><CalendarDays size={12}/> Streamly member</span><span className="flex items-center gap-1.5"><Film size={12}/> Viewing history private</span><span className="flex items-center gap-1.5"><Bookmark size={12}/> Watchlist private</span></p>
             </div>
             <div className="col-span-full grid min-w-0 w-full grid-cols-3 gap-1 rounded-xl border border-white/10 bg-white/5 px-1 py-4 text-center sm:gap-7 sm:px-2">{["COMPLETED","EPISODES","PLANNING"].map(label=><div key={label}><strong className="block text-xl font-black">—</strong><span className="text-[9px] font-bold tracking-wide text-gray-400">{label}</span></div>)}</div>
           </div>
-          <div className="flex items-center justify-between border-b border-white/10 py-4"><h2 className="flex items-center gap-2 text-sm font-bold"><Bookmark size={16} className="text-primary"/> Watchlist</h2></div>
-          <div className="py-28 text-center"><Bookmark size={35} className="mx-auto mb-4 text-primary"/><h3 className="font-bold">Watchlist is private</h3><p className="mt-2 text-xs text-gray-400">This member has not shared their watchlist publicly.</p></div>
+          {publicActivityOpen ? <section className="py-8"><button type="button" onClick={()=>setPublicActivityOpen(false)} className="mb-5 text-xs text-gray-400 hover:text-white">← Profile</button><h2 className="text-lg font-bold">Activity</h2><div className="mt-5 rounded-lg border border-white/10 bg-[#0d0e11] p-6 text-sm text-gray-400">This member’s activity is private.</div></section> : <><div className="flex items-center justify-between border-b border-white/10 py-4"><h2 className="flex items-center gap-2 text-sm font-bold"><Bookmark size={16} className="text-primary"/> Watchlist</h2></div>
+          <div className="py-28 text-center"><Bookmark size={35} className="mx-auto mb-4 text-primary"/><h3 className="font-bold">Watchlist is private</h3><p className="mt-2 text-xs text-gray-400">This member has not shared their watchlist publicly.</p></div></>}
         </div>
       </>}
     </div> : <>
