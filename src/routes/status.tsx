@@ -60,6 +60,7 @@ function StatusPage() {
   });
   const rows = SERVICE_NAMES.map(name => { const live = checks.data?.find(service => service.name === name); const background = cloudflareMonitor.data?.services?.find(service => service.name === name); return live ?? (name === "Cloudflare" ? { name, state: "unknown" as const, detail: "Live Cloudflare status unavailable; older background results are not used as current status.", duration: null, checkedAt: "" } : background) ?? { name, state: "unknown" as const, detail: checks.isError ? "Checks unavailable" : "Checking…", duration: null, checkedAt: "" }; });
   const active = incidents.data?.filter(i => i.status !== "resolved") ?? [];
+  const maintenanceActive = true; // Temporary Streamly advisory; remove when maintenance is verified complete.
   const cloudflareStartedAt = "2026-10-29T00:37:00Z";
   const cloudflareResolvedAt = cloudflareMonitor.data?.resolvedAt ?? "2026-10-29T08:28:00Z";
   const isCloudflareIncidentResolved = Boolean(cloudflareResolvedAt);
@@ -68,12 +69,13 @@ function StatusPage() {
     ? Math.max(0, Math.round((Date.parse(cloudflareResolvedAt) - Date.parse(cloudflareStartedAt)) / 60000)) : 0;
   const stats = {
     ...recordedStats,
-    total: recordedStats.total + 1,
-    active: recordedStats.active + (isCloudflareIncidentResolved ? 0 : 1),
+    total: recordedStats.total + 1 + (maintenanceActive ? 1 : 0),
+    active: recordedStats.active + (isCloudflareIncidentResolved ? 0 : 1) + (maintenanceActive ? 1 : 0),
     resolved: recordedStats.resolved + (isCloudflareIncidentResolved ? 1 : 0),
     minutes: recordedStats.minutes + cloudflareMinutes,
   };
-  const issues = rows.filter(row => row.state === "outage" || row.state === "degraded").length;
+  const displayRows = rows.map(row => row.name === "Cloudflare" && maintenanceActive ? { ...row, state: "degraded" as const, detail: "Maintenance advisory: account registration may be affected. Cloudflare provider-wide status is monitored separately." } : row);
+  const issues = displayRows.filter(row => row.state === "outage" || row.state === "degraded").length;
   const unknown = rows.filter(row => row.state === "unknown").length;
   const headline = checks.isPending && !cloudflareMonitor.data ? "Checking services" : issues || active.length ? "Some services need attention" : unknown ? "Available services are responding" : "All services operational";
   const checkedAt = cloudflareMonitor.data?.lastCheckedAt ?? checks.data?.[0]?.checkedAt;
@@ -88,17 +90,18 @@ function StatusPage() {
         <p className="mt-3 flex items-center justify-center gap-2 text-sm text-muted-foreground"><Clock3 size={14} />Last checked: {checkedAt ? new Date(checkedAt).toLocaleString() : "Waiting for checks"}</p>
       </header>
       {checks.isError && <p role="alert" className="mb-5 text-destructive">Service checks could not be loaded. Try Refresh below.</p>}
+      {maintenanceActive && <section className="mb-6 border-l-2 border-status-warning pl-4"><h2 className="mb-2 font-bold">Active maintenance</h2><h3 className="font-semibold">Cloudflare Maintenance – Account Registration Issues</h3><p className="mt-2 text-sm text-muted-foreground">We are investigating reports of account registration failures during Cloudflare maintenance. Cloudflare-related verification for signup is being reviewed; other website security protections remain in place.</p></section>}
       {active.length > 0 && <section className="mb-6 border-l-2 border-status-warning pl-4"><h2 className="mb-2 font-bold">Active incidents</h2>{active.map(i => <div key={i.id} className="py-2"><h3 className="font-semibold">{i.title}</h3><p className="text-xs text-status-warning">{i.service} · {i.status}</p><p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted-foreground">{i.body}</p></div>)}</section>}
       <section>
         <h2 className="mb-3 flex items-center gap-2 font-bold"><Server size={18} className="text-primary" />Services</h2>
         <div className="divide-y divide-border border-y border-border">
-          {rows.map(row => {
+          {displayRows.map(row => {
             const saved = row.name === "Cloudflare" ? undefined : cloudflareMonitor.data?.services?.find(service => service.name === row.name)?.samples;
             const samples = row.name === "Cloudflare" ? (history[row.name] ?? []) : saved?.length ? saved : (history[row.name] ?? []);
             const confirmed = samples.filter(s => s.state !== "unknown");
             const percent = confirmed.length ? Math.round(confirmed.filter(s => s.state === "operational").length / confirmed.length * 100) : null;
             return <details key={row.name} className="group py-4">
-              <summary className="cursor-pointer list-none"><div className="flex items-center justify-between gap-4"><div className="flex min-w-0 items-center gap-3"><Activity size={18} className={`shrink-0 ${stateClass[row.state]}`} /><div><h3 className="font-semibold">{row.name === "Cloudflare" ? "Cloudflare overall status" : row.name}</h3><p className="mt-1 text-xs text-muted-foreground">{row.duration === null ? "No response time" : `${row.duration} ms`}</p></div></div><span className={`shrink-0 text-sm font-semibold ${stateClass[row.state]}`}>{checks.isPending ? "Checking" : labels[row.state]}</span></div>
+              <summary className="cursor-pointer list-none"><div className="flex items-center justify-between gap-4"><div className="flex min-w-0 items-center gap-3"><Activity size={18} className={`shrink-0 ${stateClass[row.state]}`} /><div><h3 className="font-semibold">{row.name === "Cloudflare" ? "Cloudflare overall status" : row.name}</h3><p className="mt-1 text-xs text-muted-foreground">{row.duration === null ? "No response time" : `${row.duration} ms`}</p></div></div><span className={`shrink-0 text-sm font-semibold ${stateClass[row.state]}`}>{row.name === "Cloudflare" && maintenanceActive ? "Under Maintenance" : checks.isPending ? "Checking" : labels[row.state]}</span></div>
               <div className="mt-4 flex h-6 gap-0.5" aria-label={`${row.name} sampled checks`}>
                 {Array.from({ length: 288 }, (_, index) => { const length = 288; const sample = samples[index - (length - samples.length)]; return <span key={index} title={sample ? `${new Date(sample.checkedAt).toLocaleString()}: ${labels[sample.state]}` : "No check recorded"} className={`min-w-0 flex-1 rounded-sm ${sample ? barClass[sample.state] : "bg-muted"}`} />; })}
               </div><div className="mt-2 flex justify-between gap-3 text-xs text-muted-foreground"><span>Earlier checks</span><span>{percent === null ? "No confirmed samples" : `${percent}% of ${confirmed.length} confirmed checks successful`}</span><span>Latest</span></div></summary>
@@ -114,6 +117,7 @@ function StatusPage() {
       <section className="mt-10"><h2 className="text-2xl font-bold">Past incidents</h2>
         {incidents.isPending && <p className="mt-4 text-muted-foreground">Loading incidents…</p>}
         {incidents.isError && <p role="alert" className="mt-4 text-destructive">Incident history could not be loaded.</p>}
+        {maintenanceActive && <article className="mt-4 rounded-xl border border-status-warning/40 bg-card p-5 shadow-sm"><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-bold">Cloudflare Maintenance – Account Registration Issues</h3><span className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-1 text-xs font-bold uppercase text-yellow-500">Active · Maintenance</span></div><p className="mt-2 text-xs text-muted-foreground">Cloudflare · Reported 30 October 2026 (UK)</p><p className="mt-3 text-sm">Some users have reported being unable to create Streamly accounts while Cloudflare maintenance is underway. We are investigating the registration flow and reviewing Cloudflare-related signup verification. Existing site-wide security protections remain enabled.</p></article>}
         <article className="mt-4 rounded-xl border border-border bg-card p-5 shadow-sm" aria-label="Cloudflare partial service disruption advisory">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <h3 className="break-words font-bold">Cloudflare partial service disruption</h3>
