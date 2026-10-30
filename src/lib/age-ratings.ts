@@ -4,17 +4,12 @@ import { useEffect, useRef, useState } from "react";
 const cache = new Map<number, string | null>();
 const REQUEST_TIMEOUT_MS = 6500;
 const pending = new Map<number, Promise<string | null>>();
-let activeRequests = 0;
-const waiting: Array<() => void> = [];
-async function acquireSlot() { if (activeRequests < 3) { activeRequests++; return; } await new Promise<void>(resolve => waiting.push(resolve)); }
-function releaseSlot() { const next = waiting.shift(); if (next) next(); else activeRequests--; }
+let queue: Promise<unknown> = Promise.resolve();
 
 async function lookupRating(malId: number): Promise<string | null> {
   if (cache.has(malId)) return cache.get(malId) ?? null;
   if (pending.has(malId)) return pending.get(malId)!;
-  const job = (async () => {
-    await acquireSlot();
-    try {
+  const job = queue.then(async () => {
     // Public Jikan endpoints are limited to roughly three requests per second.
     // Queue calls rather than starting dozens of simultaneous poster requests.
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -36,8 +31,9 @@ async function lookupRating(malId: number): Promise<string | null> {
     }
     cache.set(malId, null);
     return null;
-    } finally { releaseSlot(); }
-  })();
+  });
+  // Ensure the next request waits for this one plus a small safety interval.
+  queue = job.then(() => new Promise((resolve) => setTimeout(resolve, 450)), () => undefined);
   pending.set(malId, job);
   void job.finally(() => pending.delete(malId));
   return job;
