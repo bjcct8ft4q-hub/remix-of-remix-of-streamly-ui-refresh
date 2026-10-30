@@ -259,7 +259,12 @@ function ThemeToggle() {
 
 function AgeRatingsNotice() {
   const [visible, setVisible] = useState(false);
-  useEffect(() => { try { setVisible(sessionStorage.getItem("streamly-age-ratings-notice-dismissed") !== "yes"); } catch { setVisible(true); } }, []);
+  useEffect(() => {
+    try { if (sessionStorage.getItem("streamly-age-ratings-notice-dismissed") === "yes") return; } catch {}
+    setVisible(true);
+    const timer = window.setTimeout(() => { setVisible(false); try { sessionStorage.setItem("streamly-age-ratings-notice-dismissed", "yes"); } catch {} }, 10000);
+    return () => window.clearTimeout(timer);
+  }, []);
   if (!visible) return null;
   return <div role="status" className="fixed bottom-5 left-1/2 z-[110] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 rounded-xl border border-primary/40 bg-background/95 p-4 shadow-2xl backdrop-blur-md sm:bottom-7"><div className="flex items-start gap-3"><div className="min-w-0 flex-1"><p className="text-sm font-bold text-foreground">Age ratings are being updated</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">We are currently working on anime age ratings. Some titles may temporarily show “Not applicable” while we fix this. Thank you for your patience.</p></div><button type="button" aria-label="Dismiss age ratings notice" className="rounded p-1 text-muted-foreground hover:text-foreground" onClick={() => { try { sessionStorage.setItem("streamly-age-ratings-notice-dismissed", "yes"); } catch {} setVisible(false); }}>✕</button></div></div>;
 }
