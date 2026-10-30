@@ -17,7 +17,7 @@ function PublicProfile() {
     queryKey: ["public-profile-lookup", requestedUsername],
     enabled: !!requestedUsername,
     queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("id, username").ilike("username", requestedUsername).maybeSingle();
+      const { data, error } = await supabase.from("profiles").select("id, username, public_avatar_url, public_display_name, public_banner_url").ilike("username", requestedUsername).maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -86,11 +86,11 @@ function PublicProfile() {
       </form>
       {requestedUsername && <div className="mt-8">
         {publicLookup.isLoading ? <p className="text-gray-400">Looking up profile…</p> : publicLookup.isError ? <p className="text-gray-400">Public profile could not be loaded.</p> : !publicLookup.data ? <p className="text-gray-400">No public profile found for @{requestedUsername}.</p> : <section className="overflow-hidden rounded-xl border border-white/10 bg-[#0d0e11]">
-          <div className="h-48 bg-gradient-to-r from-[#11263a] via-[#121b2a] to-[#050505] sm:h-64"/>
+          <div className="h-48 overflow-hidden bg-gradient-to-r from-[#11263a] via-[#121b2a] to-[#050505] sm:h-64">{publicLookup.data.public_banner_url && <img src={publicLookup.data.public_banner_url} alt="Profile banner" className="h-full w-full object-cover"/>}</div>
           <div className="relative -mt-10 px-5 pb-8 sm:px-8">
             <div className="flex flex-wrap items-end gap-5">
-              <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full border-4 border-[#050505] bg-primary/20 text-4xl font-black text-primary">{publicLookup.data.username?.slice(0,1).toUpperCase()}</div>
-              <div className="min-w-0 pb-1"><h2 className="break-words text-2xl font-extrabold sm:text-3xl">{publicLookup.data.username}</h2><p className="text-sm text-gray-400">@{publicLookup.data.username}</p>
+              <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full border-4 border-[#050505] bg-primary/20 text-4xl font-black text-primary">{publicLookup.data.public_avatar_url ? <img src={publicLookup.data.public_avatar_url} alt={`${publicLookup.data.username} avatar`} className="h-full w-full rounded-full object-cover"/> : publicLookup.data.username?.slice(0,1).toUpperCase()}</div>
+              <div className="min-w-0 pb-1"><h2 className="break-words text-2xl font-extrabold sm:text-3xl">{publicLookup.data.public_display_name || publicLookup.data.username}</h2><p className="text-sm text-gray-400">@{publicLookup.data.username}</p>
                 {publicAdmin.data && <span className="mt-2 inline-flex items-center gap-1 rounded-md border border-rose-400/50 bg-rose-400/10 px-2 py-1 text-xs font-semibold text-rose-400"><ShieldCheck size={14}/> Administrator</span>}
               </div>
             </div>
