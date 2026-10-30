@@ -8,7 +8,6 @@ import { animeTitle, type AnimeSummary, type Audio } from "@/lib/kitsune";
 import { animeQuery, episodesQuery } from "@/lib/anime-queries";
 import { useAuth } from "@/lib/auth";
 import { historyQuery } from "@/lib/library";
-import { useAnimeAgeRating } from "@/lib/age-ratings";
 import { useAudioPreference } from "@/lib/audio-preference";
 import { fetchSeasonChain } from "@/lib/anime-series";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -38,7 +37,6 @@ function AnimePage() {
   const { preference } = useAudioPreference();
   const info = useQuery(animeQuery(id));
   const seasons = useQuery({ queryKey: ["anime-season-chain", id], queryFn: () => fetchSeasonChain(id), staleTime: 60 * 60 * 1000 });
-  const ageRating = useAnimeAgeRating(info.data?.idMal, info.data?.isAdult);
   const eps = useQuery(episodesQuery(id));
   const hist = useQuery(historyQuery(user?.id, id));
   const a = info.data;
@@ -62,7 +60,7 @@ function AnimePage() {
   const resume = hist.data?.[0];
   const first = resume?.episode ?? list[0]?.number;
   return (
-    <main ref={ageRating.ref as React.Ref<HTMLElement>} className="pb-20">
+    <main className="pb-20">
       <div className="relative h-64 overflow-hidden md:h-80">
         {a.bannerImage && <img src={a.bannerImage} alt="" className="h-full w-full object-cover opacity-50" />}
         <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
@@ -73,7 +71,7 @@ function AnimePage() {
           <div className="min-w-0 flex-1 md:pt-24">
             <h1 className="text-3xl font-extrabold md:text-4xl">{title}</h1>
             <p className="mt-2 text-sm text-muted-foreground">{[a.format?.replaceAll("_", " "), a.seasonYear, a.episodes && `${a.episodes} episodes`, a.averageScore && `★ ${(a.averageScore / 10).toFixed(1)}`, ...a.genres].filter(Boolean).join(" · ")}</p>
-            <div className="mt-3 flex flex-wrap gap-2"><span className="rounded-md border border-border bg-card px-3 py-1 text-xs font-bold">{ageRating.label}</span><span className="rounded-md border border-border bg-card px-3 py-1 text-xs font-bold">★ AniList {a.averageScore != null ? `${(a.averageScore / 10).toFixed(1)}/10` : "Not rated"}</span></div>
+            <div className="mt-3 flex flex-wrap gap-2"><span className="rounded-md border border-border bg-card px-3 py-1 text-xs font-bold">★ AniList {a.averageScore != null ? `${(a.averageScore / 10).toFixed(1)}/10` : "Not rated"}</span></div>
             <div className="mt-4 flex flex-wrap gap-2">
               {first != null && <Button asChild><Link to="/anime/$id/watch" params={{ id: String(id) }} search={{ ep: first, audio: resume?.audio === "dub" ? "dub" : audio }}><Play /> {resume ? `Continue episode ${resume.episode}` : "Watch now"}</Link></Button>}
               <WatchlistButton anime={{ id, title, cover: a.coverImage.large }} />
@@ -104,7 +102,6 @@ function AnimePage() {
               ["Start date", [a.startDate?.year, a.startDate?.month && String(a.startDate.month).padStart(2, "0"), a.startDate?.day && String(a.startDate.day).padStart(2, "0")].filter(Boolean).join("-")],
               ["Season", [a.season, a.seasonYear].filter(Boolean).join(" ")],
               ["Origin", a.countryOfOrigin],
-              ["Age rating", ageRating.label],
             ].map(([label, value]) => <div key={String(label)} className="mb-3"><p className="text-xs text-muted-foreground">{label}</p><p className="font-semibold capitalize">{value || "Unknown"}</p></div>)}
           </aside>
           <section className="min-w-0 overflow-hidden rounded-lg border border-border bg-card/70">
