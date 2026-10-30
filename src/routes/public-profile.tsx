@@ -23,6 +23,7 @@ function PublicProfile() {
     },
     retry: false,
   });
+  const publicAdmin = useQuery({ queryKey: ["public-admin-badge", publicLookup.data?.id], enabled: !!publicLookup.data?.id, queryFn: async () => { const { data, error } = await (supabase as any).rpc("is_public_admin", { profile_user_id: publicLookup.data!.id }); if (error) throw error; return data === true; } });
   const viewingOtherUser = !!requestedUsername && publicLookup.data?.id !== user?.id;
   const history = useQuery(historyQuery(user?.id));
   const watchlist = useQuery(watchlistQuery(user?.id));
@@ -85,7 +86,7 @@ function PublicProfile() {
       </form>
       {requestedUsername && <div className="mt-10 rounded-xl border border-white/10 bg-[#0c0e12] p-7">
         {publicLookup.isLoading ? <p className="text-gray-400">Looking up profile…</p> : publicLookup.isError ? <p className="text-gray-400">Public profiles could not be loaded. Check public profile read permissions.</p> : !publicLookup.data ? <p className="text-gray-400">No public profile found for @{requestedUsername}.</p> : <>
-          <div className="flex items-center gap-4"><div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/15 text-2xl font-bold text-primary">{publicLookup.data.username?.slice(0,1).toUpperCase()}</div><div><h2 className="text-2xl font-bold">{publicLookup.data.username}</h2><p className="text-sm text-gray-400">@{publicLookup.data.username}</p></div></div>
+          <div className="flex items-center gap-4"><div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/15 text-2xl font-bold text-primary">{publicLookup.data.username?.slice(0,1).toUpperCase()}</div><div><h2 className="text-2xl font-bold">{publicLookup.data.username}</h2><p className="text-sm text-gray-400">@{publicLookup.data.username}</p>{publicAdmin.data && <span className="mt-2 inline-flex items-center gap-1 rounded-md border border-rose-400/50 bg-rose-400/10 px-2 py-1 text-xs font-semibold text-rose-400"><ShieldCheck size={14}/> Administrator</span>}</div></div>
           <p className="mt-6 text-sm text-gray-400">Private activity and watchlists are not displayed.</p>
           <button type="button" onClick={() => { void navigator.clipboard.writeText(window.location.origin + "/" + encodeURIComponent(publicLookup.data?.username || requestedUsername)); }} className="mt-4 inline-flex items-center gap-2 rounded-lg border border-white/20 px-3 py-2 text-sm"><Link2 size={14}/> Copy profile URL</button>
         </>}
