@@ -32,6 +32,7 @@ function AnimePage() {
   const { user } = useAuth();
   const [tab, setTab] = useState<"overview" | "cast" | "related" | "recommendations">("overview");
   const [showAllCast, setShowAllCast] = useState(false);
+  const [showFullSynopsis, setShowFullSynopsis] = useState(false);
   const [relatedType, setRelatedType] = useState("ALL");
   const [manualAudio, setManualAudio] = useState<Audio | null>(null);
   const { preference } = useAudioPreference();
@@ -61,14 +62,14 @@ function AnimePage() {
   const first = resume?.episode ?? list[0]?.number;
   return (
     <main className="pb-20">
-      <div className="relative h-64 overflow-hidden md:h-80">
-        {a.bannerImage && <img src={a.bannerImage} alt="" className="h-full w-full object-cover opacity-50" />}
+      <div className="relative h-52 overflow-hidden sm:h-64 md:h-80">
+        {a.bannerImage && <img src={a.bannerImage} alt="" className="h-full w-full object-cover object-center opacity-40" />}
         <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
       </div>
-      <div className="mx-auto -mt-40 max-w-[1400px] px-4 sm:px-6 md:px-8">
-        <div className="relative flex flex-col gap-6 md:flex-row">
-          <img src={a.coverImage.extraLarge || a.coverImage.large || ""} alt={title} className="w-40 shrink-0 rounded-md shadow-xl md:w-52" />
-          <div className="min-w-0 flex-1 md:pt-24">
+      <div className="relative mx-auto -mt-20 max-w-[1400px] px-4 sm:px-6 md:-mt-28 md:px-8">
+        <div className="flex flex-col items-start gap-5 sm:flex-row sm:gap-7">
+          <div className="w-36 shrink-0 overflow-hidden rounded-lg border border-border bg-card shadow-xl sm:w-44 md:w-48"><img src={a.coverImage.extraLarge || a.coverImage.large || ""} alt={title} className="aspect-[2/3] h-auto w-full object-cover object-center" /></div>
+          <div className="min-w-0 flex-1 pt-2 sm:pt-6 md:pt-10">
             <h1 className="text-3xl font-extrabold md:text-4xl">{title}</h1>
             <p className="mt-2 text-sm text-muted-foreground">{[a.format?.replaceAll("_", " "), a.seasonYear, a.episodes && `${a.episodes} episodes`, a.averageScore && `★ ${(a.averageScore / 10).toFixed(1)}`, ...a.genres].filter(Boolean).join(" · ")}</p>
             <div className="mt-3 flex flex-wrap gap-2"><span className="rounded-md border border-border bg-card px-3 py-1 text-xs font-bold">★ AniList {a.averageScore != null ? `${(a.averageScore / 10).toFixed(1)}/10` : "Not rated"}</span></div>
@@ -88,7 +89,7 @@ function AnimePage() {
                 </DropdownMenuContent>
               </DropdownMenu>}
             </div>
-            {a.description && <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted-foreground">{a.description.replace(/<[^>]+>/g, "")}</p>}
+            {a.description && <div className="mt-4 max-w-3xl"><p className={`whitespace-pre-line text-sm leading-6 text-muted-foreground ${showFullSynopsis ? "" : "line-clamp-4"}`}>{a.description.replace(/<[^>]+>/g, "")}</p>{a.description.replace(/<[^>]+>/g, "").length > 240 && <button type="button" className="mt-2 text-xs font-semibold text-primary hover:underline" onClick={() => setShowFullSynopsis(v => !v)}>{showFullSynopsis ? "Show less" : "Read full synopsis"}</button>}</div>}
           </div>
         </div>
         <div className="mt-8 grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
