@@ -23,11 +23,11 @@ async function getRating(id: number): Promise<string | null> {
   const task = (async () => {
     // Keep requests to the public Jikan API below its rate limit.
     const wait = Math.max(0, nextRequestAt - Date.now());
-    nextRequestAt = Math.max(nextRequestAt, Date.now()) + 550;
+    nextRequestAt = Math.max(nextRequestAt, Date.now()) + 360;
     if (wait) await new Promise(resolve => setTimeout(resolve, wait));
     try {
-      const response = await fetch(`https://api.jikan.moe/v4/anime/${id}/full`, {
-        signal: AbortSignal.timeout(7000),
+      const response = await fetch(`https://api.jikan.moe/v4/anime/${id}`, {
+        signal: AbortSignal.timeout(10000),
         headers: { Accept: "application/json" },
       });
       if (!response.ok) return null;
