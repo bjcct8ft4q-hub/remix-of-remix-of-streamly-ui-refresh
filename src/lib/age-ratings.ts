@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from "react";
 
 // MyAnimeList content ratings are fetched through Jikan using AniList's idMal.
 const cache = new Map<number, string | null>();
-const REQUEST_TIMEOUT_MS = 6500;
+const REQUEST_TIMEOUT_MS = 18000;
 const pending = new Map<number, Promise<string | null>>();
-const workers: Promise<unknown>[] = [Promise.resolve(), Promise.resolve(), Promise.resolve()];
+const workers: Promise<unknown>[] = [Promise.resolve(), Promise.resolve()];
 let nextWorker = 0;
 
 async function lookupRating(malId: number): Promise<string | null> {
@@ -35,7 +35,7 @@ async function lookupRating(malId: number): Promise<string | null> {
     return null;
   });
   // Three independent, rate-limited lanes avoid a single queue blocking all cards.
-  workers[worker] = job.then(() => new Promise((resolve) => setTimeout(resolve, 1100)), () => undefined);
+  workers[worker] = job.then(() => new Promise((resolve) => setTimeout(resolve, 600)), () => undefined);
   pending.set(malId, job);
   void job.then(() => { pending.delete(malId); }, () => { pending.delete(malId); });
   return job;
