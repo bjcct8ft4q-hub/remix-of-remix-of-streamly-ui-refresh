@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Search, Filter, RotateCcw, ChevronDown } from "lucide-react";
 import { z } from "zod";
 import { seriesListQuery } from "@/lib/queries";
+import { supabase } from "@/integrations/supabase/client";
 import { SeriesCard } from "@/components/SeriesCard";
 import { AnimeCard } from "@/components/AnimeCard";
 import type { AnimeSummary } from "@/lib/kitsune";
@@ -15,8 +16,8 @@ export const Route = createFileRoute("/browse")({
   component: Browse,
 });
 
-type Filters = { q: string; genre: string; tag: string; year: string; status: string; format: string; demographic: string; ageRating: string; season: string; origin: string };
-const empty: Filters = { q: "", genre: "", tag: "", year: "", status: "", format: "", demographic: "", ageRating: "", season: "", origin: "" };
+type Filters = { q: string; genre: string; tag: string; year: string; status: string; format: string; demographic: string; ageRating: string; season: string; origin: string; sort: string };
+const empty: Filters = { q: "", genre: "", tag: "", year: "", status: "", format: "", demographic: "", ageRating: "", season: "", origin: "", sort: "popular" };
 // AniList has a smaller genre taxonomy; other requested categories are AniList tags.
 const genreOptions: [string, string][] = [
   ["Action", "Action"], ["Adventure", "Adventure"], ["Boys Love", "Boys Love / Yaoi"],
@@ -38,6 +39,7 @@ const tagOptions: [string, string][] = ["School", "Female Protagonist", "Male Pr
 const formats = [["TV", "TV"], ["TV_SHORT", "TV Short"], ["MOVIE", "Movie"], ["OVA", "OVA"], ["ONA", "ONA"], ["SPECIAL", "Special"], ["MUSIC", "Music"]];
 const statuses = [["FINISHED", "Finished"], ["RELEASING", "Releasing"], ["NOT_YET_RELEASED", "Not yet released"], ["CANCELLED", "Cancelled"], ["HIATUS", "Hiatus"]];
 const seasons: [string, string][] = [["WINTER", "Winter"], ["SPRING", "Spring"], ["SUMMER", "Summer"], ["FALL", "Fall"]];
+const sortOptions: [string, string][] = [["popular", "Most popular"], ["latest", "Recently aired episodes"], ["uploaded", "Recently uploaded to Streamly"]];
 const origins: [string, string][] = [["JP", "Japan"], ["KR", "South Korea"], ["CN", "China"]];
 const years = Array.from({ length: new Date().getFullYear() - 1969 }, (_, i) => String(new Date().getFullYear() - i));
 const selectClass = "w-full min-w-0 rounded-md border border-border bg-card px-3 py-3 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary";
@@ -92,7 +94,7 @@ async function fetchFilteredAnime(f: Filters, page: number): Promise<{ media: An
       query: `query ($search: String, $genreIn: [String], $tag: String, $year: Int, $status: MediaStatus, $format: MediaFormat, $adult: Boolean, $season: MediaSeason, $origin: CountryCode) {
         Page(page: ${page}, perPage: 50) {
           pageInfo { total hasNextPage }
-          media(type: ANIME, search: $search, genre_in: $genreIn, tag: $tag, seasonYear: $year, status: $status, format: $format, isAdult: $adult, season: $season, countryOfOrigin: $origin, sort: POPULARITY_DESC) {
+          media(type: ANIME, search: $search, genre_in: $genreIn, tag: $tag, seasonYear: $year, status: $status, format: $format, isAdult: $adult, season: $season, countryOfOrigin: $origin, sort: ${f.sort === "latest" ? "UPDATED_AT_DESC" : "POPULARITY_DESC"}) {
             id idMal title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore isAdult relations { edges { relationType node { id format } } }
           }
         }
@@ -132,7 +134,8 @@ function Browse() {
   const [page, setPage] = useState(1);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { data: series = [] } = useQuery(seriesListQuery());
-  const results = useQuery({ queryKey: ["filtered-anime", applied, page], queryFn: () => fetchFilteredAnime(applied, page), staleTime: 5 * 60 * 1000, retry: 1 });
+  const { data: uploadDates = {} } = useQuery({ queryKey: ["latest-episode-uploads"], queryFn: async () => { const { data, error } = await supabase.from("episodes").select("series_id,created_at").order("created_at", { ascending: false }).limit(1000); if (error) throw error; const dates: Record<string, string> = {}; for (const episode of data ?? []) if (!dates[episode.series_id]) dates[episode.series_id] = episode.created_at; return dates; }, enabled: applied.sort === "uploaded", staleTime: 60_000 });
+  const results = useQuery({ queryKey: ["filtered-anime", applied, page], queryFn: () => fetchFilteredAnime(applied, page), enabled: applied.sort !== "uploaded", staleTime: 5 * 60 * 1000, retry: 1 });
   const imported = series.filter((s) => {
     const term = applied.q.trim().toLowerCase();
     return (!term || matchesAnimeTitle(s.title, term) || s.genres.some((g) => g.toLowerCase().includes(term)))
@@ -141,6 +144,7 @@ function Browse() {
       && (!applied.format || s.type?.toUpperCase().replaceAll(" ", "_") === applied.format)
       && !applied.tag && !applied.status && !applied.demographic && !applied.ageRating && !applied.season && !applied.origin;
   });
+  const sortedImported = applied.sort === "uploaded" ? [...imported].filter(s => uploadDates[s.id]).sort((a,b) => (uploadDates[b.id] ?? "").localeCompare(uploadDates[a.id] ?? "")) : imported;
   const set = (key: keyof Filters, value: string) => setDraft((prev) => ({ ...prev, [key]: value }));
   const apply = () => { setPage(1); setApplied({ ...draft }); };
   const field = (label: string, key: keyof Filters, options: [string, string][]) =>
@@ -165,7 +169,7 @@ function Browse() {
           <button type="button" onClick={() => { setDraft({ ...empty }); setApplied({ ...empty }); setPage(1); }} className="flex items-center gap-2 rounded-md border border-border bg-card px-4 py-2.5 text-sm hover:text-primary"><RotateCcw size={16} />Reset</button>
           <button type="button" onClick={() => setExpanded(!expanded)} aria-expanded={expanded} className="flex items-center gap-2 rounded-md border border-border bg-card px-4 py-2.5 text-sm hover:text-primary">More filters <ChevronDown size={16} className={expanded ? "rotate-180" : ""} /></button>
         </div>
-        {expanded && <div className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-card/60 p-4 sm:grid-cols-4">{field("Demographics", "demographic", demographics)}{field("Season", "season", seasons)}{field("Origin", "origin", origins)}<p className="col-span-2 self-end text-xs text-muted-foreground sm:col-span-1">AniList age flags are not official age classifications.</p></div>}
+        {expanded && <div className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-card/60 p-4 sm:grid-cols-4">{field("Demographics", "demographic", demographics)}{field("Season", "season", seasons)}{field("Origin", "origin", origins)}{field("Sort by", "sort", sortOptions)}<p className="col-span-2 self-end text-xs text-muted-foreground sm:col-span-1">AniList age flags are not official age classifications.</p></div>}
       </form>
       <div className="mt-4 flex flex-col gap-4 lg:flex-row">
         {sidebarOpen && <aside className="w-full shrink-0 space-y-3 lg:w-44 xl:w-48">
@@ -178,12 +182,12 @@ function Browse() {
           <button type="button" onClick={apply} className="w-full rounded bg-primary py-2 text-sm font-bold text-primary-foreground">Apply sidebar filters</button>
         </aside>}
         <div className="min-w-0 flex-1">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><p className="text-sm text-muted-foreground">{results.isLoading ? "Searching anime…" : results.isError ? "Search unavailable" : `${(results.data?.total ?? 0).toLocaleString()} anime results found`}</p><button type="button" onClick={() => setSidebarOpen(!sidebarOpen)} className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-primary">{sidebarOpen ? "Hide sidebar" : "Show sidebar"}</button></div>
-          {results.isError && <div role="alert" className="mb-5 text-sm text-destructive">{results.error.message} <button className="ml-2 underline" onClick={() => void results.refetch()}>Retry</button></div>}
-          {!!imported.length && <section className="mb-8"><h2 className="mb-4 text-lg font-bold">Available on Streamly</h2><div className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-9">{imported.map((series) => <SeriesCard key={series.id} s={series} />)}</div></section>}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7">{results.data?.media.map((anime) => <AnimeCard key={anime.id} a={anime} />)}</div>
-          {!results.isLoading && !results.isError && <nav aria-label="Anime results pages" className="mt-8 flex items-center justify-center gap-4"><button type="button" disabled={results.isFetching || page === 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="rounded-md border border-border px-4 py-2 disabled:opacity-40">Previous</button><span className="text-sm">Page {page}</span><button type="button" disabled={results.isFetching || !results.data?.hasNextPage} onClick={() => setPage(p => p + 1)} className="rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground disabled:opacity-40">Next</button></nav>}
-          {!results.isLoading && !results.isError && !results.data?.media.length && !imported.length && <p className="py-12 text-center text-muted-foreground">No anime matched your filters. Try resetting them.</p>}
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><p className="text-sm text-muted-foreground">{applied.sort === "uploaded" ? `${sortedImported.length} series with uploaded episodes` : results.isLoading ? "Searching anime…" : results.isError ? "Search unavailable" : `${(results.data?.total ?? 0).toLocaleString()} anime results found`}</p><button type="button" onClick={() => setSidebarOpen(!sidebarOpen)} className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-primary">{sidebarOpen ? "Hide sidebar" : "Show sidebar"}</button></div>
+          {applied.sort !== "uploaded" && results.isError && <div role="alert" className="mb-5 text-sm text-destructive">{results.error.message} <button className="ml-2 underline" onClick={() => void results.refetch()}>Retry</button></div>}
+          {!!sortedImported.length && <section className="mb-8"><h2 className="mb-4 text-lg font-bold">Available on Streamly</h2><div className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-9">{(applied.sort === "uploaded" ? sortedImported.slice((page - 1) * 50, page * 50) : sortedImported).map((series) => <SeriesCard key={series.id} s={series} />)}</div></section>}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7">{applied.sort !== "uploaded" && results.data?.media.map((anime) => <AnimeCard key={anime.id} a={anime} />)}</div>
+          {(applied.sort === "uploaded" || (!results.isLoading && !results.isError)) && <nav aria-label="Anime results pages" className="mt-8 flex items-center justify-center gap-4"><button type="button" disabled={results.isFetching || page === 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="rounded-md border border-border px-4 py-2 disabled:opacity-40">Previous</button><span className="text-sm">Page {page}</span><button type="button" disabled={applied.sort === "uploaded" ? page * 50 >= sortedImported.length : results.isFetching || !results.data?.hasNextPage} onClick={() => setPage(p => p + 1)} className="rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground disabled:opacity-40">Next</button></nav>}
+          {!results.isLoading && !results.isError && (applied.sort === "uploaded" || !results.data?.media.length) && !sortedImported.length && <p className="py-12 text-center text-muted-foreground">No anime matched your filters. Try resetting them.</p>}
         </div>
       </div>
     </main>
