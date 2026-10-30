@@ -91,7 +91,7 @@ async function fetchFilteredAnime(f: Filters, page: number): Promise<{ media: An
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({
       query: `query ($search: String, $genreIn: [String], $tag: String, $year: Int, $status: MediaStatus, $format: MediaFormat, $adult: Boolean, $season: MediaSeason, $origin: CountryCode) {
-        Page(page: ${page}, perPage: 48) {
+        Page(page: ${page}, perPage: 50) {
           pageInfo { total hasNextPage }
           media(type: ANIME, search: $search, genre_in: $genreIn, tag: $tag, seasonYear: $year, status: $status, format: $format, isAdult: $adult, season: $season, countryOfOrigin: $origin, sort: POPULARITY_DESC) {
             id idMal title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore isAdult relations { edges { relationType node { id format } } }
@@ -114,7 +114,7 @@ async function fetchFilteredAnime(f: Filters, page: number): Promise<{ media: An
   for (const stem of [...new Set(attempts)].slice(0, 3)) {
     const fallbackResponse = await fetch("https://graphql.anilist.co", {
       method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ query: `query ($search: String) { Page(page: 1, perPage: 48) { media(type: ANIME, search: $search, isAdult: false, sort: SEARCH_MATCH) { id idMal title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore isAdult } } }`, variables: { search: stem } }),
+      body: JSON.stringify({ query: `query ($search: String) { Page(page: 1, perPage: 50) { media(type: ANIME, search: $search, isAdult: false, sort: SEARCH_MATCH) { id idMal title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore isAdult } } }`, variables: { search: stem } }),
     });
     if (!fallbackResponse.ok) continue;
     const fallbackJson = await fallbackResponse.json();
