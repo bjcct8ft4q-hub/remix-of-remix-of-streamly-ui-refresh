@@ -8,7 +8,6 @@ import { SeriesCard } from "@/components/SeriesCard";
 import { AnimeCard } from "@/components/AnimeCard";
 import type { AnimeSummary } from "@/lib/kitsune";
 import { matchesAnimeTitle, resolveAnimeSearch } from "@/lib/anime-search";
-import { groupAnimeSeasons } from "@/lib/anime-series";
 
 export const Route = createFileRoute("/browse")({
   validateSearch: z.object({ q: z.string().optional() }),
@@ -106,7 +105,7 @@ async function fetchFilteredAnime(f: Filters, page: number): Promise<{ media: An
   if (json.errors?.length) throw new Error("Unable to apply those filters.");
   const found: AnimeSummary[] = json.data?.Page?.media ?? [];
   if (found.length || !f.q.trim() || f.q.trim().length < 5) {
-    return { media: groupAnimeSeasons(found), total: json.data?.Page?.pageInfo?.total ?? found.length, hasNextPage: !!json.data?.Page?.pageInfo?.hasNextPage };
+    return { media: found, total: json.data?.Page?.pageInfo?.total ?? found.length, hasNextPage: !!json.data?.Page?.pageInfo?.hasNextPage };
   }
   // Retry a word stem when AniList's exact search finds no titles.
   const words = resolveAnimeSearch(f.q).split(/\s+/).filter((word) => word.length >= 4);
@@ -120,7 +119,7 @@ async function fetchFilteredAnime(f: Filters, page: number): Promise<{ media: An
     const fallbackJson = await fallbackResponse.json();
     const candidates: AnimeSummary[] = fallbackJson.data?.Page?.media ?? [];
     const media = candidates.filter((anime) => matchesAnimeTitle(anime.title.english || "", f.q) || matchesAnimeTitle(anime.title.romaji, f.q));
-    if (media.length) return { media: groupAnimeSeasons(media), total: media.length, hasNextPage: false };
+    if (media.length) return { media: media, total: media.length, hasNextPage: false };
   }
   return { media: [], total: 0, hasNextPage: false };
 }
