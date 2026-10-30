@@ -109,7 +109,7 @@ export const VideoPlayer = forwardRef<HTMLVideoElement | null, Props>(function V
   }, []);
 
   if (isEmbed) {
-    return <div ref={wrap} className="relative h-full w-full bg-overlay">
+    return <div ref={wrap} onContextMenu={(e) => e.preventDefault()} className="relative h-full w-full bg-overlay">
       <iframe
         key={src}
         src={src}
@@ -127,8 +127,8 @@ export const VideoPlayer = forwardRef<HTMLVideoElement | null, Props>(function V
   const showUi = !playing || !idle || menu;
 
   return (
-    <div ref={wrap} onMouseMove={wake} onMouseLeave={() => setIdle(true)} className={`group relative h-full w-full bg-overlay ${showUi ? "" : "cursor-none"}`}>
-      <video ref={video} src={isHls ? undefined : src} poster={poster} autoPlay={autoPlay} playsInline preload="metadata" className="h-full w-full" crossOrigin="anonymous" onClick={toggle} onDoubleClick={fs}
+    <div ref={wrap} onContextMenu={(e) => e.preventDefault()} onMouseMove={wake} onMouseLeave={() => setIdle(true)} className={`group relative h-full w-full bg-overlay ${showUi ? "" : "cursor-none"}`}>
+      <video ref={video} onContextMenu={(e) => e.preventDefault()} disablePictureInPicture controlsList="nodownload noremoteplayback" src={isHls ? undefined : src} poster={poster} autoPlay={autoPlay} playsInline preload="metadata" className="h-full w-full" crossOrigin="anonymous" onClick={toggle} onDoubleClick={fs}
         onPlay={() => { setPlaying(true); wake(); }} onPause={() => setPlaying(false)}
         onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
         onProgress={(e) => { const b = e.currentTarget.buffered; if (b.length) setBuffered(b.end(b.length - 1)); }}
