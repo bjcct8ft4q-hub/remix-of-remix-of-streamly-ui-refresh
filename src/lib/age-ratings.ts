@@ -71,7 +71,7 @@ export function useAnimeAgeRating(malId: number | null | undefined, isAdult?: bo
 
   return {
     ref,
-    label: rating || (isAdult ? "18+" : "Age N/A"),
+    label: rating || (isAdult ? "18+" : loading ? "Age …" : "Age N/A"),
     verified: !!rating,
   };
 }
