@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { Eye, EyeOff, X } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -9,43 +9,6 @@ import { RecoveryCodes } from "@/components/RecoveryCodes";
 import { createUsernameAccount, recoverUsernameAccount, resolveLoginIdentifier } from "@/lib/accounts.functions";
 import { signupSchema, recoverySchema, usernameEmail } from "@/lib/account-schema";
 
-declare global { interface Window { turnstile?: { render:(element:HTMLElement,options:Record<string,unknown>)=>string; remove:(id:string)=>void; reset:(id:string)=>void } } }
-const siteKey=import.meta.env.VITE_TURNSTILE_SITE_KEY as string|undefined;
-function TurnstileChallenge({onVerify}:{onVerify:(token:string)=>void}) {
-  const container = useRef<HTMLDivElement>(null);
-  const [verified, setVerified] = useState(false);
-  useEffect(() => {
-    if (!siteKey || !container.current) return;
-    let active = true;
-    let widget: string | undefined;
-    const mount = () => {
-      if (!active || !container.current || !window.turnstile) return;
-      widget = window.turnstile.render(container.current, {
-        sitekey: siteKey, theme: "dark",
-        callback: (token: string) => { setVerified(true); onVerify(token); },
-        "expired-callback": () => { setVerified(false); onVerify(""); },
-        "error-callback": () => { setVerified(false); onVerify(""); },
-      });
-    };
-    if (window.turnstile) mount();
-    else {
-      const script = document.createElement("script");
-      script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-      script.async = true;
-      script.onload = mount;
-      document.head.appendChild(script);
-    }
-    return () => { active = false; if (widget && window.turnstile) window.turnstile.remove(widget); };
-  }, []);
-  return <div className="space-y-2">
-    <div className={verified ? "sr-only" : "rounded-md border border-border bg-black/40 p-3"} ref={container} aria-label="Cloudflare verification challenge" />
-    <div role="status" className={`flex min-h-10 items-center justify-between gap-2 rounded-sm border border-orange-600/60 bg-orange-950/30 px-3 py-2 text-xs font-bold ${verified ? "text-orange-400" : "text-muted-foreground"}`}>
-      <span className="flex items-center gap-2"><span aria-hidden="true" className="text-orange-500">⬡</span>{verified ? "Verified — you're human" : "Complete the verification above"}</span>
-      <span className="text-[10px] font-extrabold tracking-[0.12em] text-muted-foreground">CLOUDFLARE</span>
-    </div>
-  </div>;
-}
-
 const inputCls = "mt-2 w-full rounded-md border border-border bg-background/70 px-4 py-3.5 pr-12 text-base font-normal normal-case tracking-normal text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary";
 
 export function AuthDialog() {
@@ -53,7 +16,6 @@ export function AuthDialog() {
   const createAccount = useServerFn(createUsernameAccount);
   const recoverAccount = useServerFn(recoverUsernameAccount);
   const resolveLogin = useServerFn(resolveLoginIdentifier);
-  const [turnstileToken,setTurnstileToken]=useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -82,7 +44,7 @@ export function AuthDialog() {
         if (verified.error) throw verified.error;
         setFactorId(null); setCode(""); setPassword(""); closeAuth();
       } else if (signup) {
-        const result = await createAccount({ data: { ...signupSchema.parse({ username, password, email }), turnstileToken } });
+        const result = await createAccount({ data: { ...signupSchema.parse({ username, password, email }) } });
         setCodes(result.codes); setSaved(false);
       } else {
         const login = await resolveLogin({ data: username });
@@ -129,11 +91,10 @@ export function AuthDialog() {
               <button type="button" className="streamly-auth-eye" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={19} /> : <Eye size={19} />}</button>
             </label>
             {signup && <label className="streamly-auth-label">Confirm password<input type={showPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={inputCls} autoComplete="new-password" minLength={12} maxLength={128} required placeholder="••••••••••••" /></label>}
-            {signup && siteKey && <TurnstileChallenge onVerify={setTurnstileToken} />}
             {signup && <p className="text-xs normal-case tracking-normal text-muted-foreground">You can sign in using your username or email. Your account is saved to Streamly’s Supabase database. Save the recovery codes provided after registration.</p>}
           </>}
           {(recover || factorId) && <label className="streamly-auth-label">{factorId ? "Authenticator code" : "Recovery code"}<input value={code} onChange={(e) => setCode(e.target.value)} className={inputCls} autoComplete="one-time-code" required maxLength={80} /></label>}
-          <Button type="submit" disabled={busy || (signup && !!siteKey && !turnstileToken)} className={`streamly-auth-submit w-full ${signup ? "!bg-orange-500 !text-black hover:!bg-orange-400" : ""}`}>{busy ? "Please wait…" : factorId ? "Verify" : recover ? "Reset password" : signup ? "Create account" : "Sign in"}</Button>
+          <Button type="submit" disabled={busy} className={`streamly-auth-submit w-full ${signup ? "!bg-orange-500 !text-black hover:!bg-orange-400" : ""}`}>{busy ? "Please wait…" : factorId ? "Verify" : recover ? "Reset password" : signup ? "Create account" : "Sign in"}</Button>
           {!factorId && <p className="text-center text-sm text-muted-foreground">
             {recover ? <>Remembered your password? <button type="button" className="font-semibold text-primary hover:underline" onClick={() => { setRecover(false); setError(""); }}>Sign in</button></> : signup ? <>Already have an account? <button type="button" className="font-semibold text-primary hover:underline" onClick={() => { setError(""); openAuth("signin"); }}>Sign in</button></> : <>Don't have an account? <button type="button" className="font-semibold text-primary hover:underline" onClick={() => { setError(""); openAuth("signup"); }}>Sign up</button></>}
           </p>}
