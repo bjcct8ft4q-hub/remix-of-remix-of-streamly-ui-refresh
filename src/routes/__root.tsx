@@ -269,6 +269,46 @@ function AgeRatingsNotice() {
   return <div role="status" className="fixed bottom-5 left-1/2 z-[110] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 rounded-xl border border-primary/40 bg-background/95 p-4 shadow-2xl backdrop-blur-md sm:bottom-7"><div className="flex items-start gap-3"><div className="min-w-0 flex-1"><p className="text-sm font-bold text-foreground">Age ratings are being updated</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">We are currently working on anime age ratings. Some titles may temporarily show “Not applicable” while we fix this. Thank you for your patience.</p></div><button type="button" aria-label="Dismiss age ratings notice" className="rounded p-1 text-muted-foreground hover:text-foreground" onClick={() => { try { sessionStorage.setItem("streamly-age-ratings-notice-dismissed", "yes"); } catch {} setVisible(false); }}>✕</button></div></div>;
 }
 
+function SiteJumpscare() {
+  const [enabled, setEnabled] = useState(false);
+  const [scare, setScare] = useState(false);
+  const lastSeen = useRef<number | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    try { setEnabled(localStorage.getItem("streamly-site-jumpscares") === "on"); } catch {}
+  }, []);
+  useEffect(() => {
+    let cancelled = false;
+    const check = async () => {
+      if (document.hidden) return;
+      const { data, error } = await (supabase as any).from("site_jumpscares").select("id,created_at").order("id", { ascending: false }).limit(1);
+      if (cancelled || error || !data?.length) return;
+      const event = data[0];
+      const id = Number(event.id);
+      if (lastSeen.current === null) { lastSeen.current = id; return; }
+      if (id <= lastSeen.current) return;
+      lastSeen.current = id;
+      if (!enabled || window.matchMedia("(prefers-reduced-motion: reduce)").matches || Date.now() - new Date(event.created_at).getTime() > 12000) return;
+      setScare(true);
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+      closeTimer.current = setTimeout(() => setScare(false), 1800);
+    };
+    void check();
+    const interval = setInterval(() => void check(), 3000);
+    return () => { cancelled = true; clearInterval(interval); if (closeTimer.current) clearTimeout(closeTimer.current); };
+  }, [enabled]);
+  return <>
+    <label className="fixed bottom-20 right-4 z-[110] flex items-center gap-2 rounded-md border border-border bg-background/90 px-2 py-1 text-[10px] text-muted-foreground shadow sm:right-6">
+      <input type="checkbox" checked={enabled} onChange={e => { setEnabled(e.target.checked); try { localStorage.setItem("streamly-site-jumpscares", e.target.checked ? "on" : "off"); } catch {} }} />
+      Enable jumpscares
+    </label>
+    {scare && <div role="presentation" onClick={() => setScare(false)} className="fixed inset-0 z-[12000] flex cursor-pointer items-center justify-center bg-black">
+      <div className="animate-pulse text-center text-[min(32vw,240px)] font-black text-red-500" aria-hidden="true">☠</div>
+      <span className="sr-only">Jumpscare. Click to dismiss.</span>
+    </div>}
+  </>;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
@@ -281,6 +321,7 @@ function RootComponent() {
             <Header />
             <AgeRatingsNotice />
             <ThemeToggle />
+            <SiteJumpscare />
             <Outlet />
             <Footer />
           </div>
