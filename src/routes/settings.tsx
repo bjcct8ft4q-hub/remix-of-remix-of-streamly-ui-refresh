@@ -108,6 +108,7 @@ function Settings() {
     if (value && (!value.startsWith("https://") || value.length > 2000)) { setBannerMessage("Enter a valid HTTPS image URL (maximum 2,000 characters)."); return; }
     setBannerSaving(true);
     const { error } = await supabase.auth.updateUser({ data: { profile_banner_url: value || null } });
+    if (!error) await supabase.from("profiles").update({ public_banner_url: value || null }).eq("id", user.id);
     setBannerSaving(false);
     setBannerMessage(error ? error.message : "Profile banner saved.");
   };
@@ -204,6 +205,8 @@ function Settings() {
       const { data } = supabase.storage.from("avatars").getPublicUrl(path);
       const result = await supabase.auth.updateUser({ data: { avatar_url: data.publicUrl, avatar_emoji: "" } });
       if (result.error) throw result.error;
+      const { error: profileError } = await supabase.from("profiles").update({ public_avatar_url: data.publicUrl }).eq("id", user.id);
+      if (profileError) throw profileError;
       setAvatarChoice(data.publicUrl); setAvatarMessage("Avatar updated!");
     } catch (error) { setAvatarMessage(error instanceof Error ? error.message : "Upload failed."); }
     finally { setAvatarSaving(false); }
@@ -211,6 +214,7 @@ function Settings() {
   const saveAvatar = async (emoji: string, url?: string) => {
     setAvatarSaving(true); setAvatarMessage("");
     const { error } = await supabase.auth.updateUser({ data: { avatar_emoji: url ? "" : emoji, avatar_url: url ?? null } });
+    if (!error && user) await supabase.from("profiles").update({ public_avatar_url: url ?? null }).eq("id", user.id);
     setAvatarSaving(false);
     if (error) setAvatarMessage(error.message);
     else { setAvatarChoice(url ?? emoji); setAvatarMessage("Avatar updated!"); }
