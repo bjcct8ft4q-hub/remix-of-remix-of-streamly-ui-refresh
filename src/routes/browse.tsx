@@ -77,6 +77,42 @@ function FilterPicker({ label, value, options, onChange }: { label: string; valu
 
 
 async function fetchFilteredAnime(f: Filters, page: number): Promise<{ media: AnimeSummary[]; total: number; hasNextPage: boolean }> {
+  if (f.sort === "latest") {
+    const now = Math.floor(Date.now() / 1000);
+    const response = await fetch("https://graphql.anilist.co", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        query: `query ($before: Int, $page: Int) {
+          Page(page: $page, perPage: 50) {
+            pageInfo { total hasNextPage }
+            airingSchedules(airingAt_lesser: $before, sort: TIME_DESC, notYetAired: false) {
+              media { id idMal title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore isAdult genres status countryOfOrigin }
+            }
+          }
+        }`,
+        variables: { before: now, page },
+      }),
+    });
+    if (!response.ok) throw new Error("Recent episode airings are temporarily unavailable.");
+    const json = await response.json();
+    if (json.errors?.length) throw new Error("Recent episode airings could not be loaded.");
+    const seen = new Set<number>();
+    const media: AnimeSummary[] = (json.data?.Page?.airingSchedules ?? [])
+      .map((item: { media?: AnimeSummary }) => item.media)
+      .filter((anime: AnimeSummary | undefined): anime is AnimeSummary => !!anime && !anime.isAdult)
+      .filter((anime: AnimeSummary) => {
+        if (seen.has(anime.id)) return false;
+        seen.add(anime.id);
+        return (!f.q || matchesAnimeTitle(anime.title.english || "", f.q) || matchesAnimeTitle(anime.title.romaji, f.q))
+          && (!f.genre || f.genre.split(",").some(g => anime.genres?.includes(g)))
+          && (!f.year || String(anime.seasonYear) === f.year)
+          && (!f.format || anime.format === f.format)
+          && (!f.status || anime.status === f.status)
+          && (!f.origin || anime.countryOfOrigin === f.origin);
+      });
+    return { media, total: json.data?.Page?.pageInfo?.total ?? 0, hasNextPage: !!json.data?.Page?.pageInfo?.hasNextPage };
+  }
   const variables = {
     search: resolveAnimeSearch(f.q) || undefined,
     genreIn: f.genre.split(",").filter(g => anilistGenres.has(g)).length ? f.genre.split(",").filter(g => anilistGenres.has(g)) : undefined,
@@ -177,7 +213,7 @@ function Browse() {
           {!!sortedImported.length && <section className="mb-8"><h2 className="mb-4 text-lg font-bold">Available on Streamly</h2><div className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-9">{(applied.sort === "uploaded" ? sortedImported.slice((page - 1) * 50, page * 50) : sortedImported).map((series) => <SeriesCard key={series.id} s={series} />)}</div></section>}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 2xl:grid-cols-8">{applied.sort !== "uploaded" && results.data?.media.map((anime) => <AnimeCard key={anime.id} a={anime} />)}</div>
           {(applied.sort === "uploaded" || (!results.isLoading && !results.isError)) && <nav aria-label="Anime results pages" className="mt-8 flex items-center justify-center gap-4"><button type="button" disabled={results.isFetching || page === 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="rounded-md border border-border px-4 py-2 disabled:opacity-40">Previous</button><span className="text-sm">Page {page}</span><button type="button" disabled={applied.sort === "uploaded" ? page * 50 >= sortedImported.length : results.isFetching || !results.data?.hasNextPage} onClick={() => setPage(p => p + 1)} className="rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground disabled:opacity-40">Next</button></nav>}
-          {!results.isLoading && !results.isError && (applied.sort === "uploaded" || !results.data?.media.length) && !sortedImported.length && <p className="py-12 text-center text-muted-foreground">No anime matched your filters. Try resetting them.</p>}
+          {(applied.sort === "uploaded" || (!results.isLoading && !results.isError && !results.data?.media.length)) && !sortedImported.length && <p className="py-12 text-center text-muted-foreground">No anime matched your filters. Try resetting them.</p>}
         </div>
       </div>
     </main>
