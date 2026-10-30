@@ -77,32 +77,26 @@ function PublicProfile() {
   const [range, setRange] = useState<30 | 90 | 365>(30);
   const recent = activityDays.slice(-range);
   return <main className="min-h-screen bg-[#050505] pb-24 text-white">
-    {(!user || viewingOtherUser) ? <div className="mx-auto max-w-4xl px-6 pt-28">
-      <h1 className="text-3xl font-extrabold">Public profiles</h1>
-      <p className="mt-2 text-sm text-gray-400">Find Streamly members without signing in. Private watchlists and account details stay hidden.</p>
-      <form className="mt-6 flex max-w-xl gap-2" onSubmit={(event) => { event.preventDefault(); const name = guestSearch.trim().replace(/^@/, ""); if (name) window.location.assign("/" + encodeURIComponent(name)); }}>
-        <input aria-label="Search username" value={guestSearch} onChange={event => setGuestSearch(event.target.value)} placeholder="Search by username" className="min-w-0 flex-1 rounded-lg border border-white/20 bg-[#111] px-4 py-3 text-white" />
-        <button type="submit" className="rounded-lg bg-primary px-5 py-3 font-semibold text-black">Search</button>
-      </form>
-      {requestedUsername && <div className="mt-8">
-        {publicLookup.isLoading ? <p className="text-gray-400">Looking up profile…</p> : publicLookup.isError ? <p className="text-gray-400">Public profile could not be loaded.</p> : !publicLookup.data ? <p className="text-gray-400">No public profile found for @{requestedUsername}.</p> : <section className="overflow-hidden rounded-xl border border-white/10 bg-[#0d0e11]">
-          <div className="h-48 overflow-hidden bg-gradient-to-r from-[#11263a] via-[#121b2a] to-[#050505] sm:h-64">{publicLookup.data.public_banner_url && <img src={publicLookup.data.public_banner_url} alt="Profile banner" className="h-full w-full object-cover"/>}</div>
-          <div className="relative -mt-10 px-5 pb-8 sm:px-8">
-            <div className="flex flex-wrap items-end gap-5">
-              <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full border-4 border-[#050505] bg-primary/20 text-4xl font-black text-primary">{publicLookup.data.public_avatar_url ? <img src={publicLookup.data.public_avatar_url} alt={`${publicLookup.data.username} avatar`} className="h-full w-full rounded-full object-cover"/> : publicLookup.data.username?.slice(0,1).toUpperCase()}</div>
-              <div className="min-w-0 pb-1"><h2 className="break-words text-2xl font-extrabold sm:text-3xl">{publicLookup.data.public_display_name || publicLookup.data.username}</h2><p className="text-sm text-gray-400">@{publicLookup.data.username}</p>
-                {publicAdmin.data && <span className="mt-2 inline-flex items-center gap-1 rounded-md border border-rose-400/50 bg-rose-400/10 px-2 py-1 text-xs font-semibold text-rose-400"><ShieldCheck size={14}/> Administrator</span>}
+    {(!user || viewingOtherUser) ? <div>
+      {!requestedUsername ? <div className="mx-auto max-w-[920px] px-4 pt-24 sm:px-5"><h1 className="text-3xl font-extrabold">Public profiles</h1><p className="mt-2 text-sm text-gray-400">Search Streamly members by username.</p><form className="mt-6 flex max-w-xl gap-2" onSubmit={event=>{event.preventDefault();const name=guestSearch.trim().replace(/^@/,"");if(name)window.location.assign("/"+encodeURIComponent(name));}}><input aria-label="Search username" value={guestSearch} onChange={event=>setGuestSearch(event.target.value)} placeholder="Search by username" className="min-w-0 flex-1 rounded-lg border border-white/20 bg-[#111] px-4 py-3 text-white"/><button type="submit" className="rounded-lg bg-primary px-5 py-3 font-semibold text-black">Search</button></form></div> : publicLookup.isLoading ? <p className="mx-auto max-w-[920px] px-5 pt-24 text-gray-400">Loading public profile…</p> : publicLookup.isError ? <p className="mx-auto max-w-[920px] px-5 pt-24 text-gray-400">Public profile could not be loaded.</p> : !publicLookup.data ? <p className="mx-auto max-w-[920px] px-5 pt-24 text-gray-400">No public profile found for @{requestedUsername}.</p> : <>
+        <div className="relative h-[240px] w-full overflow-hidden bg-gradient-to-r from-[#11263a] via-[#121b2a] to-[#050505] sm:h-[420px] lg:h-[480px]">
+          {publicLookup.data.public_banner_url && <img src={publicLookup.data.public_banner_url} alt="Profile banner" className="h-full w-full object-cover"/>}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-black/25 to-black/10"/>
+        </div>
+        <div className="relative mx-auto -mt-10 w-full max-w-[920px] px-4 sm:-mt-20 sm:px-5">
+          <div className="grid min-w-0 grid-cols-1 gap-5 border-b border-white/10 pb-6 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-end sm:gap-6">
+            <div className="relative z-10 flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-[#050505] bg-[#11263a] text-3xl font-bold text-primary shadow-xl sm:h-24 sm:w-24">{publicLookup.data.public_avatar_url ? <img src={publicLookup.data.public_avatar_url} alt={publicLookup.data.username+" avatar"} className="h-full w-full object-cover"/> : publicLookup.data.username?.charAt(0).toUpperCase()}</div>
+            <div className="min-w-0 w-full pb-1 pt-3 sm:pt-0"><h1 className="break-words text-2xl font-extrabold sm:text-3xl">{publicLookup.data.public_display_name || publicLookup.data.username}</h1><p className="mt-2 text-xs text-gray-400">@{publicLookup.data.username}</p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">{publicAdmin.data && <span className="inline-flex items-center gap-1 rounded-full border border-rose-400/40 bg-rose-400/10 px-2 py-1 text-xs font-semibold text-rose-400"><ShieldCheck size={14}/> Administrator</span>}
+                <button type="button" title="Copy Profile URL" onClick={async()=>{try{await navigator.clipboard.writeText(window.location.origin+"/"+encodeURIComponent(publicLookup.data!.username));setCopied(true);}catch{setCopied(false);}}} className="flex h-7 items-center gap-1 rounded-full border border-white/20 bg-black/60 px-2 text-xs text-gray-200 hover:text-primary">{copied?<Check size={14}/>:<Link2 size={14}/>} {copied?"Copied":"Copy profile URL"}</button>
               </div>
             </div>
-            <div className="mt-6 flex flex-wrap items-center gap-3 border-b border-white/10 pb-6">
-              <button type="button" onClick={() => { void navigator.clipboard.writeText(window.location.origin + "/" + encodeURIComponent(publicLookup.data!.username)); setCopied(true); }} className="inline-flex items-center gap-2 rounded-lg border border-white/20 px-3 py-2 text-sm hover:border-primary"><Link2 size={14}/>{copied ? "Copied profile URL" : "Copy profile URL"}</button>
-            </div>
-            <div className="mt-5 grid grid-cols-3 gap-2 rounded-xl border border-white/10 bg-white/5 p-5 text-center"><div><strong className="block text-lg">—</strong><span className="text-[10px] text-gray-400">COMPLETED</span></div><div><strong className="block text-lg">—</strong><span className="text-[10px] text-gray-400">EPISODES</span></div><div><strong className="block text-lg">—</strong><span className="text-[10px] text-gray-400">PLANNING</span></div></div>
-            <h3 className="mt-7 border-b border-white/10 pb-3 text-sm font-bold">Public watchlist</h3>
-            <p className="py-12 text-center text-sm text-gray-400">This member's private viewing activity and watchlist are not shared.</p>
+            <div className="col-span-full grid min-w-0 w-full grid-cols-3 gap-1 rounded-xl border border-white/10 bg-white/5 px-1 py-4 text-center sm:gap-7 sm:px-2">{["COMPLETED","EPISODES","PLANNING"].map(label=><div key={label}><strong className="block text-xl font-black">—</strong><span className="text-[9px] font-bold tracking-wide text-gray-400">{label}</span></div>)}</div>
           </div>
-        </section>}
-      </div>}
+          <div className="flex items-center justify-between border-b border-white/10 py-4"><h2 className="flex items-center gap-2 text-sm font-bold"><Bookmark size={16} className="text-primary"/> Watchlist</h2></div>
+          <div className="py-28 text-center"><Bookmark size={35} className="mx-auto mb-4 text-primary"/><h3 className="font-bold">Watchlist is private</h3><p className="mt-2 text-xs text-gray-400">This member has not shared their watchlist publicly.</p></div>
+        </div>
+      </>}
     </div> : <>
     {tab === "watchlist" ? <>
       <div className="relative h-[240px] w-full overflow-hidden bg-gradient-to-r from-[#11263a] via-[#121b2a] to-[#050505] sm:h-[420px] lg:h-[480px]">
