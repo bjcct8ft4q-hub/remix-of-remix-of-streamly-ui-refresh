@@ -1,5 +1,13 @@
 /** Shared alias and typo-tolerant matching for Streamly search. */
 export const animeAliases: Record<string, string> = {
+  "umamusume": "Uma Musume",
+  "uma musume": "Uma Musume",
+  "umamusumes": "Uma Musume",
+  "umamusume pretty derby": "Uma Musume",
+  "umayon": "Umayon",
+  "umayuru": "Umayuru",
+  "beginning of a new era": "Uma Musume Pretty Derby Beginning of a New Era",
+  "cinderella gray": "Uma Musume Cinderella Gray",
   "mha": "My Hero Academia",
   "bnha": "Boku no Hero Academia",
   "aot": "Attack on Titan",
