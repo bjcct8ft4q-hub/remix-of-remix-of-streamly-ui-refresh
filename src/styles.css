@@ -491,7 +491,7 @@ html.streamly-theme-swap-hidden .streamly-glitch-color {
   --popover: oklch(0.14 0.025 22);
 }
 .christmas body { background-image: radial-gradient(ellipse at 90% 0%, oklch(0.35 0.13 25 / 0.18), transparent 48%); }
-.christmas .streamly-logo-wordmark { color: oklch(0.71 0.22 25); }
+.christmas .streamly-logo-wordmark { color: #ffffff; }
 .christmas .streamly-logo-wordmark span { color: oklch(0.71 0.22 25); }
 @keyframes streamly-snowfall { from { transform: translate3d(0,-12vh,0); } to { transform: translate3d(20px,112vh,0); } }
 .streamly-snowflake { position: absolute; top: 0; left: var(--snow-left); width: var(--snow-size); height: var(--snow-size); border-radius: 50%; background: rgba(255,255,255,.85); box-shadow: 0 0 5px rgba(255,255,255,.4); opacity: var(--snow-opacity); animation: streamly-snowfall var(--snow-duration) linear infinite; animation-delay: var(--snow-delay); }
