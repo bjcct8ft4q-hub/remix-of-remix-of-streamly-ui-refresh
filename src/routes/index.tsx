@@ -14,9 +14,9 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Streamly | Discover Anime" },
-      { name: "description", content: "Watch the newest episodes, trending series and fresh uploads on Streamly." },
-      { property: "og:title", content: "Streamly — Watch the latest series episodes" },
-      { property: "og:description", content: "Watch the newest episodes, trending series and fresh uploads on Streamly." },
+      { name: "description", content: "Watch the newest anime episodes, trending anime and fresh uploads on Streamly." },
+      { property: "og:title", content: "Streamly — Watch the latest anime episodes" },
+      { property: "og:description", content: "Watch the newest anime episodes, trending anime and fresh uploads on Streamly." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
