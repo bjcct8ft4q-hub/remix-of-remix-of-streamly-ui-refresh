@@ -13,6 +13,7 @@ function PublicProfile() {
   const { user, username, isAdmin } = useAuth();
   const [guestSearch, setGuestSearch] = useState("");
   const requestedUsername = typeof window === "undefined" ? "" : new URLSearchParams(window.location.search).get("username")?.trim() ?? "";
+  const activityPage = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("activity") === "1";
   const publicLookup = useQuery({
     queryKey: ["public-profile-lookup", requestedUsername],
     enabled: !!requestedUsername,
@@ -80,12 +81,12 @@ function PublicProfile() {
   return <main className="min-h-screen bg-[#050505] pb-24 text-white">
     {(!user || viewingOtherUser) ? <div>
       {!requestedUsername ? <div className="mx-auto max-w-[920px] px-4 pt-24 sm:px-5"><h1 className="text-3xl font-extrabold">Public profiles</h1><p className="mt-2 text-sm text-gray-400">Search Streamly members by username.</p><form className="mt-6 flex max-w-xl gap-2" onSubmit={event=>{event.preventDefault();const name=guestSearch.trim().replace(/^@/,"");if(name)window.location.assign("/"+encodeURIComponent(name));}}><input aria-label="Search username" value={guestSearch} onChange={event=>setGuestSearch(event.target.value)} placeholder="Search by username" className="min-w-0 flex-1 rounded-lg border border-white/20 bg-[#111] px-4 py-3 text-white"/><button type="submit" className="rounded-lg bg-primary px-5 py-3 font-semibold text-black">Search</button></form></div> : publicLookup.isLoading ? <p className="mx-auto max-w-[920px] px-5 pt-24 text-gray-400">Loading public profile…</p> : publicLookup.isError ? <p className="mx-auto max-w-[920px] px-5 pt-24 text-gray-400">Public profile could not be loaded.</p> : !publicLookup.data ? <p className="mx-auto max-w-[920px] px-5 pt-24 text-gray-400">No public profile found for @{requestedUsername}.</p> : <>
-        <div className="relative h-[240px] w-full overflow-hidden bg-gradient-to-r from-[#11263a] via-[#121b2a] to-[#050505] sm:h-[420px] lg:h-[480px]">
+        {!activityPage && <div className="relative h-[240px] w-full overflow-hidden bg-gradient-to-r from-[#11263a] via-[#121b2a] to-[#050505] sm:h-[420px] lg:h-[480px]">
           {publicLookup.data.public_banner_url && <img src={publicLookup.data.public_banner_url} alt="Profile banner" className="h-full w-full object-cover"/>}
           <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-black/25 to-black/10"/>
         </div>
-        <div className="relative mx-auto -mt-10 w-full max-w-[920px] px-4 sm:-mt-20 sm:px-5">
-          <div className="grid min-w-0 grid-cols-1 gap-5 border-b border-white/10 pb-6 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-end sm:gap-6">
+        <div className={`relative mx-auto w-full max-w-[920px] px-4 sm:px-5 ${activityPage ? "pt-12" : "-mt-10 sm:-mt-20"}`}>
+          {!activityPage && <div className="grid min-w-0 grid-cols-1 gap-5 border-b border-white/10 pb-6 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-end sm:gap-6">
             <div className="relative z-10 w-fit shrink-0 rounded-full border-4 border-[#050505] bg-[#111] shadow-xl">
               <span className="inline-grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-primary bg-primary/15 text-3xl font-extrabold text-primary">
                 {publicLookup.data.public_avatar_url ? <img src={publicLookup.data.public_avatar_url} alt={publicLookup.data.username+" avatar"} className="h-full w-full object-cover" referrerPolicy="no-referrer"/> : publicLookup.data.username?.charAt(0).toUpperCase()}
@@ -104,14 +105,14 @@ function PublicProfile() {
                       <button type="button" onClick={async()=>{try{await navigator.clipboard.writeText(window.location.origin+"/"+encodeURIComponent(publicLookup.data!.username));setCopied(true);}catch{setCopied(false);}}} className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-xs text-gray-200 hover:bg-white/10">{copied?<Check size={14}/>:<Link2 size={14}/>} {copied?"Copied Profile URL":"Copy Profile URL"}</button>
                     </div>}
                   </div>
-                  <button type="button" onClick={()=>{setPublicActivityOpen(v=>!v);setIdentityOpen(false);}} title="View profile activity" aria-label="View profile activity" className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white/80 hover:border-primary hover:text-primary"><HeartPulse size={15}/></button>
+                  <button type="button" onClick={()=>{window.location.assign("/public-profile?username="+encodeURIComponent(publicLookup.data!.username)+"&activity=1");}} title="View profile activity" aria-label="View profile activity" className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white/80 hover:border-primary hover:text-primary"><HeartPulse size={15}/></button>
                 </div>
               </div>
               <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-gray-400"><span className="flex items-center gap-1.5"><CalendarDays size={12}/> Joined {publicLookup.data.created_at ? new Date(publicLookup.data.created_at).toLocaleDateString("en-GB",{month:"long",year:"numeric"}) : "date unavailable"}</span><span className="flex items-center gap-1.5"><Film size={12}/> Viewing history private</span><span className="flex items-center gap-1.5"><Bookmark size={12}/> Watchlist private</span></p>
             </div>
             <div className="col-span-full grid min-w-0 w-full grid-cols-3 gap-1 rounded-xl border border-white/10 bg-white/5 px-1 py-4 text-center sm:gap-7 sm:px-2">{["COMPLETED","EPISODES","PLANNING"].map(label=><div key={label}><strong className="block text-xl font-black">—</strong><span className="text-[9px] font-bold tracking-wide text-gray-400">{label}</span></div>)}</div>
           </div>
-          {publicActivityOpen ? <section className="py-8">
+          {activityPage ? <section className="py-8">
             <button type="button" onClick={()=>setPublicActivityOpen(false)} className="mb-6 text-xs text-gray-400 hover:text-white">← Profile</button>
             <div className="mb-7 flex items-center gap-4"><div className="h-16 w-16 overflow-hidden rounded-full border-2 border-primary bg-primary/15">{publicLookup.data.public_avatar_url ? <img src={publicLookup.data.public_avatar_url} alt="Profile avatar" className="h-full w-full object-cover"/> : <span className="grid h-full place-items-center text-2xl">{publicLookup.data.username.charAt(0).toUpperCase()}</span>}</div><div><h1 className="text-2xl font-extrabold">{publicLookup.data.public_display_name || publicLookup.data.username}</h1><p className="text-xs text-gray-400">@{publicLookup.data.username} · Activity</p></div></div>
             <p className="mb-7 text-xs text-gray-400">Member since {publicLookup.data.created_at ? new Date(publicLookup.data.created_at).toLocaleDateString("en-GB",{month:"long",year:"numeric"}) : "date unavailable"}</p>
