@@ -98,6 +98,31 @@ function Settings() {
   const { preference, setPreference } = useAudioPreference();
   const { user, username } = useAuth();
   const queryClient = useQueryClient();
+  const [privacyBusy, setPrivacyBusy] = useState(false);
+  const [privacyMessage, setPrivacyMessage] = useState("");
+  const privacySettings = useQuery({
+    queryKey: ["settings-profile-privacy", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("show_watchlist, show_history").eq("id", user!.id).single();
+      if (error) throw error;
+      return data as { show_watchlist: boolean | null; show_history: boolean | null };
+    },
+  });
+  const updateProfilePrivacy = async (field: "show_watchlist" | "show_history", value: boolean) => {
+    if (!user || privacyBusy) return;
+    setPrivacyBusy(true);
+    setPrivacyMessage("");
+    const { error } = await supabase.from("profiles").update({ [field]: value }).eq("id", user.id);
+    setPrivacyBusy(false);
+    if (error) setPrivacyMessage(error.message);
+    else {
+      setPrivacyMessage("Privacy preferences saved.");
+      void queryClient.invalidateQueries({ queryKey: ["settings-profile-privacy", user.id] });
+      void queryClient.invalidateQueries({ queryKey: ["public-profile"] });
+    }
+  };
+
 
   const [bannerUrl, setBannerUrl] = useState(() => typeof user?.user_metadata?.["profile_banner_url"] === "string" ? user.user_metadata["profile_banner_url"] : "");
   const [bannerMessage, setBannerMessage] = useState("");
@@ -267,6 +292,16 @@ function Settings() {
       </nav>
       <div className="streamly-settings-content min-w-0" id="settings-scroll-content">
         {true && <section id="settings-section-profile" className="rounded-2xl border border-border bg-card/90 p-4 shadow-xl shadow-black/10 sm:p-7"><h2 className="mb-6 text-3xl font-bold">Account</h2>
+          <div className="mb-7 rounded-xl border border-border bg-background/50 p-4">
+            <h3 className="text-lg font-bold">Profile privacy</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Choose what other people can see on your public profile. Both options are private by default.</p>
+            {user ? <div className="mt-4 space-y-3">
+              <label className="flex cursor-pointer items-center gap-3 text-sm"><input type="checkbox" className="h-4 w-4 accent-primary" disabled={privacyBusy || privacySettings.isPending} checked={!!privacySettings.data?.show_watchlist} onChange={(event) => void updateProfilePrivacy("show_watchlist", event.target.checked)} /> Public watchlist</label>
+              <label className="flex cursor-pointer items-center gap-3 text-sm"><input type="checkbox" className="h-4 w-4 accent-primary" disabled={privacyBusy || privacySettings.isPending} checked={!!privacySettings.data?.show_history} onChange={(event) => void updateProfilePrivacy("show_history", event.target.checked)} /> Public viewing history and episode stats</label>
+              {privacyMessage && <p role="status" className="text-xs text-muted-foreground">{privacyMessage}</p>}
+              {privacySettings.isError && <p role="alert" className="text-xs text-red-400">Unable to load privacy preferences.</p>}
+            </div> : <p className="mt-3 text-sm text-muted-foreground">Sign in to change privacy preferences.</p>}
+          </div>
           <div className="mb-7 rounded-xl border border-border bg-background/50 p-4">
             <h2 className="text-lg font-bold">Profile banner</h2>
             <p className="mt-1 text-xs text-muted-foreground">Upload a wide JPG, PNG or WebP image (up to 5 MB), or paste an HTTPS image URL.</p>
