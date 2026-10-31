@@ -92,5 +92,8 @@ function MessagesPage() {
           <button disabled={!body.trim() || sending} className="rounded-lg bg-primary p-3 text-primary-foreground disabled:opacity-50" aria-label="Send message"><Send size={20}/></button>
         </form>
       </section>}
+      </section>
+      <aside className="hidden border-l border-white/10 xl:block">{peer.data && <><div className="h-24 bg-gradient-to-br from-primary/70 to-[#080f19]"/><div className="px-5"><div className="-mt-7 h-14 w-14 overflow-hidden rounded-full border-2 border-primary bg-[#1b2b3d]">{peer.data.public_avatar_url && <img src={peer.data.public_avatar_url} alt="" className="h-full w-full object-cover"/>}</div><h3 className="mt-3 text-lg font-bold">{peer.data.public_display_name||peer.data.username}</h3><p className="text-sm text-slate-400">@{peer.data.username}</p><Link to="/public-profile" search={{username:peer.data.username}} className="mt-5 block rounded-lg border border-white/15 bg-white/5 p-3 text-center text-sm hover:bg-white/10">View Profile</Link></div></>}</aside>
+    </div>
   </main>;
 }
