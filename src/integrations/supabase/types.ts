@@ -369,23 +369,50 @@ export type Database = {
         }
         Relationships: []
       }
+      profile_badges: {
+        Row: {
+          badge: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          badge: string
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          badge?: string
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
           id: string
           preferred_audio: string
+          public_avatar_url: string | null
+          public_banner_url: string | null
+          public_display_name: string | null
           username: string | null
         }
         Insert: {
           created_at?: string
           id: string
           preferred_audio?: string
+          public_avatar_url?: string | null
+          public_banner_url?: string | null
+          public_display_name?: string | null
           username?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           preferred_audio?: string
+          public_avatar_url?: string | null
+          public_banner_url?: string | null
+          public_display_name?: string | null
           username?: string | null
         }
         Relationships: []
@@ -603,6 +630,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_public_admin: { Args: { profile_user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
