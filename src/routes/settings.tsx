@@ -99,7 +99,7 @@ function Settings() {
   const { user, username } = useAuth();
   const queryClient = useQueryClient();
 
-  const [bannerUrl, setBannerUrl] = useState(() => typeof user?.user_metadata?.profile_banner_url === "string" ? user.user_metadata.profile_banner_url : "");
+  const [bannerUrl, setBannerUrl] = useState(() => typeof user?.user_metadata?.["profile_banner_url"] === "string" ? user.user_metadata["profile_banner_url"] : "");
   const [bannerMessage, setBannerMessage] = useState("");
   const [bannerSaving, setBannerSaving] = useState(false);
   const saveBanner = async () => {

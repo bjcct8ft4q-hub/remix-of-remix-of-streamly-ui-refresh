@@ -1,165 +1,207 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Info, Link2, Check, UserRound, HeartPulse } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Activity, BarChart3, Bookmark, CalendarDays, Check, Clock, LayoutGrid, Link2, List, MessageCircle, MoreHorizontal, Search, Settings, Star, UserPlus, Users, Eye } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { historyQuery, watchlistQuery } from "@/lib/library";
-import { AccountAvatar } from "@/components/AccountAvatar";
 import { ProfileBadges } from "@/components/ProfileBadges";
-import { Trophy, Film, Bookmark, CalendarDays, Settings, Users, Sparkles, Activity, ShieldCheck, Crown, Code2, Shield, Star, ListFilter, Search, LayoutGrid, List, MessageCircle, UserPlus, Gamepad2 } from "lucide-react";
-export const Route = createFileRoute("/public-profile")({ component: PublicProfile, head: () => ({ meta: [{ title: "Public Profile | Streamly" }] }) });
+
+export const Route = createFileRoute("/public-profile")({
+  validateSearch: (s: Record<string, unknown>): { username?: string } => (typeof s["username"] === "string" && s["username"] ? { username: s["username"] } : {}),
+  component: PublicProfile,
+  head: () => ({
+    meta: [
+      { title: "Public Profile | Streamly" },
+      { name: "description", content: "View a Streamly member's profile, badges and anime stats." },
+      { property: "og:title", content: "Public Profile | Streamly" },
+      { property: "og:description", content: "View a Streamly member's profile, badges and anime stats." },
+      { property: "og:type", content: "profile" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
+});
+
+const TABS = [
+  { name: "Watchlist", icon: Bookmark },
+  { name: "History", icon: Clock },
+  { name: "Stats", icon: BarChart3 },
+  { name: "Reviews", icon: Star },
+  { name: "Activity", icon: Activity },
+  { name: "Friends", icon: Users },
+] as const;
+const FILTERS = ["All", "Watching", "Completed", "On Hold", "Dropped", "Planning"];
+
 function PublicProfile() {
-  const { user, username, isAdmin } = useAuth();
-  const [guestSearch, setGuestSearch] = useState("");
-  const [listFilter, setListFilter] = useState("All");
+  const { username: requested } = Route.useSearch();
+  const { user, username: myName, isAdmin } = useAuth();
+  const [search, setSearch] = useState("");
+  const [tab, setTab] = useState<string>("Watchlist");
+  const [filter, setFilter] = useState("All");
+  const [grid, setGrid] = useState(true);
   const [listSearchOpen, setListSearchOpen] = useState(false);
   const [listSearch, setListSearch] = useState("");
-  const [listGrid, setListGrid] = useState(true);
-  const requestedUsername = typeof window === "undefined" ? "" : new URLSearchParams(window.location.search).get("username")?.trim() ?? "";
-  const activityPage = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("activity") === "1";
-  const publicLookup = useQuery({
-    queryKey: ["public-profile-lookup", requestedUsername],
-    enabled: !!requestedUsername,
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const target = requested?.trim().replace(/^@/, "") || (user ? myName ?? "" : "");
+  const profile = useQuery({
+    queryKey: ["public-profile", target, user?.id],
+    enabled: !!target || !!user,
     queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("id, username, public_avatar_url, public_display_name, public_banner_url, created_at").ilike("username", requestedUsername).maybeSingle();
+      const q = supabase.from("profiles").select("id, username, public_avatar_url, public_display_name, public_banner_url, created_at");
+      const { data, error } = target ? await q.ilike("username", target).maybeSingle() : await q.eq("id", user!.id).maybeSingle();
       if (error) throw error;
       return data;
     },
-    retry: false,
   });
-  const publicAdmin = useQuery({ queryKey: ["public-admin-badge", publicLookup.data?.id], enabled: !!publicLookup.data?.id, queryFn: async () => { const { data, error } = await (supabase as any).rpc("is_public_admin", { profile_user_id: publicLookup.data!.id }); if (error) throw error; return data === true; } });
-  const viewingOtherUser = !!requestedUsername && publicLookup.data?.id !== user?.id;
-  const history = useQuery(historyQuery(user?.id));
-  const watchlist = useQuery(watchlistQuery(user?.id));
-  const watched = history.data?.length ?? 0;
-  const series = new Set((history.data ?? []).map((r) => r.anilist_id)).size;
-  const banner = typeof user?.user_metadata?.profile_banner_url === "string" && user.user_metadata.profile_banner_url.startsWith("https://") ? user.user_metadata.profile_banner_url : "";
-  const stats = [{ label: "Episodes watched", value: watched, icon: Film }, { label: "Anime explored", value: series, icon: Sparkles }, { label: "In my list", value: watchlist.data?.length ?? 0, icon: Bookmark }];
-  const memberSince = user ? new Date(user.created_at) : new Date();
-  // Staff badges are sourced from trusted auth metadata, never a public username.
-  const roleValues = [user?.app_metadata?.role, ...(Array.isArray(user?.app_metadata?.roles) ? user.app_metadata.roles : [])]
-    .filter((value): value is string => typeof value === "string")
-    .map(value => value.toLowerCase());
-  // Staff display badges require a verified administrator role.
-  const isOwnerAccount = isAdmin && username?.toLowerCase() === "iamvraith";
-  const roleBadges = [
-    { role: "owner", label: "Owner", Icon: Crown, style: "text-amber-400 border-amber-400/40 bg-amber-400/10" },
-    { role: "moderator", label: "Moderator", Icon: Shield, style: "text-emerald-400 border-emerald-400/40 bg-emerald-400/10" },
-    { role: "developer", label: "Developer", Icon: Code2, style: "text-violet-400 border-violet-400/40 bg-violet-400/10" },
-  ].filter(badge => isOwnerAccount || roleValues.includes(badge.role));
-  const badges = <ProfileBadges episodes={watched} shows={series} saved={watchlist.data?.length ?? 0} isAdmin={isAdmin} isDeveloper={isOwnerAccount || (isAdmin && roleValues.includes("developer"))} />;
-  const profileBio = typeof user?.user_metadata?.bio === "string" ? user.user_metadata.bio : "";
-  const displayName = typeof user?.user_metadata?.display_name === "string" ? user.user_metadata.display_name : username;
-  const activityDays = Array.from({ length: 364 }, (_, index) => {
-    const day = new Date(); day.setHours(0, 0, 0, 0); day.setDate(day.getDate() - (363 - index));
-    return { date: day, count: (history.data ?? []).filter((entry) => {
-      const dateValue = (entry as Record<string, unknown>).watched_at ?? (entry as Record<string, unknown>).created_at;
-      return typeof dateValue === "string" && new Date(dateValue).toDateString() === day.toDateString();
-    }).length };
+  const pid = profile.data?.id;
+  const badges = useQuery({
+    queryKey: ["profile-badges", pid],
+    enabled: !!pid,
+    queryFn: async () => {
+      const [{ data: rows }, { data: admin }] = await Promise.all([
+        supabase.from("profile_badges").select("badge").eq("user_id", pid!),
+        supabase.rpc("is_public_admin", { profile_user_id: pid! }),
+      ]);
+      const list = (rows ?? []).map((r) => r.badge);
+      if (admin === true && !list.includes("owner")) list.push("moderator");
+      return list;
+    },
   });
-  const activeDays = activityDays.filter((day) => day.count > 0).length;
-  const [tab, setTab] = useState<"watchlist" | "activity">("watchlist");
-  const [identityOpen, setIdentityOpen] = useState(false);
-  const [publicActivityOpen, setPublicActivityOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const copyProfile = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.origin + "/" + encodeURIComponent(username || ""));
-      setCopied(true);
-    } catch { setCopied(false); }
-  };
-  const profileActions = <div className="relative flex items-center gap-2">
-    <div className="relative">
-      <button type="button" onClick={() => setIdentityOpen(v => !v)} aria-label="Profile information" aria-expanded={identityOpen} className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white/80 hover:border-primary hover:text-primary"><Info size={15}/></button>
-      {identityOpen && <div className="absolute left-0 top-9 z-50 w-56 rounded-lg border border-white/15 bg-[#121317] p-1.5 shadow-2xl">
-        <div className="flex items-center gap-2 rounded-md px-2.5 py-2 text-xs text-gray-200"><UserRound size={14} className="text-gray-400"/>Also known as #{username}</div>
-        <button type="button" onClick={copyProfile} className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-xs text-gray-200 hover:bg-white/10">{copied ? <Check size={14} className="text-emerald-400"/> : <Link2 size={14} className="text-gray-400"/>}{copied ? "Copied Profile URL" : "Copy Profile URL"}</button>
-      </div>}
-    </div>
-    <button type="button" onClick={() => { setTab("activity"); setIdentityOpen(false); }} aria-label="View activity" title="View activity" className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white/80 hover:border-primary hover:text-primary"><HeartPulse size={15}/></button>
-  </div>;
+  const isSelf = !!user && pid === user.id;
+  const history = useQuery(historyQuery(isSelf ? user?.id : undefined));
+  const watchlist = useQuery(watchlistQuery(isSelf ? user?.id : undefined));
 
-  const [range, setRange] = useState<30 | 90 | 365>(30);
-  const recent = activityDays.slice(-range);
-  const profileTabs = [{name:"Watchlist",icon:Bookmark},{name:"History",icon:CalendarDays},{name:"Stats",icon:Activity},{name:"Reviews",icon:Star},{name:"Activity",icon:HeartPulse},{name:"Friends",icon:Users}];
-  const [profileTab,setProfileTab] = useState("Watchlist");
-  const tabBar = <nav aria-label="Profile sections" className="mt-5 flex max-w-full gap-5 overflow-x-auto border-b border-white/10 pb-0 scrollbar-hide">{profileTabs.map(({name,icon:Icon})=><button key={name} type="button" onClick={()=>setProfileTab(name)} className={`flex shrink-0 items-center gap-2 border-b-2 px-1 pb-3 text-xs font-semibold transition-colors ${profileTab===name?"border-primary text-white":"border-transparent text-gray-400 hover:text-white"}`}><Icon size={14}/>{name}</button>)}</nav>;
-  const filterBar = <div className="flex flex-wrap items-center justify-between gap-3 py-4"><div className="flex flex-wrap gap-1.5">{["All","Watching","Completed","On Hold","Dropped","Planning"].map(label=><button type="button" key={label} onClick={()=>setListFilter(label)} className={`rounded-lg px-3 py-2 text-xs ${listFilter===label?"bg-primary font-bold text-primary-foreground":"border border-white/10 bg-[#101114] text-gray-300 hover:border-primary/50"}`}>{label}</button>)}</div><div className="flex items-center gap-2">{listSearchOpen&&<input aria-label="Filter watchlist" value={listSearch} onChange={e=>setListSearch(e.target.value)} placeholder="Search watchlist…" className="w-36 rounded-lg border border-white/15 bg-[#101114] px-2 py-2 text-xs text-white"/>}<button type="button" aria-label="Search watchlist" onClick={()=>setListSearchOpen(v=>!v)} className="rounded-lg border border-white/15 p-2"><Search size={15}/></button><button type="button" aria-label="Grid view" onClick={()=>setListGrid(true)} className={`rounded-lg border border-white/15 p-2 ${listGrid?"bg-white/15":""}`}><LayoutGrid size={15}/></button><button type="button" aria-label="List view" onClick={()=>setListGrid(false)} className={`rounded-lg border border-white/15 p-2 ${!listGrid?"bg-white/15":""}`}><List size={15}/></button></div></div>;
-  return <main className="min-h-screen bg-[#050505] pb-24 text-white">
-    {(!user || viewingOtherUser) ? <div>
-      {!requestedUsername ? <div className="mx-auto max-w-[920px] px-4 pt-24 sm:px-5"><h1 className="text-3xl font-extrabold">Public profiles</h1><p className="mt-2 text-sm text-gray-400">Search Streamly members by username.</p><form className="mt-6 flex max-w-xl gap-2" onSubmit={event=>{event.preventDefault();const name=guestSearch.trim().replace(/^@/,"");if(name)window.location.assign("/"+encodeURIComponent(name));}}><input aria-label="Search username" value={guestSearch} onChange={event=>setGuestSearch(event.target.value)} placeholder="Search by username" className="min-w-0 flex-1 rounded-lg border border-white/20 bg-[#111] px-4 py-3 text-white"/><button type="submit" className="rounded-lg bg-primary px-5 py-3 font-semibold text-black">Search</button></form></div> : publicLookup.isLoading ? <p className="mx-auto max-w-[920px] px-5 pt-24 text-gray-400">Loading public profile…</p> : publicLookup.isError ? <p className="mx-auto max-w-[920px] px-5 pt-24 text-gray-400">Public profile could not be loaded.</p> : !publicLookup.data ? <p className="mx-auto max-w-[920px] px-5 pt-24 text-gray-400">No public profile found for @{requestedUsername}.</p> : <>
-        {!activityPage && <div className="relative h-[180px] w-full overflow-hidden bg-gradient-to-r from-[#8b3a07] via-[#30170c] to-[#050505] sm:h-[260px] lg:h-[310px]">
-          {publicLookup.data.public_banner_url && <img src={publicLookup.data.public_banner_url} alt="Profile banner" className="h-full w-full object-cover"/>}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-black/25 to-black/10"/>
-        </div>}
-        <div className={`relative mx-auto w-full max-w-[920px] px-4 sm:px-5 ${activityPage ? "pt-12" : "-mt-10 sm:-mt-20"}`}>
-          {!activityPage && <div className="grid min-w-0 grid-cols-1 gap-4 pb-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-end sm:gap-6">
-            <div className="relative z-10 w-fit shrink-0 rounded-full border-4 border-[#050505] bg-[#111] shadow-xl">
-              <span className="inline-grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-primary bg-primary/15 text-3xl font-extrabold text-primary">
-                {publicLookup.data.public_avatar_url ? <img src={publicLookup.data.public_avatar_url} alt={publicLookup.data.username+" avatar"} className="h-full w-full object-cover" referrerPolicy="no-referrer"/> : publicLookup.data.username?.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <div className="min-w-0 w-full max-w-full pb-1 pt-3 sm:pt-0">
-              <div className="flex min-w-0 flex-col items-start gap-3">
-                <h1 className="min-w-0 max-w-full break-words text-2xl font-extrabold sm:text-3xl">{publicLookup.data.public_display_name || publicLookup.data.username}</h1>
-                <p className="text-xs text-gray-400">@{publicLookup.data.username}</p>
-                <div className="flex w-full flex-wrap items-center gap-2">
-                  <ProfileBadges isAdmin={!!publicAdmin.data} isDeveloper={!!publicAdmin.data && publicLookup.data.username.toLowerCase() === "iamvraith"}/>
-                  <div className="relative">
-                    <button type="button" aria-label="Profile information" aria-expanded={identityOpen} onClick={()=>setIdentityOpen(v=>!v)} className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white/80 hover:border-primary hover:text-primary"><Info size={15}/></button>
-                    {identityOpen && <div className="absolute left-0 top-9 z-50 w-56 rounded-lg border border-white/15 bg-[#121317] p-1.5 shadow-2xl">
-                      <div className="flex items-center gap-2 rounded-md px-2.5 py-2 text-xs text-gray-200"><UserRound size={14}/>Also known as #{publicLookup.data.username}</div>
-                      <button type="button" onClick={async()=>{try{await navigator.clipboard.writeText(window.location.origin+"/"+encodeURIComponent(publicLookup.data!.username));setCopied(true);}catch{setCopied(false);}}} className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-xs text-gray-200 hover:bg-white/10">{copied?<Check size={14}/>:<Link2 size={14}/>} {copied?"Copied Profile URL":"Copy Profile URL"}</button>
-                    </div>}
-                  </div>
-                  <button type="button" onClick={()=>{window.location.assign("/public-profile?username="+encodeURIComponent(publicLookup.data!.username)+"&activity=1");}} title="View profile activity" aria-label="View profile activity" className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white/80 hover:border-primary hover:text-primary"><HeartPulse size={15}/></button>
-                </div>
-              </div>
-              <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-gray-400"><span className="flex items-center gap-1.5"><CalendarDays size={12}/> Joined {publicLookup.data.created_at ? new Date(publicLookup.data.created_at).toLocaleDateString("en-GB",{month:"long",year:"numeric"}) : "date unavailable"}</span><span className="flex items-center gap-1.5"><Film size={12}/> Viewing history private</span><span className="flex items-center gap-1.5"><Bookmark size={12}/> Watchlist private</span></p>
-            </div>
-            <div className="col-span-full mt-4 grid min-w-0 w-full grid-cols-3 gap-1 rounded-xl border border-white/10 bg-[#101114] px-1 py-5 text-center sm:gap-7 sm:px-2">{["COMPLETED","EPISODES","PLANNING"].map(label=><div key={label}><strong className="block text-xl font-black">—</strong><span className="text-[9px] font-bold tracking-wide text-gray-400">{label}</span></div>)}</div>
-          </div>}
-          {!activityPage && tabBar}
-          {activityPage ? <section className="py-8">
-            <button type="button" onClick={()=>window.location.assign("/public-profile?username="+encodeURIComponent(publicLookup.data!.username))} className="mb-6 text-xs text-gray-400 hover:text-white">← Profile</button>
-            <div className="mb-7 flex items-center gap-4"><div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-primary bg-primary/15">{publicLookup.data.public_avatar_url ? <img src={publicLookup.data.public_avatar_url} alt="Profile avatar" className="h-full w-full object-cover"/> : <span className="grid h-full place-items-center text-2xl">{publicLookup.data.username.charAt(0).toUpperCase()}</span>}</div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h1 className="text-2xl font-extrabold">{publicLookup.data.public_display_name || publicLookup.data.username}</h1><ProfileBadges isAdmin={!!publicAdmin.data} isDeveloper={!!publicAdmin.data && publicLookup.data.username.toLowerCase() === "iamvraith"}/><div className="relative"><button type="button" aria-label="Profile information" onClick={()=>setIdentityOpen(v=>!v)} className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white/80"><Info size={15}/></button>{identityOpen && <div className="absolute left-0 top-9 z-50 w-56 rounded-lg border border-white/15 bg-[#121317] p-2 shadow-2xl"><p className="px-2 py-2 text-xs text-gray-200">Also known as #{publicLookup.data.username}</p><button type="button" onClick={async()=>{await navigator.clipboard.writeText(window.location.origin+"/"+encodeURIComponent(publicLookup.data!.username));setCopied(true)}} className="block w-full rounded px-2 py-2 text-left text-xs text-gray-200 hover:bg-white/10">{copied?"Copied Profile URL":"Copy Profile URL"}</button></div>}</div><button type="button" title="Activity" aria-label="Activity" className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white/80 hover:border-primary hover:text-primary"><HeartPulse size={15}/></button></div><p className="text-xs text-gray-400">@{publicLookup.data.username} · Activity</p></div></div>
-            <p className="mb-7 text-xs text-gray-400">Member since {publicLookup.data.created_at ? new Date(publicLookup.data.created_at).toLocaleDateString("en-GB",{month:"long",year:"numeric"}) : "date unavailable"}</p>
-            <div className="rounded-lg border border-white/10 bg-[#0d0e11] p-5"><h2 className="text-sm font-bold">Past year</h2><p className="mt-1 text-xs text-gray-400">Activity private</p><div className="mt-5 grid grid-flow-col grid-rows-7 justify-start gap-[3px] overflow-x-auto pb-2">{Array.from({length:364},(_,i)=><span key={i} className="h-[10px] w-[10px] rounded-[2px] bg-[#1c1e23]"/>)}</div><p className="mt-3 text-right text-[10px] text-gray-400">Less · · · More</p></div>
-            <div className="mt-7 border-b border-white/10 pb-3 text-xs text-gray-400">30 days　　 90 days　　 1 year</div>
-            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">{["Episodes","Anime","Watchlist","Active days"].map(label=><div key={label} className="rounded-lg border border-white/10 bg-[#0d0e11] p-4"><p className="text-xs text-gray-400">{label}</p><p className="mt-3 text-sm">Private</p></div>)}</div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2"><div className="min-h-36 rounded-lg border border-white/10 bg-[#0d0e11] p-5"><h2 className="text-sm font-bold">Watch time</h2><p className="mt-8 text-center text-xs text-gray-400">Private</p></div><div className="min-h-36 rounded-lg border border-white/10 bg-[#0d0e11] p-5"><h2 className="text-sm font-bold">Recent activity</h2><p className="mt-8 text-center text-xs text-gray-400">This member's activity is private.</p></div></div>
-          </section> : <><div className="flex items-center justify-between border-b border-white/10 py-4"><h2 className="flex items-center gap-2 text-sm font-bold"><Bookmark size={16} className="text-primary"/> {profileTab}</h2></div>{profileTab==="Watchlist" && filterBar}
-          <div className="rounded-xl border border-white/10 bg-[#0d0e11] py-20 text-center"><Bookmark size={35} className="mx-auto mb-4 text-gray-400"/><h3 className="font-bold">{profileTab==="Watchlist"?"Watchlist is private":`${profileTab} is private`}</h3><p className="mt-2 text-xs text-gray-400">This member has not shared this information publicly.</p></div></>}
-        </div>
-      </>}
-    </div> : <>
-    {tab === "watchlist" ? <>
-      <div className="relative h-[240px] w-full overflow-hidden bg-gradient-to-r from-[#11263a] via-[#121b2a] to-[#050505] sm:h-[420px] lg:h-[480px]">
-        {banner && <img src={banner} alt="Profile banner" className="h-full w-full object-cover" />}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-black/25 to-black/10" />
-      </div>
-      <div className="relative mx-auto -mt-10 w-full max-w-[920px] px-4 sm:-mt-20 sm:px-5">
-        <div className="grid min-w-0 grid-cols-1 gap-5 border-b border-white/10 pb-6 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-end sm:gap-6">
-          <div className="relative z-10 w-fit shrink-0 rounded-full border-4 border-[#050505] bg-[#111] shadow-xl"><AccountAvatar size="lg" /></div>
-          <div className="min-w-0 w-full max-w-full pb-1 pt-3 sm:pt-0">
-            <div className="flex min-w-0 flex-col items-start gap-3"><h1 className="min-w-0 max-w-full break-words text-2xl font-extrabold sm:text-3xl">{displayName || username}</h1><p className="text-xs text-gray-400">@{username}</p><div className="flex w-full flex-wrap items-center gap-2">{badges}{profileActions}</div></div>
-            {profileBio && <p className="mt-2 text-xs text-gray-200">{profileBio}</p>}
-            <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-gray-400"><span className="flex items-center gap-1.5"><CalendarDays size={12}/> Joined {memberSince.toLocaleDateString("en-GB", {month:"long",year:"numeric"})}</span><span className="flex items-center gap-1.5"><Film size={12}/> {watched} episodes watched</span><span className="flex items-center gap-1.5"><Bookmark size={12}/> {watchlist.data?.length ?? 0} saved anime</span></p>
+  if (!target && !user) {
+    return (
+      <main className="mx-auto min-h-screen max-w-3xl px-4 pt-24 pb-24">
+        <h1 className="text-3xl font-extrabold">Public profiles</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Search Streamly members by username.</p>
+        <form className="mt-6 flex gap-2" onSubmit={(e) => { e.preventDefault(); const n = search.trim().replace(/^@/, ""); if (n) window.location.assign("/public-profile?username=" + encodeURIComponent(n)); }}>
+          <input aria-label="Search username" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by username" className="min-w-0 flex-1 rounded-lg border border-border bg-card px-4 py-3" />
+          <button type="submit" className="rounded-lg bg-primary px-5 py-3 font-semibold text-primary-foreground">Search</button>
+        </form>
+      </main>
+    );
+  }
+  if (profile.isLoading) return <main className="mx-auto max-w-5xl px-5 pt-24 text-muted-foreground">Loading profile…</main>;
+  if (!profile.data) return <main className="mx-auto max-w-5xl px-5 pt-24 text-muted-foreground">No public profile found for @{target}.</main>;
+
+  const p = profile.data;
+  const name = p.public_display_name || p.username || "Member";
+  const handle = p.username || "member";
+  const episodes = history.data?.length ?? 0;
+  const completed = new Set((history.data ?? []).map((r) => r.anilist_id)).size;
+  const planning = watchlist.data?.length ?? 0;
+  const joined = new Date(p.created_at).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  const items = (watchlist.data ?? []).filter((w) => !listSearch || (w.title ?? "").toLowerCase().includes(listSearch.toLowerCase()));
+  const soon = (what: string) => toast(`${what} is coming soon.`);
+  const copyUrl = async () => { try { await navigator.clipboard.writeText(`${window.location.origin}/${encodeURIComponent(handle)}`); setCopied(true); } catch { setCopied(false); } };
+
+  return (
+    <main className="min-h-screen pb-24 pt-20">
+      <div className="mx-auto max-w-6xl px-3 sm:px-5">
+        <section className="overflow-hidden rounded-2xl border border-border bg-card">
+          {/* Banner */}
+          <div className="relative h-40 sm:h-52">
+            {p.public_banner_url ? <img src={p.public_banner_url} alt="Profile banner" className="h-full w-full object-cover" /> : <div className="h-full w-full bg-gradient-to-br from-primary/80 via-primary/30 to-card" />}
+            <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
           </div>
-          <div className="col-span-full grid min-w-0 w-full grid-cols-3 gap-1 rounded-xl border border-white/10 bg-white/5 px-1 py-4 text-center sm:gap-7 sm:px-2">{[{label:"COMPLETED",value:series},{label:"EPISODES",value:watched},{label:"PLANNING",value:watchlist.data?.length ?? 0}].map(item=><div key={item.label}><strong className="block text-xl font-black">{item.value}</strong><span className="text-[9px] font-bold tracking-wide text-gray-400">{item.label}</span></div>)}</div>
-        </div>
-        {tabBar}<div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 py-4"><h2 className="flex items-center gap-2 text-sm font-bold"><Bookmark size={16} className="text-primary"/> {profileTab}</h2><Link to="/settings" className="flex items-center gap-1 text-xs text-gray-300 hover:text-primary"><Settings size={14}/> Edit profile</Link></div>{profileTab==="Watchlist" && filterBar}
-        {profileTab!=="Watchlist" ? <div className="rounded-xl border border-white/10 bg-[#0d0e11] p-10 text-center text-sm text-gray-400">View your {profileTab.toLowerCase()} in your account dashboard.</div> : (watchlist.data?.length ?? 0) === 0 ? <div className="rounded-xl border border-white/10 bg-[#0d0e11] py-20 text-center"><Bookmark size={35} className="mx-auto mb-4 text-primary"/><h3 className="font-bold">No anime in the watchlist yet</h3><p className="mt-2 text-xs text-gray-400">Saved anime will appear here.</p><Link to="/search" className="mt-5 inline-flex rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground">Browse Anime</Link></div> : <div className="grid gap-3 py-6 sm:grid-cols-2"><p className="text-sm text-gray-400">{watchlist.data?.length} anime saved to this account.</p><Link to="/my-list" className="text-sm text-primary hover:underline">Open full watchlist</Link></div>}
+
+          <div className="relative -mt-24 px-4 sm:-mt-28 sm:px-6">
+            {/* Header */}
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-end">
+              <div className="h-32 w-32 shrink-0 overflow-hidden rounded-full border-4 border-primary bg-muted shadow-xl sm:h-40 sm:w-40">
+                {p.public_avatar_url ? <img src={p.public_avatar_url} alt={`${handle} avatar`} className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : <span className="grid h-full place-items-center text-5xl font-extrabold text-primary">{handle.charAt(0).toUpperCase()}</span>}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h1 className="break-words text-4xl font-extrabold tracking-tight sm:text-5xl">{name}</h1>
+                <p className="mt-1 text-lg text-muted-foreground">@{handle}</p>
+                <div className="mt-3"><ProfileBadges badges={badges.data ?? []} /></div>
+              </div>
+              <div className="relative flex shrink-0 items-center gap-2 lg:mb-14">
+                <button type="button" aria-label="More options" onClick={() => setMenuOpen((v) => !v)} className="grid h-11 w-11 place-items-center rounded-lg border border-border bg-background/60 hover:bg-muted"><MoreHorizontal size={20} /></button>
+                {menuOpen && (
+                  <div className="absolute right-0 top-12 z-20 w-52 rounded-lg border border-border bg-popover p-1.5 shadow-2xl">
+                    <button type="button" onClick={copyUrl} className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm hover:bg-muted">{copied ? <Check size={15} /> : <Link2 size={15} />}{copied ? "Copied profile URL" : "Copy profile URL"}</button>
+                  </div>
+                )}
+                {isSelf ? (
+                  <Link to="/settings" className="flex h-11 items-center gap-2 rounded-lg bg-primary px-5 font-bold text-primary-foreground hover:opacity-90"><Settings size={18} /> Edit Profile</Link>
+                ) : (
+                  <>
+                    <button type="button" onClick={() => soon("Messaging")} className="flex h-11 items-center gap-2 rounded-lg border border-border bg-background/60 px-4 font-semibold hover:bg-muted"><MessageCircle size={18} /> Message</button>
+                    <button type="button" onClick={() => soon("Friend requests")} className="flex h-11 items-center gap-2 rounded-lg bg-primary px-5 font-bold text-primary-foreground hover:opacity-90"><UserPlus size={18} /> Add Friend</button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Meta */}
+            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground lg:pl-[184px]">
+              <span className="flex items-center gap-2"><CalendarDays size={16} /> Joined {joined}</span>
+              <span className="hidden text-border sm:inline">|</span>
+              <span className="flex items-center gap-2"><Eye size={16} /> Viewing history {isSelf ? "visible to you" : "private"}</span>
+              <span className="hidden text-border sm:inline">|</span>
+              <span className="flex items-center gap-2"><Bookmark size={16} /> Watchlist {isSelf ? "visible to you" : "private"}</span>
+            </div>
+
+            {/* Stats */}
+            <div className="mt-5 grid grid-cols-3 divide-x divide-border rounded-xl border border-border bg-background/40 py-4 text-center">
+              {[{ l: "Completed", v: completed }, { l: "Episodes", v: episodes }, { l: "Planning", v: planning }].map((s) => (
+                <div key={s.l}><strong className="block text-xl font-bold">{isSelf ? s.v : "—"}</strong><span className="text-sm text-muted-foreground">{s.l}</span></div>
+              ))}
+            </div>
+
+            {/* Tabs */}
+            <nav aria-label="Profile sections" className="mt-6 flex gap-2 overflow-x-auto border-b border-border">
+              {TABS.map(({ name: t, icon: Icon }) => (
+                <button key={t} type="button" onClick={() => setTab(t)} className={`flex shrink-0 items-center gap-2 border-b-2 px-3 pb-3 text-sm transition-colors ${tab === t ? "border-primary font-bold text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}><Icon size={17} />{t}</button>
+              ))}
+            </nav>
+
+            {/* Section */}
+            <div className="py-6">
+              <h2 className="flex items-center gap-2 text-xl font-bold"><Bookmark size={20} className="text-primary" /> {tab}</h2>
+              {tab === "Watchlist" && (
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap gap-2">
+                    {FILTERS.map((f) => <button key={f} type="button" onClick={() => setFilter(f)} className={`rounded-lg px-4 py-2 text-sm ${filter === f ? "bg-primary font-semibold text-primary-foreground" : "bg-muted/60 text-foreground hover:bg-muted"}`}>{f}</button>)}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {listSearchOpen && <input aria-label="Filter watchlist" value={listSearch} onChange={(e) => setListSearch(e.target.value)} placeholder="Search…" className="w-36 rounded-lg border border-border bg-background px-3 py-2 text-sm" />}
+                    <button type="button" aria-label="Search watchlist" onClick={() => setListSearchOpen((v) => !v)} className="grid h-10 w-10 place-items-center rounded-lg border border-border hover:bg-muted"><Search size={18} /></button>
+                    <div className="flex rounded-lg border border-border">
+                      <button type="button" aria-label="Grid view" onClick={() => setGrid(true)} className={`grid h-10 w-10 place-items-center rounded-l-lg ${grid ? "bg-muted" : ""}`}><LayoutGrid size={18} /></button>
+                      <button type="button" aria-label="List view" onClick={() => setGrid(false)} className={`grid h-10 w-10 place-items-center rounded-r-lg ${!grid ? "bg-muted" : ""}`}><List size={18} /></button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {tab === "Watchlist" && isSelf && items.length > 0 && filter !== "Dropped" && filter !== "On Hold" ? (
+                <div className={grid ? "mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6" : "mt-5 space-y-2"}>
+                  {items.map((w) => (
+                    <Link key={w.anilist_id} to="/anime/$id" params={{ id: String(w.anilist_id) }} className={grid ? "group" : "flex items-center gap-3 rounded-lg border border-border p-2 hover:bg-muted"}>
+                      {w.cover_url && <img src={w.cover_url} alt={w.title ?? "Anime cover"} className={grid ? "aspect-[2/3] w-full rounded-lg object-cover transition group-hover:opacity-80" : "h-16 w-11 rounded object-cover"} />}
+                      <p className="mt-1 line-clamp-2 text-sm font-medium">{w.title}</p>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-5 rounded-xl border border-border bg-background/40 py-14 text-center">
+                  <Bookmark size={44} className="mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-bold">{!isSelf ? `${tab} is private` : tab === "Watchlist" ? "No anime in watchlist yet" : `No ${tab.toLowerCase()} yet`}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{!isSelf ? "This member has not shared this publicly." : "Start adding anime to see them here!"}</p>
+                  {isSelf && <Link to="/browse" className="mt-5 inline-flex rounded-lg bg-primary px-7 py-3 text-sm font-bold text-primary-foreground hover:opacity-90">Browse Anime</Link>}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
       </div>
-    </> : <div className="mx-auto w-full max-w-[920px] px-4 pt-12 sm:px-5">
-      <button onClick={()=>setTab("watchlist")} className="mb-5 text-xs text-gray-400 hover:text-white">← Profile</button>
-      <div className="mb-8 grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center"><div className="w-fit"><AccountAvatar size="lg"/></div><div className="min-w-0 w-full"><div className="flex min-w-0 flex-wrap items-center gap-2"><h1 className="max-w-full break-words text-xl font-extrabold sm:text-2xl">{displayName || username}</h1><div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">{badges}{profileActions}</div></div><p className="text-xs text-gray-400">@{username} · Activity</p></div><div className="col-span-full text-xs text-gray-400">Member since {memberSince.toLocaleDateString("en-GB",{month:"long",year:"numeric"})}</div></div>
-      <section className="rounded-lg border border-white/10 bg-[#0d0e11] p-4"><h2 className="text-sm font-bold">Past year</h2><p className="mt-1 text-xs text-gray-400">{activeDays} active days</p><div className="mt-5 grid max-w-full grid-flow-col grid-rows-7 justify-start gap-[3px] overflow-x-auto pb-2">{activityDays.map((day,i)=><div key={i} title={day.date.toDateString()+": "+day.count+" episodes"} className="h-[10px] w-[10px] rounded-[2px]" style={{background:day.count===0?"#1c1e23":day.count===1?"#123e66":day.count<4?"#0879c5":"#1e9bff"}}/>)}</div><p className="mt-3 text-right text-[10px] text-gray-400">Less ▪ ▪ ▪ More</p></section>
-      <div className="mt-8 flex gap-6 border-b border-white/10">{([30,90,365] as const).map(n=><button key={n} onClick={()=>setRange(n)} className={`border-b-2 pb-3 text-xs ${range===n?"border-primary text-white":"border-transparent text-gray-400"}`}>{n===365?"1 year":n+" days"}</button>)}</div>
-      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">{[{name:"Episodes",value:recent.reduce((sum,d)=>sum+d.count,0)},{name:"Anime",value:series},{name:"Watchlist",value:watchlist.data?.length??0},{name:"Active days",value:recent.filter(d=>d.count>0).length}].map(stat=><div key={stat.name} className="rounded-lg border border-white/10 bg-[#0d0e11] p-4"><p className="text-xs text-gray-400">{stat.name}</p><p className="mt-3 text-2xl font-black">{stat.value}</p></div>)}</div>
-      <div className="mt-3 grid gap-3 md:grid-cols-2"><section className="min-h-40 rounded-lg border border-white/10 bg-[#0d0e11] p-5"><h2 className="text-sm font-bold">Watch time</h2><p className="mt-9 text-center text-xs text-gray-400">Detailed viewing durations are not available yet.</p></section><section className="min-h-40 rounded-lg border border-white/10 bg-[#0d0e11] p-5"><h2 className="text-sm font-bold">Recent activity</h2><p className="mt-9 text-center text-xs text-gray-400">{activeDays?activeDays+" days with episode activity":"No recorded activity yet"}</p></section></div>
-    </div>}
-    </>}
-  </main>;
+    </main>
+  );
 }
