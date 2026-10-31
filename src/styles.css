@@ -502,3 +502,15 @@ html.streamly-theme-swap-hidden .streamly-glitch-color {
 
 /* Halloween-only witch hat above the infinity mark. */
 .halloween .streamly-witch-hat { display: block; }
+
+:root {
+  --badge-owner: oklch(0.82 0.16 85);
+  --badge-moderator: oklch(0.68 0.19 45);
+  --badge-developer: oklch(0.63 0.18 260);
+  --badge-verified: oklch(0.72 0.15 170);
+  --badge-supporter: oklch(0.65 0.25 310);
+  --badge-gamer: oklch(0.75 0.16 150);
+  --badge-creator: oklch(0.72 0.05 270);
+  --badge-partner: oklch(0.75 0.17 140);
+  --badge-bot: oklch(0.75 0.1 250);
+}
