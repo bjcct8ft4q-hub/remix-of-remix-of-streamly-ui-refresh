@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 type Badge = { name: string; description: string; icon: ReactNode; style: string };
 export function ProfileBadges({ episodes = 0, shows = 0, saved = 0, isAdmin = false, isDeveloper = false }: { episodes?: number; shows?: number; saved?: number; isAdmin?: boolean; isDeveloper?: boolean }) {
   const badges: Badge[] = [
+    { name: "Verified", description: "Registered Streamly account (not identity verification)", icon: <ShieldCheck size={15}/>, style: "border-blue-400/50 bg-blue-400/15 text-blue-400" },
     ...(isAdmin ? [{ name: "Administrator", description: "Manages Streamly", icon: <ShieldCheck size={15}/>, style: "border-rose-400/50 bg-rose-400/15 text-rose-400" }] : []),
     ...(isDeveloper ? [{ name: "Developer", description: "Helps build Streamly", icon: <Code2 size={15}/>, style: "border-sky-400/50 bg-sky-400/15 text-sky-400" }] : []),
     ...(episodes >= 1 ? [{ name: "First Episode", description: "Watched the first episode", icon: <PlayCircle size={15}/>, style: "border-violet-400/50 bg-violet-400/15 text-violet-400" }] : []),
