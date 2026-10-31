@@ -201,7 +201,6 @@ function PublicProfile() {
             </div>
           </div>
         </section>
-        {isAdmin && isSelf && <p className="mt-3 text-xs text-muted-foreground">Admins can award badges to members.</p>}
       </div>
     </main>
   );
