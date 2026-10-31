@@ -66,18 +66,9 @@ function PublicProfile() {
     queryKey: ["profile-badges", pid],
     enabled: !!pid,
     queryFn: async () => {
-      // Role badges must come from trusted server-side role checks, never
-      // from editable profile metadata or a matching username alone.
-      const { data: admin, error } = await supabase.rpc("is_public_admin", { profile_user_id: pid! });
+      const { data, error } = await (supabase as any).rpc("public_member_badges", { target_user: pid });
       if (error) throw error;
-      const list = ["verified"];
-      if (admin === true) {
-        list.push("moderator");
-        if (profile.data?.username?.toLowerCase() === "iamvraith") {
-          list.push("owner", "developer");
-        }
-      }
-      return list;
+      return (data ?? []) as string[];
     },
   });
   const friendship = useQuery({
