@@ -30,7 +30,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     document.documentElement.classList.toggle("halloween", halloween && !christmas);
     document.documentElement.classList.toggle("christmas", christmas);
     const favicon = document.querySelector<HTMLLinkElement>('link[data-streamly-favicon]');
-    if (favicon) favicon.href = halloween ? "/favicon-halloween.svg" : "/favicon.svg";
+    if (favicon) favicon.href = christmas ? "/favicon-christmas.svg" : halloween ? "/favicon-halloween.svg" : "/favicon.svg";
   }, [halloween, christmas]);
   const toggleHalloween = () => {
     setChristmas(false);
