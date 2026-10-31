@@ -103,6 +103,31 @@ function Watch() {
   const [oldest, setOldest] = useState(false);
   const [posting, setPosting] = useState(false);
   const [videoError, setVideoError] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportCategory, setReportCategory] = useState("video_not_working");
+  const [reportDetails, setReportDetails] = useState("");
+  const [reportBusy, setReportBusy] = useState(false);
+  const submitPlaybackReport = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!ep) return;
+    setReportBusy(true);
+    const {error} = await (supabase as any).from("episode_reports").insert({
+      user_id: user?.id ?? null,
+      anime_id: series?.anilist_id ?? 0,
+      anime_title: series?.title ?? "Unknown series",
+      episode: ep.number,
+      audio: version,
+      provider: "Streamly player",
+      category: reportCategory,
+      details: reportDetails.trim().slice(0,2000),
+      device_info: typeof navigator !== "undefined" ? navigator.userAgent.slice(0,350) : null,
+    });
+    setReportBusy(false);
+    if (error) return void toast.error("Unable to send report: " + error.message);
+    toast.success("Playback issue reported. Thank you!");
+    setReportOpen(false);
+    setReportDetails("");
+  };
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const resumeTime = useRef(0);
   const progressKey = `streamly:progress:${episodeId}:${version}`;
@@ -177,7 +202,19 @@ function Watch() {
           {video ? <VideoPlayer ref={videoRef} key={`${episodeId}-${version}-${video}`} src={video} poster={thumb ?? poster ?? undefined} autoPlay={autoplay} autoSkip={autoskip} fileName={`${series?.title ?? "episode"}-EP${ep.number}-${version}`.replace(/[^\w-]+/g, "_")} onLoaded={(el) => { if (resumeTime.current) el.currentTime = resumeTime.current; resumeTime.current = 0; setVideoError(false); }} onError={() => setVideoError(true)} onEnded={() => { try { localStorage.removeItem(progressKey); } catch { /* storage unavailable */ } if (autonext && nextPlayable) navigate({ to: "/watch/$episodeId", params: { episodeId: nextPlayable.id }, search: { lang: version } }); }} /> : <div role="status" className="flex h-full items-center justify-center text-sm text-muted-foreground">Video not available — ask an administrator to connect an authorized video source.</div>}
           {videoError && <div role="alert" className="absolute inset-x-0 top-0 bg-background/90 p-3 text-sm text-destructive">This video could not be played. Try the other version or reload the page.</div>}
         </div>
-        <p className="mt-2 flex items-center gap-2 rounded-md border border-primary/30 bg-primary/15 px-3 py-2 text-xs"><Flag className="h-3.5 w-3.5 shrink-0" />If episode is not working, please report it, and we will fix it as soon as possible.</p>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs"><p className="flex items-center gap-2"><Flag className="h-4 w-4 shrink-0 text-primary" />Something wrong with this episode? Help us fix it.</p><Button type="button" variant="outline" size="sm" onClick={() => setReportOpen(!reportOpen)}><Flag className="h-3.5 w-3.5" />Report an issue</Button></div>
+        {reportOpen && <form onSubmit={submitPlaybackReport} className="mt-3 space-y-3 rounded-xl border border-border bg-card p-4">
+          <h2 className="text-sm font-bold">Report playback problem · Episode {ep.number} ({version.toUpperCase()})</h2>
+          <label className="block space-y-1 text-xs font-semibold">What went wrong?
+            <select value={reportCategory} onChange={event=>setReportCategory(event.target.value)} className="block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
+              <option value="video_not_working">Video won't play</option><option value="wrong_episode">Wrong episode</option><option value="audio_issue">Audio issue</option><option value="subtitle_issue">Subtitle issue</option><option value="other">Other issue</option>
+            </select>
+          </label>
+          <label className="block space-y-1 text-xs font-semibold">Additional details (optional)
+            <textarea value={reportDetails} onChange={event=>setReportDetails(event.target.value)} maxLength={2000} rows={3} placeholder="Describe what happens when you try to play the episode…" className="block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+          </label>
+          <div className="flex flex-wrap gap-2"><Button size="sm" type="submit" disabled={reportBusy}>{reportBusy?"Sending…":"Submit report"}</Button><Button size="sm" type="button" variant="ghost" onClick={()=>setReportOpen(false)}>Cancel</Button></div>
+        </form>}
         <div className="mt-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-border py-2 text-[11px] font-extrabold uppercase">
           <button type="button" onClick={() => setTheater(!theater)} className="flex items-center gap-1.5 hover:text-primary">{theater ? <Minimize className="h-3.5 w-3.5" /> : <Maximize className="h-3.5 w-3.5" />}Theater</button>
           <span title="Space: play/pause · ←/→: 10s · F: fullscreen · M: mute" className="flex cursor-help items-center gap-1.5"><Keyboard className="h-3.5 w-3.5" />Keys</span>
