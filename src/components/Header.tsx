@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Search, LogOut, Shield, UserRound, Menu, Home, Library, ChevronDown, X, Settings, CalendarDays, Users, Bell, History, Bookmark, AtSign, Wrench, type LucideIcon } from "lucide-react";
+import { Search, LogOut, Shield, UserRound, Menu, Home, Library, ChevronDown, X, Settings, CalendarDays, Users, Bell, MessageCircle, History, Bookmark, AtSign, Wrench, type LucideIcon } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useEffect, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -113,6 +113,7 @@ export function Header() {
               <DropdownMenuItem asChild><Link to="/watchlist"><Bookmark /> Watchlist</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/my-list"><Library /> My List</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/friends"><Users /> Friends</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link to="/messages"><MessageCircle /> Messages</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/continue-watching"><History /> Continue Watching</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/notifications"><Bell /> Notifications{Boolean(incomingRequests.data) && <span className="ml-auto rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">{incomingRequests.data}</span>}</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/settings"><Settings /> Settings</Link></DropdownMenuItem>
