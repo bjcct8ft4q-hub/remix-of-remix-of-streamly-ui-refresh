@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Send, ArrowLeft } from "lucide-react";
+import { Send, ArrowLeft, Search, Users, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +18,20 @@ function MessagesPage() {
   const qc = useQueryClient();
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
+  const [search, setSearch] = useState("");
+  const friends = useQuery({
+    queryKey: ["messenger-friends", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data: links, error } = await db.from("friend_requests").select("sender_id,receiver_id").eq("status","accepted").or(`sender_id.eq.${user!.id},receiver_id.eq.${user!.id}`);
+      if (error) throw error;
+      const ids = [...new Set((links ?? []).map((r: any) => r.sender_id === user!.id ? r.receiver_id : r.sender_id))];
+      if (!ids.length) return [];
+      const { data, error: e } = await db.from("profiles").select("id,username,public_display_name,public_avatar_url").in("id",ids);
+      if (e) throw e;
+      return data as {id:string;username:string;public_display_name:string|null;public_avatar_url:string|null}[];
+    },
+  });
   const peer = useQuery({
     queryKey: ["message-peer", username],
     enabled: !!user && !!username,
