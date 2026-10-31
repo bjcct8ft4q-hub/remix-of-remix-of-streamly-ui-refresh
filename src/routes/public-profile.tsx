@@ -104,6 +104,14 @@ function PublicProfile() {
     queryFn: async () => { const { data, error } = await (supabase as any).rpc("public_profile_tracking", { target_user: pid }); if (error) throw error; return data as { watchlist_public: boolean; history_public: boolean; watchlist: Array<{ anilist_id: number; title: string; cover_url: string | null; status: string }>; history: Array<{ anilist_id: number; episode: number; title: string }> }; },
   });
 
+  const sections = useQuery({
+    queryKey: ["public-profile-sections", pid, user?.id], enabled: !!pid,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("public_profile_sections", { target_user: pid });
+      if (error) throw error;
+      return data as { friends_public: boolean; activity_public: boolean; reviews_public: boolean; stats_public: boolean; friends: Array<{id:string;username:string;display_name:string|null;avatar_url:string|null}>; reviews: Array<{anilist_id:number;title:string;rating:number;body:string|null;created_at:string}> };
+    },
+  });
   const history = useQuery(historyQuery(isSelf ? user?.id : undefined));
   const watchlist = useQuery(watchlistQuery(isSelf ? user?.id : undefined));
 
@@ -191,7 +199,7 @@ function PublicProfile() {
             {/* Stats */}
             <div className="mt-5 grid grid-cols-3 divide-x divide-border rounded-xl border border-border bg-background/40 py-4 text-center">
               {[{ l: "Completed", v: completed }, { l: "Episodes", v: episodes }, { l: "Planning", v: planning }].map((s) => (
-                <div key={s.l}><strong className="block text-xl font-bold">{isSelf || (s.l === "Episodes" ? tracking.data?.history_public : tracking.data?.watchlist_public) ? s.v : "—"}</strong><span className="text-sm text-muted-foreground">{s.l}</span></div>
+                <div key={s.l}><strong className="block text-xl font-bold">{isSelf || !!sections.data?.stats_public ? s.v : "—"}</strong><span className="text-sm text-muted-foreground">{s.l}</span></div>
               ))}
             </div>
 
@@ -221,6 +229,10 @@ function PublicProfile() {
                 </div>
               )}
 
+              {tab === "Friends" && (isSelf || sections.data?.friends_public) && <div className="mt-5 grid gap-3 sm:grid-cols-2">{(sections.data?.friends ?? []).length ? sections.data!.friends.map(friend => <Link key={friend.id} to="/public-profile" search={{ username: friend.username }} className="flex items-center gap-3 rounded-xl border border-border p-3 hover:bg-muted">{friend.avatar_url ? <img src={friend.avatar_url} alt="" className="h-12 w-12 rounded-full object-cover" /> : <div className="grid h-12 w-12 place-items-center rounded-full bg-muted"><Users size={20} /></div>}<span className="min-w-0"><strong className="block truncate">{friend.display_name || friend.username}</strong><small className="block text-muted-foreground">@{friend.username}</small></span></Link>) : <p className="text-sm text-muted-foreground">No friends to show yet.</p>}</div>}
+              {tab === "Reviews" && (isSelf || sections.data?.reviews_public) && <div className="mt-5 space-y-3">{(sections.data?.reviews ?? []).length ? sections.data!.reviews.map((review, i) => <Link key={review.anilist_id + "-" + i} to="/anime/$id" params={{id:String(review.anilist_id)}} className="block rounded-xl border border-border p-4 hover:bg-muted"><strong>{review.title}</strong><span className="ml-3 text-sm text-primary">★ {review.rating}</span>{review.body && <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{review.body}</p>}</Link>) : <p className="text-sm text-muted-foreground">No reviews yet.</p>}</div>}
+              {tab === "Stats" && (isSelf || sections.data?.stats_public) && <div className="mt-5 grid grid-cols-3 gap-3">{[{label:"Completed",value:completed},{label:"Episodes",value:episodes},{label:"Planning",value:planning}].map(stat => <div key={stat.label} className="rounded-xl border border-border p-4 text-center"><strong className="block text-xl">{stat.label === "Episodes" && !isSelf && !tracking.data?.history_public ? "—" : stat.label !== "Episodes" && !isSelf && !tracking.data?.watchlist_public ? "—" : stat.value}</strong><span className="text-xs text-muted-foreground">{stat.label}</span></div>)}</div>}
+              {tab === "Activity" && (isSelf || sections.data?.activity_public) && <p className="mt-5 text-sm text-muted-foreground">No public activity events are available yet.</p>}
               {tab === "History" && (isSelf || tracking.data?.history_public) && visibleHistory.length > 0 && <div className="mt-5 space-y-2">{visibleHistory.map((h) => <Link key={`${h.anilist_id}-${h.episode}`} to="/anime/$id" params={{ id: String(h.anilist_id) }} className="flex items-center justify-between rounded-lg border border-border p-3 hover:bg-muted"><span className="font-medium">{h.title}</span><span className="text-sm text-muted-foreground">Episode {h.episode}</span></Link>)}</div>}
               {tab === "Watchlist" && (isSelf || !!tracking.data?.watchlist_public) && items.length > 0  ? (
                 <div className={grid ? "mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6" : "mt-5 space-y-2"}>
@@ -231,10 +243,10 @@ function PublicProfile() {
                     </Link>
                   ))}
                 </div>
-              ) : tab !== "History" || (!isSelf && !tracking.data?.history_public) || visibleHistory.length === 0 ? (
+              ) : !["Friends","Reviews","Stats","Activity"].includes(tab) && (tab !== "History" || (!isSelf && !tracking.data?.history_public) || visibleHistory.length === 0) ? (
                 <div className="mt-5 rounded-xl border border-border bg-background/40 py-14 text-center">
                   <Bookmark size={44} className="mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-bold">{!isSelf && !(tab === "Watchlist" && tracking.data?.watchlist_public) ? `${tab} is private` : tab === "Watchlist" ? "No anime in watchlist yet" : `No ${tab.toLowerCase()} yet`}</h3>
+                  <h3 className="text-lg font-bold">{!isSelf && !(tab === "Watchlist" && tracking.data?.watchlist_public) && !(tab === "History" && tracking.data?.history_public) ? `${tab} is private` : tab === "Watchlist" ? "No anime in watchlist yet" : `No ${tab.toLowerCase()} yet`}</h3>
                   <p className="mt-1 text-sm text-muted-foreground">{!isSelf && !(tab === "Watchlist" && tracking.data?.watchlist_public) ? "This member has not shared this publicly." : "Start adding anime to see them here!"}</p>
                   {isSelf && <Link to="/browse" className="mt-5 inline-flex rounded-lg bg-primary px-7 py-3 text-sm font-bold text-primary-foreground hover:opacity-90">Browse Anime</Link>}
                 </div>
