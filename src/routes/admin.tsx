@@ -455,6 +455,31 @@ function AnalyticsPanel() {
     <p className="text-xs text-muted-foreground">Page views are not unique visitors or live online users. Country, device and referral breakdowns require additional privacy-aware event collection and are not inferred from these counts.</p>
   </section>;
 }
+function AdminAlerts({ openReports }: { openReports: () => void }) {
+  const { data: reports = [], isError } = useQuery({
+    queryKey: ["admin-alerts-open-reports"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("episode_reports")
+        .select("id,anime_title,episode,category,created_at")
+        .eq("status", "open").order("created_at", { ascending: false }).limit(5);
+      if (error) throw error;
+      return (data ?? []) as Pick<EpisodeReport,"id"|"anime_title"|"episode"|"category"|"created_at">[];
+    },
+    refetchInterval: 60000, retry: 0,
+  });
+  return <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div><h2 className="text-lg font-extrabold">Admin notifications</h2><p className="mt-1 text-xs text-muted-foreground">Recent open playback reports · refreshes every minute while this page is open</p></div>
+      <Button variant="outline" size="sm" onClick={openReports}>View reports</Button>
+    </div>
+    {isError ? <p role="alert" className="mt-4 text-sm text-destructive">Report alerts are unavailable. Check the episode reports database permissions.</p>
+      : reports.length ? <div className="mt-4 divide-y divide-border">{reports.map(report => <button key={report.id} onClick={openReports} className="flex w-full items-center justify-between gap-4 py-3 text-left hover:text-primary">
+        <div className="min-w-0"><p className="truncate text-sm font-semibold">{report.anime_title} · Episode {report.episode}</p><p className="mt-1 text-xs text-muted-foreground">{report.category.replaceAll("_", " ")} · {new Date(report.created_at).toLocaleString()}</p></div>
+        <span className="shrink-0 rounded-full bg-destructive/10 px-2 py-1 text-xs font-semibold text-destructive">Open</span>
+      </button>)}</div>
+      : <p className="mt-4 rounded-lg bg-muted/40 p-4 text-sm text-muted-foreground">No open playback reports found.</p>}
+  </section>;
+}
 function Admin() {
   const { user, isAdmin, loading, openAuth } = useAuth();
   const qc = useQueryClient();
@@ -489,7 +514,8 @@ function Admin() {
       <nav aria-label="Admin sections" className="mb-8 flex flex-wrap gap-2 border-b border-border pb-4">
         {(["overview","analytics","reports","content","status"] as const).map((section)=><Button key={section} type="button" variant={tab === section ? "default" : "outline"} aria-current={tab === section ? "page" : undefined} onClick={()=>setTab(section)} className="capitalize">{section === "content" ? "Content manager" : section === "status" ? "Status & incidents" : section}</Button>)}
       </nav>
-      {tab === "overview" && <div className="space-y-6">\n        <div className="grid gap-4 sm:grid-cols-3">
+      {tab === "overview" && <div className="space-y-6">
+        <AdminAlerts openReports={() => setTab("reports")} />\n        <div className="grid gap-4 sm:grid-cols-3">
           <div className="rounded-xl border border-border bg-card p-6"><p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Managed series</p><p className="mt-3 text-4xl font-black text-primary">{data.length}</p></div>
           <div className="rounded-xl border border-border bg-card p-6"><p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Uploaded episodes</p><p className="mt-3 text-4xl font-black text-primary">{data.reduce((n,s)=>n+(s.episodes?.[0]?.count ?? 0),0)}</p></div>
           <div className="rounded-xl border border-border bg-card p-6"><p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Moderation</p><button onClick={()=>setTab("reports")} className="mt-3 text-lg font-extrabold text-primary hover:underline">Review episode reports →</button></div>
