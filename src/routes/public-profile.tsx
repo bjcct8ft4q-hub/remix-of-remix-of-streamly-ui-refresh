@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Activity, BarChart3, Bookmark, CalendarDays, Check, Clock, LayoutGrid, Link2, List, MessageCircle, MoreHorizontal, Search, Settings, Star, UserPlus, Users, Eye } from "lucide-react";
@@ -36,7 +37,9 @@ const FILTERS = ["All", "Watching", "Completed", "On Hold", "Dropped", "Planning
 
 function PublicProfile() {
   const { username: requested } = Route.useSearch();
-  const { user, username: myName, isAdmin } = useAuth();
+  const { user, username: myName, isAdmin, openAuth } = useAuth();
+  const qc = useQueryClient();
+  const [friendBusy, setFriendBusy] = useState(false);
   const { halloween, christmas } = useTheme();
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<string>("Watchlist");
@@ -77,6 +80,24 @@ function PublicProfile() {
       return list;
     },
   });
+  const friendship = useQuery({
+    queryKey: ["profile-friendship", user?.id, pid],
+    enabled: !!user && !!pid && user.id !== pid,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("friend_requests").select("id,sender_id,receiver_id,status").or(`sender_id.eq.${user!.id},receiver_id.eq.${user!.id}`);
+      if (error) throw error;
+      return (data ?? []).find((r: any) => r.sender_id === pid || r.receiver_id === pid) ?? null;
+    },
+  });
+  const addFriend = async () => {
+    if (!user) { openAuth("login"); return; }
+    if (!pid || friendship.data || friendBusy) return;
+    setFriendBusy(true);
+    const { error } = await (supabase as any).from("friend_requests").insert({ sender_id: user.id, receiver_id: pid, status: "pending" });
+    setFriendBusy(false);
+    if (error) toast.error(error.message);
+    else { toast.success("Friend request sent"); void qc.invalidateQueries({ queryKey: ["profile-friendship", user.id, pid] }); void qc.invalidateQueries({ queryKey: ["friends-requests"] }); }
+  };
   const isSelf = !!user && pid === user.id;
   const history = useQuery(historyQuery(isSelf ? user?.id : undefined));
   const watchlist = useQuery(watchlistQuery(isSelf ? user?.id : undefined));
@@ -142,8 +163,10 @@ function PublicProfile() {
                   <Link to="/settings" className="flex h-11 items-center gap-2 rounded-lg bg-primary px-5 font-bold text-primary-foreground hover:opacity-90"><Settings size={18} /> Edit Profile</Link>
                 ) : (
                   <>
-                    <button type="button" onClick={() => soon("Messaging")} className="flex h-11 items-center gap-2 rounded-lg border border-border bg-background/60 px-4 font-semibold hover:bg-muted"><MessageCircle size={18} /> Message</button>
-                    <button type="button" onClick={() => soon("Friend requests")} className="flex h-11 items-center gap-2 rounded-lg bg-primary px-5 font-bold text-primary-foreground hover:opacity-90"><UserPlus size={18} /> Add Friend</button>
+                    <Link to="/messages" search={{ username: handle }} className="flex h-11 items-center gap-2 rounded-lg border border-border bg-background/60 px-4 font-semibold hover:bg-muted"><MessageCircle size={18} /> Message</Link>
+                    {friendship.data?.status === "accepted" ? <span className="flex h-11 items-center gap-2 rounded-lg border border-primary/40 bg-primary/10 px-5 font-bold text-primary"><Check size={18} /> Friends</span>
+                    : friendship.data?.status === "pending" ? <Link to="/friends" className="flex h-11 items-center gap-2 rounded-lg border border-border bg-muted px-5 font-semibold"><Clock size={18} /> {friendship.data.sender_id === user?.id ? "Request Sent" : "Respond to Request"}</Link>
+                    : <button type="button" disabled={friendBusy || friendship.isLoading} onClick={addFriend} className="flex h-11 items-center gap-2 rounded-lg bg-primary px-5 font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50"><UserPlus size={18} /> Add Friend</button>}
                   </>
                 )}
               </div>
