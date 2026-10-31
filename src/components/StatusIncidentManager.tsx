@@ -34,7 +34,7 @@ export function StatusIncidentManager() {
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const fields = new FormData(event.currentTarget);
-    const parsed = incidentSchema.safeParse({ id: editing?.id, title: fields.get("title"), service: fields.get("service"), body: fields.get("body"), status: fields.get("status"), severity: fields.get("severity"), started_at: editing?.started_at ?? new Date().toISOString() });
+    const parsed = incidentSchema.safeParse({ id: editing?.id, title: fields.get("title"), service: fields.get("service"), body: fields.get("body"), status: fields.get("status"), severity: fields.get("severity"), started_at: editing?.started_at ? new Date(editing.started_at).toISOString() : new Date().toISOString() });
     if (!parsed.success) return void toast.error(parsed.error.issues[0]?.message ?? "Check the incident details");
     setBusy(true);
     try {
