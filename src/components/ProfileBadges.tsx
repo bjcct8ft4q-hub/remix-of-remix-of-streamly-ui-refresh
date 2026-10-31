@@ -4,15 +4,15 @@ import type { LucideIcon } from "lucide-react";
 export type BadgeKey = "owner" | "moderator" | "developer" | "verified" | "supporter" | "gamer" | "creator" | "partner" | "bot";
 
 export const BADGES: Record<BadgeKey, { label: string; description: string; Icon: LucideIcon; color: string }> = {
-  owner: { label: "Owner", description: "Website owner / highest role", Icon: Crown, color: "var(--badge-owner)" },
-  moderator: { label: "Moderator", description: "Server moderator / community moderator", Icon: Shield, color: "var(--badge-moderator)" },
-  developer: { label: "Developer", description: "Website developer", Icon: Code2, color: "var(--badge-developer)" },
-  verified: { label: "Verified", description: "Verified Streamly account (automatic for all users)", Icon: BadgeCheck, color: "var(--badge-verified)" },
-  supporter: { label: "Supporter", description: "Supports Streamly", Icon: Gem, color: "var(--badge-supporter)" },
-  gamer: { label: "Gamer", description: "Gaming related content / active gamer", Icon: Gamepad2, color: "var(--badge-gamer)" },
-  creator: { label: "Content Creator", description: "Creates content (e.g. streaming / YouTube)", Icon: Disc3, color: "var(--badge-creator)" },
-  partner: { label: "Partner", description: "Official partner", Icon: Sword, color: "var(--badge-partner)" },
-  bot: { label: "Bot", description: "Official bot account", Icon: Bot, color: "var(--badge-bot)" },
+  owner: { label: "Owner", description: "The person responsible for running and managing Streamly.", Icon: Crown, color: "var(--badge-owner)" },
+  moderator: { label: "Moderator", description: "Helps keep the Streamly community safe and welcoming.", Icon: Shield, color: "var(--badge-moderator)" },
+  developer: { label: "Developer", description: "Builds and maintains Streamly features and improvements.", Icon: Code2, color: "var(--badge-developer)" },
+  verified: { label: "Verified", description: "Registered Streamly member. This badge is given automatically when you join; it does not verify your real-world identity.", Icon: BadgeCheck, color: "var(--badge-verified)" },
+  supporter: { label: "Supporter", description: "Recognized for supporting the Streamly community.", Icon: Gem, color: "var(--badge-supporter)" },
+  gamer: { label: "Gamer", description: "A Streamly member who enjoys gaming.", Icon: Gamepad2, color: "var(--badge-gamer)" },
+  creator: { label: "Content Creator", description: "Creates videos, streams, or other community content.", Icon: Disc3, color: "var(--badge-creator)" },
+  partner: { label: "Partner", description: "An official Streamly community partner.", Icon: Sword, color: "var(--badge-partner)" },
+  bot: { label: "Bot", description: "An automated account operated for Streamly.", Icon: Bot, color: "var(--badge-bot)" },
 };
 
 const ORDER: BadgeKey[] = ["owner", "moderator", "developer", "verified", "supporter", "gamer", "creator", "partner", "bot"];
@@ -25,8 +25,14 @@ export function ProfileBadges({ badges = [] }: { badges?: string[] }) {
       {ORDER.filter((k) => set.has(k)).map((k) => {
         const { label, description, Icon, color } = BADGES[k];
         return (
-          <span key={k} tabIndex={0} title={`${label} — ${description}`} aria-label={`${label}: ${description}`} className="inline-flex transition hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" style={{ color }}>
-            <Icon size={28} strokeWidth={2.2} fill="currentColor" fillOpacity={0.25} />
+          <span key={k} tabIndex={0} aria-label={`${label}: ${description}`} className="group relative inline-flex cursor-help rounded-md outline-none transition-transform hover:scale-110 focus-visible:ring-2 focus-visible:ring-primary" style={{ color }}>
+            <Icon size={28} strokeWidth={2.2} fill="currentColor" fillOpacity={0.25} aria-hidden="true" />
+            <span role="tooltip" className="pointer-events-none absolute bottom-[calc(100%+14px)] left-1/2 z-[100] w-56 max-w-[80vw] -translate-x-1/2 translate-y-1 rounded-xl border border-white/10 bg-[#101115] px-4 py-3 text-left text-white opacity-0 shadow-[0_16px_45px_rgba(0,0,0,.65)] transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
+              <span className="mx-auto mb-2 grid h-14 w-14 place-items-center rounded-full border-2 border-current bg-white/5" style={{ color }}><Icon size={32} strokeWidth={2.2} aria-hidden="true" /></span>
+              <span className="block text-center text-sm font-extrabold uppercase italic tracking-wide text-white">{label}</span>
+              <span className="mt-1 block text-center text-xs leading-relaxed text-gray-400">{description}</span>
+              <span className="absolute -bottom-[6px] left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 border-b border-r border-white/10 bg-[#101115]" />
+            </span>
           </span>
         );
       })}
