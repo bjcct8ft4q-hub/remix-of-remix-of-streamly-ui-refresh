@@ -183,7 +183,7 @@ function ChristmasSnowfall() {
 }
 
 function ThemeToggle() {
-  const { halloween, toggleHalloween } = useTheme();
+  const { halloween, halloweenAvailable, toggleHalloween } = useTheme();
   const [glitch, setGlitch] = useState(false);
   const [scare, setScare] = useState(false);
   const scareVideo = useRef<HTMLVideoElement | null>(null);
@@ -262,12 +262,12 @@ function ThemeToggle() {
   return <>
     {scare && <div role="presentation" className="fixed inset-0 z-[10000] overflow-hidden bg-black" onClick={() => { setScare(false); scareVideo.current?.pause(); }}><video ref={scareVideo} className="h-full w-full object-contain" playsInline preload="none" src="/halloween/jumpscare.mp4" onError={() => { /* Fall back to the CSS scare when the video has not been uploaded. */ }} /><div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/30 text-center text-8xl font-black text-red-500 mix-blend-screen animate-pulse" aria-hidden="true">☠</div></div>}
     {glitch && <div className="streamly-glitch-overlay" aria-hidden="true"><div className="streamly-glitch-noise" /><div className="streamly-glitch-scanlines" /><div className="streamly-glitch-tear streamly-glitch-tear-one" /><div className="streamly-glitch-tear streamly-glitch-tear-two" /><div className="streamly-glitch-blocks" /><div className="streamly-glitch-color" /></div>}
-    <button type="button" onClick={changeTheme}
+    {halloweenAvailable && <button type="button" onClick={changeTheme}
       className="streamly-theme-toggle fixed bottom-5 right-5 z-[100] flex h-12 w-12 items-center justify-center border-0 bg-transparent p-0 text-3xl shadow-none transition-transform hover:scale-110 focus-visible:rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:bottom-6 sm:right-6"
       aria-label={halloween ? "Switch to normal blue theme" : "Switch to Halloween orange theme"}
       title={halloween ? "Switch to normal theme" : "Switch to Halloween theme"}>
       <span aria-hidden="true">🎃</span>
-    </button>
+    </button>}
   </>;
 }
 
