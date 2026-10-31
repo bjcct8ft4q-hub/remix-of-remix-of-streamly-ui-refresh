@@ -14,6 +14,8 @@ export function AdminMembers() {
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const members = useQuery({
     queryKey: ["admin-member-directory"],
     queryFn: async () => {
@@ -30,6 +32,18 @@ export function AdminMembers() {
     setBusy(false);
     if (error) toast.error(error.message);
     else { toast.success("Member updated"); void qc.invalidateQueries({ queryKey: ["admin-member-directory"] }); }
+  };
+  const authAction = async (action: "reset_password" | "delete") => {
+    if (!selected || busy) return;
+    if (action === "delete" && (!confirmDelete || deleteConfirmation !== "DELETE")) return;
+    setBusy(true);
+    const { data, error } = await supabase.functions.invoke("admin-member-auth", {
+      body: { action, targetUserId: selected, confirmation: action === "delete" ? deleteConfirmation : undefined },
+    });
+    setBusy(false);
+    if (error || data?.error) { toast.error(data?.error || error?.message || "Action failed"); return; }
+    toast.success(data?.message || "Action completed");
+    if (action === "delete") { setSelected(null); setConfirmDelete(false); setDeleteConfirmation(""); void qc.invalidateQueries({ queryKey: ["admin-member-directory"] }); }
   };
   return <section className="space-y-5">
     <div><h2 className="text-2xl font-extrabold">Member management</h2><p className="text-sm text-muted-foreground">Find members, update their public names and manage community badges. Privileged Owner and Admin roles cannot be granted here.</p></div>
@@ -50,7 +64,20 @@ export function AdminMembers() {
           <div className="space-y-2"><label className="block text-sm font-semibold">Username</label><div className="flex gap-2"><input className="min-w-0 flex-1 rounded-lg border border-border bg-background p-2" value={username} onChange={e => setUsername(e.target.value)} /><button disabled={busy} className="rounded-lg bg-primary px-4 text-primary-foreground" onClick={() => void change("username", username)}>Save</button></div></div>
           <div className="space-y-2"><label className="block text-sm font-semibold">Display name</label><div className="flex gap-2"><input className="min-w-0 flex-1 rounded-lg border border-border bg-background p-2" value={displayName} onChange={e => setDisplayName(e.target.value)} /><button disabled={busy} className="rounded-lg bg-primary px-4 text-primary-foreground" onClick={() => void change("display_name", displayName)}>Save</button></div></div>
           <div><h4 className="mb-3 font-bold">Badges (select multiple)</h4><div className="grid gap-2 sm:grid-cols-2">{badgeKeys.map(key => { const badge = BADGES[key]; const active = current.badges.includes(key); return <label key={key} className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-3"><input type="checkbox" checked={active} disabled={busy} onChange={() => void change(active ? "remove_badge" : "grant_badge", key)} /><badge.Icon size={19} style={{color:badge.color}} /><span>{badge.label}</span></label>; })}</div></div>
-          <p className="border-t border-border pt-4 text-xs text-muted-foreground">Password resets and permanent account deletion require secure server-side Auth administration. These actions are not enabled until that integration is configured.</p>
+          <div className="space-y-3 border-t border-border pt-5">
+            <h4 className="font-bold">Account security</h4>
+            <p className="text-sm text-muted-foreground">Send this member a secure password reset email. Their password is never revealed or replaced with a shared temporary password.</p>
+            <button type="button" disabled={busy} onClick={() => void authAction("reset_password")} className="rounded-lg border border-border px-4 py-2 text-sm font-semibold hover:bg-muted disabled:opacity-50">Send password reset email</button>
+          </div>
+          <div className="space-y-3 rounded-xl border border-red-500/30 bg-red-500/5 p-4">
+            <h4 className="font-bold text-red-400">Danger zone</h4>
+            <p className="text-sm text-muted-foreground">Permanently delete this member's authentication account. This cannot be undone. Linked records may require additional cleanup.</p>
+            {!confirmDelete ? <button type="button" onClick={() => setConfirmDelete(true)} className="rounded-lg border border-red-500/50 px-4 py-2 text-sm font-bold text-red-400">Delete account…</button> : <div className="space-y-3">
+              <label className="block text-sm">Type <strong>DELETE</strong> to confirm deleting @{current.username}.</label>
+              <input aria-label="Type DELETE to confirm" className="w-full rounded-lg border border-red-500/50 bg-background p-2" value={deleteConfirmation} onChange={e => setDeleteConfirmation(e.target.value)} />
+              <div className="flex gap-2"><button type="button" disabled={busy || deleteConfirmation !== "DELETE"} onClick={() => void authAction("delete")} className="rounded-lg bg-red-600 px-4 py-2 font-bold text-white disabled:opacity-50">Permanently delete</button><button type="button" onClick={() => {setConfirmDelete(false);setDeleteConfirmation("");}} className="rounded-lg border border-border px-4 py-2">Cancel</button></div>
+            </div>}
+          </div>
         </div>}
       </div>
     </div>
