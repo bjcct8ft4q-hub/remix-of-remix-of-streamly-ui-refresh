@@ -139,7 +139,7 @@ function PublicProfile() {
   const completed = visibleWatchlist.filter((r) => r.status?.toLowerCase() === "completed").length;
   const planning = visibleWatchlist.filter((r) => r.status?.toLowerCase() === "planning").length;
   const joined = new Date(p.created_at).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
-  const items = visibleWatchlist.filter((w) => !listSearch || (w.title ?? "").toLowerCase().includes(listSearch.toLowerCase()));
+  const items = visibleWatchlist.filter((w) => (filter === "All" || (w.status ?? "planning").toLowerCase().replace(/[_ -]/g, "") === filter.toLowerCase().replace(/[_ -]/g, "")) && (!listSearch || (w.title ?? "").toLowerCase().includes(listSearch.toLowerCase())));
   const soon = (what: string) => toast(`${what} is coming soon.`);
   const copyUrl = async () => { try { await navigator.clipboard.writeText(`${window.location.origin}/${encodeURIComponent(handle)}`); setCopied(true); } catch { setCopied(false); } };
 
@@ -230,7 +230,8 @@ function PublicProfile() {
                 </div>
               )}
 
-              {tab === "Watchlist" && (isSelf || !!tracking.data?.watchlist_public) && items.length > 0 && filter !== "Dropped" && filter !== "On Hold" ? (
+              {tab === "History" && (isSelf || tracking.data?.history_public) && visibleHistory.length > 0 && <div className="mt-5 space-y-2">{visibleHistory.map((h) => <Link key={`${h.anilist_id}-${h.episode}`} to="/anime/$id" params={{ id: String(h.anilist_id) }} className="flex items-center justify-between rounded-lg border border-border p-3 hover:bg-muted"><span className="font-medium">{h.title}</span><span className="text-sm text-muted-foreground">Episode {h.episode}</span></Link>)}</div>}
+              {tab === "Watchlist" && (isSelf || !!tracking.data?.watchlist_public) && items.length > 0  ? (
                 <div className={grid ? "mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6" : "mt-5 space-y-2"}>
                   {items.map((w) => (
                     <Link key={w.anilist_id} to="/anime/$id" params={{ id: String(w.anilist_id) }} className={grid ? "group" : "flex items-center gap-3 rounded-lg border border-border p-2 hover:bg-muted"}>
@@ -239,14 +240,14 @@ function PublicProfile() {
                     </Link>
                   ))}
                 </div>
-              ) : (
+              ) : tab !== "History" || (!isSelf && !tracking.data?.history_public) || visibleHistory.length === 0 ? (
                 <div className="mt-5 rounded-xl border border-border bg-background/40 py-14 text-center">
                   <Bookmark size={44} className="mx-auto mb-4 text-muted-foreground" />
                   <h3 className="text-lg font-bold">{!isSelf && !(tab === "Watchlist" && tracking.data?.watchlist_public) ? `${tab} is private` : tab === "Watchlist" ? "No anime in watchlist yet" : `No ${tab.toLowerCase()} yet`}</h3>
                   <p className="mt-1 text-sm text-muted-foreground">{!isSelf && !(tab === "Watchlist" && tracking.data?.watchlist_public) ? "This member has not shared this publicly." : "Start adding anime to see them here!"}</p>
                   {isSelf && <Link to="/browse" className="mt-5 inline-flex rounded-lg bg-primary px-7 py-3 text-sm font-bold text-primary-foreground hover:opacity-90">Browse Anime</Link>}
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         </section>
