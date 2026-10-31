@@ -292,8 +292,6 @@ function Settings() {
       </nav>
       <div className="streamly-settings-content min-w-0" id="settings-scroll-content">
         {true && <section id="settings-section-profile" className="rounded-2xl border border-border bg-card/90 p-4 shadow-xl shadow-black/10 sm:p-7"><h2 className="mb-6 text-3xl font-bold">Account</h2>
- : <p className="mt-3 text-sm text-muted-foreground">Sign in to change privacy preferences.</p>}
-          </div>
           <div className="mb-7 rounded-xl border border-border bg-background/50 p-4">
             <h2 className="text-lg font-bold">Profile banner</h2>
             <p className="mt-1 text-xs text-muted-foreground">Upload a wide JPG, PNG or WebP image (up to 5 MB), or paste an HTTPS image URL.</p>
@@ -350,7 +348,8 @@ function Settings() {
               <label className="flex cursor-pointer items-center gap-3 text-sm"><input type="checkbox" className="h-4 w-4 accent-primary" disabled={privacyBusy || privacySettings.isPending} checked={!!privacySettings.data?.show_friends} onChange={(event) => void updateProfilePrivacy("show_friends", event.target.checked)} /> Public friends list</label>
               {privacyMessage && <p role="status" className="text-xs text-muted-foreground">{privacyMessage}</p>}
               {privacySettings.isError && <p role="alert" className="text-xs text-red-400">Unable to load privacy preferences.</p>}
-            </div>
+            </div> : <p className="mt-3 text-sm text-muted-foreground">Sign in to change privacy preferences.</p>}
+          </div>
           <h2 className="text-xl font-bold">Preferred audio language</h2>
           <p className="mt-2 text-sm text-muted-foreground">Choose the audio Streamly selects automatically. You can still change it for individual episodes.</p>
           <div className="mt-5 space-y-3">{choices.map((choice) => <label key={choice.value} className={"flex cursor-pointer gap-3 rounded-lg border p-4 " + (preference === choice.value ? "border-primary bg-primary/10" : "border-border")}>
