@@ -40,7 +40,6 @@ function PublicProfile() {
   const { user, username: myName, isAdmin, openAuth } = useAuth();
   const qc = useQueryClient();
   const [friendBusy, setFriendBusy] = useState(false);
-  const [privacyBusy, setPrivacyBusy] = useState(false);
   const { halloween, christmas } = useTheme();
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<string>("Watchlist");
