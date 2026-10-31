@@ -5,6 +5,8 @@ import { Send, ArrowLeft, Search, Users, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { useTheme } from "@/lib/theme";
+import { ProfileBadges } from "@/components/ProfileBadges";
 
 export const Route = createFileRoute("/messages")({
   validateSearch: (s: Record<string, unknown>): { username?: string } => typeof s.username === "string" ? { username: s.username } : {},
@@ -16,6 +18,7 @@ function MessagesPage() {
   const { username } = Route.useSearch();
   const { user, openAuth } = useAuth();
   const qc = useQueryClient();
+  const { halloween, christmas } = useTheme();
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
   const [search, setSearch] = useState("");
@@ -36,9 +39,9 @@ function MessagesPage() {
     queryKey: ["message-peer", username],
     enabled: !!user && !!username,
     queryFn: async () => {
-      const { data, error } = await db.from("profiles").select("id,username,public_display_name,public_avatar_url").ilike("username", username!).maybeSingle();
+      const { data, error } = await db.from("profiles").select("id,username,public_display_name,public_avatar_url,public_banner_url,created_at").ilike("username", username!).maybeSingle();
       if (error) throw error;
-      return data as { id: string; username: string; public_display_name: string | null; public_avatar_url: string | null } | null;
+      return data as { id: string; username: string; public_display_name: string | null; public_avatar_url: string | null; public_banner_url: string | null; created_at: string } | null;
     },
   });
   const friendship = useQuery({
@@ -60,6 +63,21 @@ function MessagesPage() {
       return data as { id: string; sender_id: string; receiver_id: string; body: string; created_at: string }[];
     },
   });
+  const peerBadges = useQuery({
+    queryKey: ["message-peer-badges", peer.data?.id],
+    enabled: !!peer.data?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("is_public_admin", { profile_user_id: peer.data!.id });
+      if (error) throw error;
+      const list = ["verified"];
+      if (data === true) {
+        list.push("moderator");
+        if (peer.data?.username?.toLowerCase() === "iamvraith") list.push("owner", "developer");
+      }
+      return list;
+    },
+  });
+  const defaultBanner = christmas ? "/banners/default-red.png.png" : halloween ? "/banners/default-orange.png.png" : "/banners/default-blue.png.png";
   const send = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !peer.data || !friendship.data || !body.trim() || sending) return;
@@ -93,7 +111,20 @@ function MessagesPage() {
         </form>
       </section>}
       </section>
-      <aside className="hidden border-l border-white/10 xl:block">{peer.data && <><div className="h-24 bg-gradient-to-br from-primary/70 to-[#080f19]"/><div className="px-5"><div className="-mt-7 h-14 w-14 overflow-hidden rounded-full border-2 border-primary bg-[#1b2b3d]">{peer.data.public_avatar_url && <img src={peer.data.public_avatar_url} alt="" className="h-full w-full object-cover"/>}</div><h3 className="mt-3 text-lg font-bold">{peer.data.public_display_name||peer.data.username}</h3><p className="text-sm text-slate-400">@{peer.data.username}</p><Link to="/public-profile" search={{username:peer.data.username}} className="mt-5 block rounded-lg border border-white/15 bg-white/5 p-3 text-center text-sm hover:bg-white/10">View Profile</Link></div></>}</aside>
+      <aside className="hidden min-w-0 border-l border-white/10 bg-[#08111d] xl:block">
+        {peer.data && <>
+          <div className="h-28 bg-gradient-to-br from-primary/40 to-[#080f19]"><img src={peer.data.public_banner_url || defaultBanner} alt="" onError={e=>{e.currentTarget.style.display="none"}} className="h-full w-full object-cover"/></div>
+          <div className="px-4 pb-6">
+            <div className="-mt-8 h-16 w-16 overflow-hidden rounded-full border-[3px] border-[#08111d] bg-[#152336]">{peer.data.public_avatar_url ? <img src={peer.data.public_avatar_url} alt="" className="h-full w-full object-cover"/> : <Users className="m-4"/>}</div>
+            <h3 className="mt-2 truncate text-lg font-extrabold">{peer.data.public_display_name||peer.data.username}</h3>
+            <p className="truncate text-xs text-slate-400">@{peer.data.username}</p>
+            <div className="mt-3 [&_svg]:!h-5 [&_svg]:!w-5"><ProfileBadges badges={peerBadges.data??[]}/></div>
+            {peer.data.created_at && <p className="mt-3 text-xs text-slate-400">Joined {new Date(peer.data.created_at).toLocaleDateString("en-GB",{month:"short",year:"numeric"})}</p>}
+            <Link to="/public-profile" search={{username:peer.data.username}} className="mt-4 block rounded-lg border border-white/15 bg-white/5 p-2.5 text-center text-sm font-semibold hover:bg-white/10">View Profile</Link>
+            <div className="mt-5 border-t border-white/10 pt-4"><h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Conversation</h4><p className="mt-2 text-sm text-slate-400">Private messages with your Streamly friend.</p></div>
+          </div>
+        </>}
+      </aside>
     </div>
   </main>;
 }
