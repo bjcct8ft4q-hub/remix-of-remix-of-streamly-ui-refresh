@@ -104,12 +104,12 @@ function Settings() {
     queryKey: ["settings-profile-privacy", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("show_watchlist, show_history").eq("id", user!.id).single();
+      const { data, error } = await supabase.from("profiles").select("show_watchlist, show_history, show_activity, show_reviews, show_stats, show_friends").eq("id", user!.id).single();
       if (error) throw error;
-      return data as { show_watchlist: boolean | null; show_history: boolean | null };
+      return data as { show_watchlist: boolean | null; show_history: boolean | null; show_activity: boolean | null; show_reviews: boolean | null; show_stats: boolean | null; show_friends: boolean | null };
     },
   });
-  const updateProfilePrivacy = async (field: "show_watchlist" | "show_history", value: boolean) => {
+  const updateProfilePrivacy = async (field: "show_watchlist" | "show_history" | "show_activity" | "show_reviews" | "show_stats" | "show_friends", value: boolean) => {
     if (!user || privacyBusy) return;
     setPrivacyBusy(true);
     setPrivacyMessage("");
@@ -344,6 +344,10 @@ function Settings() {
             {user ? <div className="mt-4 space-y-3">
               <label className="flex cursor-pointer items-center gap-3 text-sm"><input type="checkbox" className="h-4 w-4 accent-primary" disabled={privacyBusy || privacySettings.isPending} checked={!!privacySettings.data?.show_watchlist} onChange={(event) => void updateProfilePrivacy("show_watchlist", event.target.checked)} /> Public watchlist</label>
               <label className="flex cursor-pointer items-center gap-3 text-sm"><input type="checkbox" className="h-4 w-4 accent-primary" disabled={privacyBusy || privacySettings.isPending} checked={!!privacySettings.data?.show_history} onChange={(event) => void updateProfilePrivacy("show_history", event.target.checked)} /> Public viewing history and episode stats</label>
+              <label className="flex cursor-pointer items-center gap-3 text-sm"><input type="checkbox" className="h-4 w-4 accent-primary" disabled={privacyBusy || privacySettings.isPending} checked={!!privacySettings.data?.show_stats} onChange={(event) => void updateProfilePrivacy("show_stats", event.target.checked)} /> Public statistics</label>
+              <label className="flex cursor-pointer items-center gap-3 text-sm"><input type="checkbox" className="h-4 w-4 accent-primary" disabled={privacyBusy || privacySettings.isPending} checked={!!privacySettings.data?.show_reviews} onChange={(event) => void updateProfilePrivacy("show_reviews", event.target.checked)} /> Public reviews</label>
+              <label className="flex cursor-pointer items-center gap-3 text-sm"><input type="checkbox" className="h-4 w-4 accent-primary" disabled={privacyBusy || privacySettings.isPending} checked={!!privacySettings.data?.show_activity} onChange={(event) => void updateProfilePrivacy("show_activity", event.target.checked)} /> Public activity</label>
+              <label className="flex cursor-pointer items-center gap-3 text-sm"><input type="checkbox" className="h-4 w-4 accent-primary" disabled={privacyBusy || privacySettings.isPending} checked={!!privacySettings.data?.show_friends} onChange={(event) => void updateProfilePrivacy("show_friends", event.target.checked)} /> Public friends list</label>
               {privacyMessage && <p role="status" className="text-xs text-muted-foreground">{privacyMessage}</p>}
               {privacySettings.isError && <p role="alert" className="text-xs text-red-400">Unable to load privacy preferences.</p>}
             </div>
