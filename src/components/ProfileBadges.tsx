@@ -31,10 +31,10 @@ export function ProfileBadges({ badges = [] }: { badges?: string[] }) {
 
   const positionTooltip = (element: HTMLElement) => {
     const rect = element.getBoundingClientRect();
-    const width = Math.min(256, window.innerWidth - 24);
+    const width = Math.min(240, window.innerWidth - 24);
     const left = Math.max(12 + width / 2, Math.min(window.innerWidth - 12 - width / 2, rect.left + rect.width / 2));
-    const below = rect.top < 210;
-    setPosition({ left, top: below ? rect.bottom + 12 : rect.top - 12, below });
+    const below = window.innerWidth < 640 || rect.top < 160;
+    setPosition({ left, top: below ? rect.bottom + 9 : rect.top - 9, below });
   };
 
   useEffect(() => {
@@ -89,15 +89,19 @@ export function ProfileBadges({ badges = [] }: { badges?: string[] }) {
       {detail && typeof document !== "undefined" && createPortal(
         <div
           role="tooltip"
-          className="pointer-events-none fixed z-[9999] w-64 max-w-[calc(100vw-24px)] rounded-xl border border-white/10 bg-[#101115] px-4 py-3 text-white shadow-[0_16px_45px_rgba(0,0,0,.65)]"
+          className="pointer-events-none fixed z-[9999] w-60 max-w-[calc(100vw-24px)] rounded-lg border border-white/10 bg-[#101115] px-3 py-2.5 text-white shadow-[0_10px_30px_rgba(0,0,0,.55)]"
           style={{ left: position.left, top: position.top, transform: position.below ? "translate(-50%, 0)" : "translate(-50%, -100%)" }}
         >
-          <span className="mx-auto mb-2 grid h-14 w-14 place-items-center rounded-full border-2 border-current bg-white/5" style={{ color: detail.color }}>
-            <detail.Icon size={32} strokeWidth={2.2} aria-hidden="true" />
-          </span>
-          <span className="block text-center text-sm font-extrabold uppercase italic tracking-wide">{detail.label}</span>
-          <span className="mt-1 block text-center text-xs leading-relaxed text-gray-400">{detail.description}</span>
-          <span className={`absolute left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 border-white/10 bg-[#101115] ${position.below ? "-top-[6px] border-l border-t" : "-bottom-[6px] border-b border-r"}`} />
+          <div className="flex items-center gap-2.5">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-current bg-white/5" style={{ color: detail.color }}>
+              <detail.Icon size={21} strokeWidth={2.2} aria-hidden="true" />
+            </span>
+            <div className="min-w-0 text-left">
+              <span className="block text-xs font-extrabold uppercase tracking-wide text-white">{detail.label}</span>
+              <span className="mt-0.5 block text-[11px] leading-snug text-gray-400">{detail.description}</span>
+            </div>
+          </div>
+          <span className={`absolute left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45 border-white/10 bg-[#101115] ${position.below ? "-top-[6px] border-l border-t" : "-bottom-[6px] border-b border-r"}`} />
         </div>,
         document.body
       )}
