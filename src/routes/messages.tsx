@@ -59,7 +59,7 @@ function MessagesPage() {
   return <main className="mx-auto max-w-3xl px-4 pb-24 pt-28 sm:px-6">
     <Link to="/friends" className="mb-5 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft size={16}/> Friends</Link>
     <h1 className="mb-5 text-3xl font-extrabold">Messages{peer.data ? ` · ${peer.data.public_display_name || peer.data.username}` : ""}</h1>
-    {!user ? <div className="rounded-xl border border-border bg-card p-6">Sign in to message your friends. <button className="ml-2 font-bold text-primary" onClick={() => openAuth("login")}>Sign in</button></div>
+    {!user ? <div className="rounded-xl border border-border bg-card p-6">Sign in to message your friends. <button className="ml-2 font-bold text-primary" onClick={() => openAuth("signin")}>Sign in</button></div>
       : !username ? <div className="rounded-xl border border-border bg-card p-6">Open a friend's public profile and select Message to start chatting.</div>
       : peer.isLoading || friendship.isLoading ? <p className="text-muted-foreground">Loading conversation…</p>
       : !peer.data ? <p>Member not found.</p>
