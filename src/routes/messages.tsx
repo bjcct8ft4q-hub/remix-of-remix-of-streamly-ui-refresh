@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Send, ArrowLeft, Search, Users, MessageSquare } from "lucide-react";
+import { Send, ArrowLeft, Search, Users, MessageSquare, Smile, Bell, BellOff, Pin } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +22,9 @@ function MessagesPage() {
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
   const [search, setSearch] = useState("");
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [pinned, setPinned] = useState(false);
   const friends = useQuery({
     queryKey: ["messenger-friends", user?.id],
     enabled: !!user,
@@ -101,11 +104,18 @@ function MessagesPage() {
       : peer.isLoading || friendship.isLoading ? <p className="text-muted-foreground">Loading conversation…</p>
       : !peer.data ? <p>Member not found.</p>
       : !friendship.data ? <p className="rounded-xl border border-border bg-card p-6">You must be friends before you can exchange messages.</p>
-      : <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#0c1827] text-white">
-        <div className="flex h-[min(60vh,600px)] flex-col gap-3 overflow-y-auto bg-gradient-to-b from-[#0d2238] to-[#080f19] p-4 sm:p-6" aria-label="Conversation">
+      : <section className="flex h-full min-h-[70vh] flex-col overflow-hidden bg-[#070b12] text-white">
+        <div className="flex items-center gap-3 border-b border-white/10 bg-[#0a111d] px-4 py-3">
+          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-primary/60 bg-primary/20">{peer.data.public_avatar_url ? <img src={peer.data.public_avatar_url} alt="" className="h-full w-full object-cover"/> : <Users className="m-2"/>}</div>
+          <div className="min-w-0 flex-1"><p className="truncate font-bold">{peer.data.public_display_name || peer.data.username}</p><p className="truncate text-xs text-slate-400">@{peer.data.username}</p></div>
+          <Link to="/public-profile" search={{username:peer.data.username}} className="rounded-lg border border-white/15 px-3 py-2 text-xs hover:bg-white/10">View Profile</Link>
+        </div>
+        <div className="flex min-h-[55vh] flex-1 flex-col gap-3 overflow-y-auto bg-gradient-to-b from-[#0b1d32] via-[#081321] to-[#070b12] p-4 sm:p-6" aria-label="Conversation">
           {messages.isLoading ? <p className="text-sm text-muted-foreground">Loading messages…</p> : messages.isError ? <p className="text-sm text-destructive">Unable to load messages.</p> : messages.data?.length === 0 ? <p className="m-auto text-center text-sm text-muted-foreground">No messages yet. Say hello!</p> : messages.data?.map(m => <div key={m.id} className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${m.sender_id === user.id ? "self-end bg-primary text-primary-foreground" : "self-start bg-muted"}`}><p className="whitespace-pre-wrap break-words">{m.body}</p><time className="mt-1 block text-right text-[10px] opacity-70">{new Date(m.created_at).toLocaleString()}</time></div>)}
         </div>
-        <form onSubmit={send} className="flex items-center gap-2 border-t border-border p-3">
+        <form onSubmit={send} className="relative flex items-center gap-2 border-t border-white/10 bg-[#0a111d] p-3">
+          <button type="button" title="Emoji" onClick={()=>setEmojiOpen(v=>!v)} className="rounded-lg p-2 text-slate-400 hover:bg-white/10"><Smile size={20}/></button>
+          {emojiOpen && <div className="absolute bottom-16 left-2 z-10 flex gap-2 rounded-xl border border-white/20 bg-[#152336] p-3 shadow-xl">{["😀","😂","❤️","🔥","👍","🎉"].map(e=><button key={e} type="button" onClick={()=>{setBody(v=>v+e);setEmojiOpen(false)}} className="text-xl">{e}</button>)}</div>}
           <input aria-label="Message" maxLength={2000} value={body} onChange={e=>setBody(e.target.value)} placeholder="Write a message…" className="min-w-0 flex-1 rounded-xl border border-white/15 bg-[#152336] px-4 py-3 text-white outline-none focus:ring-2 focus:ring-primary"/>
           <button disabled={!body.trim() || sending} className="rounded-xl bg-primary p-3 text-primary-foreground disabled:opacity-50" aria-label="Send message"><Send size={20}/></button>
         </form>
@@ -121,7 +131,7 @@ function MessagesPage() {
             <div className="mt-3 [&_svg]:!h-5 [&_svg]:!w-5"><ProfileBadges badges={peerBadges.data??[]}/></div>
             {peer.data.created_at && <p className="mt-3 text-xs text-slate-400">Joined {new Date(peer.data.created_at).toLocaleDateString("en-GB",{month:"short",year:"numeric"})}</p>}
             <Link to="/public-profile" search={{username:peer.data.username}} className="mt-4 block rounded-lg border border-white/15 bg-white/5 p-2.5 text-center text-sm font-semibold hover:bg-white/10">View Profile</Link>
-            <div className="mt-5 border-t border-white/10 pt-4"><h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Conversation</h4><p className="mt-2 text-sm text-slate-400">Private messages with your Streamly friend.</p></div>
+            <div className="mt-5 border-t border-white/10 pt-4"><h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Conversation</h4><div className="mt-3 space-y-1"><button type="button" onClick={()=>setMuted(v=>!v)} className="flex w-full items-center gap-2 rounded-lg p-2 text-left text-sm hover:bg-white/10">{muted?<BellOff size={17}/>:<Bell size={17}/>} {muted?"Unmute notifications":"Mute notifications"}</button><button type="button" onClick={()=>setPinned(v=>!v)} className="flex w-full items-center gap-2 rounded-lg p-2 text-left text-sm hover:bg-white/10"><Pin size={17}/> {pinned?"Unpin conversation":"Pin conversation"}</button><p className="px-2 text-xs text-slate-500">These controls are visual preferences only for now.</p></div></div>
           </div>
         </>}
       </aside>
