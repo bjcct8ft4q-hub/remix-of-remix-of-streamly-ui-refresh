@@ -150,7 +150,24 @@ async function fetchFilteredAnime(f: Filters, page: number): Promise<{ media: An
   if (!response.ok) throw new Error(response.status === 429 ? "Too many searches. Please try again shortly." : "Anime search is temporarily unavailable.");
   const json = await response.json();
   if (json.errors?.length) throw new Error("Unable to apply those filters.");
-  const found: AnimeSummary[] = (json.data?.Page?.media ?? []).filter((anime: AnimeSummary) => !isAdditionalSeason(anime));
+  let found: AnimeSummary[] = (json.data?.Page?.media ?? []).filter((anime: AnimeSummary) => !isAdditionalSeason(anime));
+  // AniList's title search can omit franchise spin-offs whose names don't contain the main title.
+  // Include these as distinct entries, while keeping sequel seasons in the Seasons menu.
+  if (/^(?:uma\s*musume|umamusume)s?$/i.test(f.q.trim()) && !f.format && !f.year && !f.genre && !f.tag && !f.status && !f.demographic && !f.season && !f.origin) {
+    const relatedTerms = ["Umayon", "Umayuru", "Cinderella Gray", "Beginning of a New Era"];
+    const related = await Promise.all(relatedTerms.map(async (term) => {
+      try {
+        const res = await fetch("https://graphql.anilist.co", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ query: `query ($search: String) { Page(page: 1, perPage: 25) { media(type: ANIME, search: $search, isAdult: false) { id idMal title { english romaji } coverImage { large extraLarge } bannerImage format seasonYear episodes averageScore isAdult relations { edges { relationType node { id format } } } } } }`, variables: { search: term } }) });
+        if (!res.ok) return [] as AnimeSummary[];
+        const body = await res.json();
+        return (body.data?.Page?.media ?? []) as AnimeSummary[];
+      } catch { return [] as AnimeSummary[]; }
+    }));
+    const byId = new Map(found.map(anime => [anime.id, anime]));
+    for (const anime of related.flat()) if (!anime.isAdult && !isAdditionalSeason(anime)) byId.set(anime.id, anime);
+    found = [...byId.values()];
+    return { media: found, total: found.length, hasNextPage: !!json.data?.Page?.pageInfo?.hasNextPage };
+  }
   if (found.length || !f.q.trim() || f.q.trim().length < 5) {
     return { media: found, total: json.data?.Page?.pageInfo?.total ?? found.length, hasNextPage: !!json.data?.Page?.pageInfo?.hasNextPage };
   }
