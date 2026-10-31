@@ -70,9 +70,14 @@ function MessagesPage() {
     setBody("");
     void qc.invalidateQueries({ queryKey: ["direct-messages", user.id, peer.data.id] });
   };
-  return <main className="mx-auto max-w-3xl px-4 pb-24 pt-28 sm:px-6">
-    <Link to="/friends" className="mb-5 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft size={16}/> Friends</Link>
-    <h1 className="mb-5 text-3xl font-extrabold">Messages{peer.data ? ` · ${peer.data.public_display_name || peer.data.username}` : ""}</h1>
+  return <main className="mx-auto w-full max-w-[1680px] px-3 pb-8 pt-24 sm:px-6">
+    <h1 className="mb-5 flex items-center gap-3 text-3xl font-extrabold"><MessageSquare className="text-primary"/> Messages</h1>
+    <div className="grid min-h-[70vh] overflow-hidden rounded-2xl border border-border bg-[#080f19] text-white shadow-xl lg:grid-cols-[290px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_260px]">
+      <aside className="hidden flex-col border-r border-white/10 lg:flex">
+        <div className="border-b border-white/10 p-4"><div className="mb-4 flex items-center justify-between"><h2 className="text-xl font-bold">Conversations</h2><Link to="/friends" className="rounded-lg bg-primary p-2 text-primary-foreground" title="Find friends"><Users size={18}/></Link></div><label className="flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2"><Search size={16}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search conversations…" className="w-full bg-transparent text-sm outline-none"/></label></div>
+        <div className="flex-1 p-2">{friends.isLoading ? <p className="p-4 text-sm text-slate-400">Loading friends…</p> : friends.data?.filter(f=>(f.public_display_name||f.username).toLowerCase().includes(search.toLowerCase())).map(f=><Link key={f.id} to="/messages" search={{username:f.username}} className={`mb-1 flex items-center gap-3 rounded-xl p-3 hover:bg-white/10 ${username===f.username?"bg-primary/15":""}`}><div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-primary/20">{f.public_avatar_url?<img src={f.public_avatar_url} alt="" className="h-full w-full object-cover"/>:<Users className="m-3"/>}</div><div className="min-w-0"><p className="truncate font-bold">{f.public_display_name||f.username}</p><p className="truncate text-xs text-slate-400">@{f.username}</p></div></Link>)}{!friends.isLoading&&!friends.data?.length&&<Link to="/friends" className="block p-4 text-sm text-primary">Find friends to start chatting</Link>}</div>
+      </aside>
+      <section className="min-w-0">
     {!user ? <div className="rounded-xl border border-border bg-card p-6">Sign in to message your friends. <button className="ml-2 font-bold text-primary" onClick={() => openAuth("signin")}>Sign in</button></div>
       : !username ? <div className="rounded-xl border border-border bg-card p-6">Open a friend's public profile and select Message to start chatting.</div>
       : peer.isLoading || friendship.isLoading ? <p className="text-muted-foreground">Loading conversation…</p>
