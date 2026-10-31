@@ -37,6 +37,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (favicon) favicon.href = christmas ? "/favicon-christmas.svg" : halloween ? "/favicon-halloween.svg" : "/favicon.svg";
   }, [halloween, christmas]);
   const toggleHalloween = () => {
+    if (isChristmasSeason(new Date())) return;
     setChristmas(false);
     setHalloween((current) => {
       const next = !current;
