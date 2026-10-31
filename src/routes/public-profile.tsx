@@ -90,7 +90,7 @@ function PublicProfile() {
     },
   });
   const addFriend = async () => {
-    if (!user) { openAuth("login"); return; }
+    if (!user) { openAuth("signin"); return; }
     if (!pid || friendship.data || friendBusy) return;
     setFriendBusy(true);
     const { error } = await (supabase as any).from("friend_requests").insert({ sender_id: user.id, receiver_id: pid, status: "pending" });
