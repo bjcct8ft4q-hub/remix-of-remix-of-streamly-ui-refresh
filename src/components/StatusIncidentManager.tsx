@@ -56,7 +56,7 @@ export function StatusIncidentManager() {
       <div className="grid gap-4 sm:grid-cols-3">
         <label className="space-y-2 text-sm">Service<select name="service" defaultValue={editing?.service ?? SERVICE_NAMES[0]} className={inputClass}>{SERVICE_NAMES.map(name => <option key={name}>{name}</option>)}</select></label>
         <label className="space-y-2 text-sm">Status<select name="status" defaultValue={editing?.status ?? "investigating"} className={inputClass}>{["investigating", "identified", "monitoring", "resolved"].map(value => <option key={value} value={value}>{value.charAt(0).toUpperCase() + value.slice(1)}</option>)}</select></label>
-        <label className="space-y-2 text-sm">Impact<select name="severity" defaultValue={editing?.severity ?? "degraded"} className={inputClass}>{["degraded", "outage", "maintenance"].map(value => <option key={value}>{value}</option>)}</select></label>
+        <label className="space-y-2 text-sm">Impact<select name="severity" defaultValue={editing?.severity ?? "degraded"} className={inputClass}>{["degraded", "outage", "maintenance"].map(value => <option key={value} value={value}>{value.charAt(0).toUpperCase() + value.slice(1)}</option>)}</select></label>
       </div>
       <label className="block space-y-2 text-sm">Response<textarea name="body" required maxLength={5000} rows={5} defaultValue={editing?.body} className={inputClass} /></label>
       <div className="flex gap-2"><Button disabled={busy} type="submit"><Save />{busy ? "Saving…" : "Publish response"}</Button><Button variant="ghost" type="button" onClick={() => { setCreating(false); setEditing(null); }}><X />Cancel</Button></div>
