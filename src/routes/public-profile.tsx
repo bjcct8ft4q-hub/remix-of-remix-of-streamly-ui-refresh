@@ -40,6 +40,7 @@ function PublicProfile() {
   const { user, username: myName, isAdmin, openAuth } = useAuth();
   const qc = useQueryClient();
   const [friendBusy, setFriendBusy] = useState(false);
+  const [privacyBusy, setPrivacyBusy] = useState(false);
   const { halloween, christmas } = useTheme();
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<string>("Watchlist");
@@ -99,6 +100,18 @@ function PublicProfile() {
     else { toast.success("Friend request sent"); void qc.invalidateQueries({ queryKey: ["profile-friendship", user.id, pid] }); void qc.invalidateQueries({ queryKey: ["friends-requests"] }); }
   };
   const isSelf = !!user && pid === user.id;
+  const tracking = useQuery({
+    queryKey: ["public-profile-tracking", pid, user?.id], enabled: !!pid,
+    queryFn: async () => { const { data, error } = await (supabase as any).rpc("public_profile_tracking", { target_user: pid }); if (error) throw error; return data as { watchlist_public: boolean; history_public: boolean; watchlist: Array<{ anilist_id: number; title: string; cover_url: string | null; status: string }>; history: Array<{ anilist_id: number; episode: number; title: string }> }; },
+  });
+  const togglePrivacy = async (field: "show_watchlist" | "show_history", value: boolean) => {
+    if (!user || !isSelf || privacyBusy) return;
+    setPrivacyBusy(true);
+    const { error } = await (supabase as any).from("profiles").update({ [field]: value }).eq("id", user.id);
+    setPrivacyBusy(false);
+    if (error) toast.error(error.message);
+    else { toast.success(value ? "Now public" : "Now private"); void qc.invalidateQueries({ queryKey: ["public-profile-tracking", pid] }); }
+  };
   const history = useQuery(historyQuery(isSelf ? user?.id : undefined));
   const watchlist = useQuery(watchlistQuery(isSelf ? user?.id : undefined));
 
@@ -120,11 +133,13 @@ function PublicProfile() {
   const p = profile.data;
   const name = p.public_display_name || p.username || "Member";
   const handle = p.username || "member";
-  const episodes = history.data?.length ?? 0;
-  const completed = new Set((history.data ?? []).map((r) => r.anilist_id)).size;
-  const planning = watchlist.data?.length ?? 0;
+  const visibleHistory = isSelf ? (history.data ?? []) : (tracking.data?.history_public ? tracking.data.history ?? [] : []);
+  const visibleWatchlist = isSelf ? (watchlist.data ?? []) : (tracking.data?.watchlist_public ? tracking.data.watchlist ?? [] : []);
+  const episodes = visibleHistory.length;
+  const completed = visibleWatchlist.filter((r) => r.status?.toLowerCase() === "completed").length;
+  const planning = visibleWatchlist.filter((r) => r.status?.toLowerCase() === "planning").length;
   const joined = new Date(p.created_at).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
-  const items = (watchlist.data ?? []).filter((w) => !listSearch || (w.title ?? "").toLowerCase().includes(listSearch.toLowerCase()));
+  const items = visibleWatchlist.filter((w) => !listSearch || (w.title ?? "").toLowerCase().includes(listSearch.toLowerCase()));
   const soon = (what: string) => toast(`${what} is coming soon.`);
   const copyUrl = async () => { try { await navigator.clipboard.writeText(`${window.location.origin}/${encodeURIComponent(handle)}`); setCopied(true); } catch { setCopied(false); } };
 
@@ -176,15 +191,16 @@ function PublicProfile() {
             <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground md:pl-[164px]">
               <span className="flex items-center gap-2"><CalendarDays size={16} /> Joined {joined}</span>
               <span className="hidden text-border sm:inline">|</span>
-              <span className="flex items-center gap-2"><Eye size={16} /> Viewing history {isSelf ? "visible to you" : "private"}</span>
+              <span className="flex items-center gap-2"><Eye size={16} /> Viewing history {tracking.data?.history_public ? "public" : isSelf ? "private (only you)" : "private"}</span>
               <span className="hidden text-border sm:inline">|</span>
-              <span className="flex items-center gap-2"><Bookmark size={16} /> Watchlist {isSelf ? "visible to you" : "private"}</span>
+              <span className="flex items-center gap-2"><Bookmark size={16} /> Watchlist {tracking.data?.watchlist_public ? "public" : isSelf ? "private (only you)" : "private"}</span>
             </div>
 
+            {isSelf && <div className="mt-4 flex flex-wrap gap-4 rounded-xl border border-border bg-background/40 p-4 text-sm"><span className="w-full font-semibold">Profile privacy</span><label className="flex items-center gap-2"><input type="checkbox" disabled={privacyBusy || tracking.isPending} checked={!!tracking.data?.show_watchlist || !!tracking.data?.watchlist_public} onChange={(e) => void togglePrivacy("show_watchlist", e.target.checked)} /> Public watchlist</label><label className="flex items-center gap-2"><input type="checkbox" disabled={privacyBusy || tracking.isPending} checked={!!tracking.data?.history_public} onChange={(e) => void togglePrivacy("show_history", e.target.checked)} /> Public viewing history and episode stats</label><p className="w-full text-xs text-muted-foreground">Both are private by default. Turn either on to share it with everyone, including visitors who are not signed in.</p></div>}
             {/* Stats */}
             <div className="mt-5 grid grid-cols-3 divide-x divide-border rounded-xl border border-border bg-background/40 py-4 text-center">
               {[{ l: "Completed", v: completed }, { l: "Episodes", v: episodes }, { l: "Planning", v: planning }].map((s) => (
-                <div key={s.l}><strong className="block text-xl font-bold">{isSelf ? s.v : "—"}</strong><span className="text-sm text-muted-foreground">{s.l}</span></div>
+                <div key={s.l}><strong className="block text-xl font-bold">{isSelf || (s.l === "Episodes" ? tracking.data?.history_public : tracking.data?.watchlist_public) ? s.v : "—"}</strong><span className="text-sm text-muted-foreground">{s.l}</span></div>
               ))}
             </div>
 
@@ -214,7 +230,7 @@ function PublicProfile() {
                 </div>
               )}
 
-              {tab === "Watchlist" && isSelf && items.length > 0 && filter !== "Dropped" && filter !== "On Hold" ? (
+              {tab === "Watchlist" && (isSelf || !!tracking.data?.watchlist_public) && items.length > 0 && filter !== "Dropped" && filter !== "On Hold" ? (
                 <div className={grid ? "mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6" : "mt-5 space-y-2"}>
                   {items.map((w) => (
                     <Link key={w.anilist_id} to="/anime/$id" params={{ id: String(w.anilist_id) }} className={grid ? "group" : "flex items-center gap-3 rounded-lg border border-border p-2 hover:bg-muted"}>
@@ -226,8 +242,8 @@ function PublicProfile() {
               ) : (
                 <div className="mt-5 rounded-xl border border-border bg-background/40 py-14 text-center">
                   <Bookmark size={44} className="mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-bold">{!isSelf ? `${tab} is private` : tab === "Watchlist" ? "No anime in watchlist yet" : `No ${tab.toLowerCase()} yet`}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{!isSelf ? "This member has not shared this publicly." : "Start adding anime to see them here!"}</p>
+                  <h3 className="text-lg font-bold">{!isSelf && !(tab === "Watchlist" && tracking.data?.watchlist_public) ? `${tab} is private` : tab === "Watchlist" ? "No anime in watchlist yet" : `No ${tab.toLowerCase()} yet`}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{!isSelf && !(tab === "Watchlist" && tracking.data?.watchlist_public) ? "This member has not shared this publicly." : "Start adding anime to see them here!"}</p>
                   {isSelf && <Link to="/browse" className="mt-5 inline-flex rounded-lg bg-primary px-7 py-3 text-sm font-bold text-primary-foreground hover:opacity-90">Browse Anime</Link>}
                 </div>
               )}
