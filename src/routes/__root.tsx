@@ -168,6 +168,20 @@ function TrafficTracker() {
   return null;
 }
 
+function ChristmasSnowfall() {
+  const { christmas } = useTheme();
+  if (!christmas) return null;
+  return <div className="pointer-events-none fixed inset-0 z-[80] overflow-hidden" aria-hidden="true">
+    {Array.from({ length: 42 }, (_, i) => <span key={i} className="streamly-snowflake" style={{
+      ["--snow-left" as string]: `${(i * 37.7) % 100}%`,
+      ["--snow-size" as string]: `${2 + (i % 5)}px`,
+      ["--snow-opacity" as string]: String(0.22 + (i % 5) * 0.12),
+      ["--snow-duration" as string]: `${12 + (i * 7) % 16}s`,
+      ["--snow-delay" as string]: `-${(i * 11) % 25}s`,
+    }} />)}
+  </div>;
+}
+
 function ThemeToggle() {
   const { halloween, christmas, toggleHalloween, toggleChristmas } = useTheme();
   const [glitch, setGlitch] = useState(false);
@@ -286,7 +300,8 @@ function RootComponent() {
             <TrafficTracker />
             <Header />
             <AgeRatingsNotice />
-            <ThemeToggle />
+            <ChristmasSnowfall />
+      <ThemeToggle />
             <Outlet />
             <Footer />
           </div>
