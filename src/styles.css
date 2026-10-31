@@ -499,3 +499,6 @@ html.streamly-theme-swap-hidden .streamly-glitch-color {
 
 /* Santa hat appears only when the Christmas theme is enabled. */
 .christmas .streamly-santa-hat { display: block; }
+
+/* Halloween-only witch hat above the infinity mark. */
+.halloween .streamly-witch-hat { display: block; }
