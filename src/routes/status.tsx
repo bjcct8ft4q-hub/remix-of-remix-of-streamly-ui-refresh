@@ -61,6 +61,7 @@ function StatusPage() {
   const rows = SERVICE_NAMES.map(name => { const live = checks.data?.find(service => service.name === name); const background = cloudflareMonitor.data?.services?.find(service => service.name === name); return live ?? (name === "Cloudflare" ? { name, state: "unknown" as const, detail: "Live Cloudflare status unavailable; older background results are not used as current status.", duration: null, checkedAt: "" } : background) ?? { name, state: "unknown" as const, detail: checks.isError ? "Checks unavailable" : "Checking…", duration: null, checkedAt: "" }; });
   const active = incidents.data?.filter(i => i.status !== "resolved") ?? [];
   const maintenanceActive = false; // Do not override provider status with an unverified advisory.
+  const hasImportedDisruption = incidents.data?.some(i => i.title === "Cloudflare partial service disruption") ?? false;
   const cloudflareStartedAt = "2026-10-29T00:37:00Z";
   const cloudflareResolvedAt = cloudflareMonitor.data?.resolvedAt ?? "2026-10-29T08:28:00Z";
   const isCloudflareIncidentResolved = Boolean(cloudflareResolvedAt);
@@ -69,10 +70,10 @@ function StatusPage() {
     ? Math.max(0, Math.round((Date.parse(cloudflareResolvedAt) - Date.parse(cloudflareStartedAt)) / 60000)) : 0;
   const stats = {
     ...recordedStats,
-    total: recordedStats.total + 1 + (maintenanceActive ? 1 : 0),
-    active: recordedStats.active + (isCloudflareIncidentResolved ? 0 : 1) + (maintenanceActive ? 1 : 0),
-    resolved: recordedStats.resolved + (isCloudflareIncidentResolved ? 1 : 0),
-    minutes: recordedStats.minutes + cloudflareMinutes,
+    total: recordedStats.total + (hasImportedDisruption ? 0 : 1) + (maintenanceActive ? 1 : 0),
+    active: recordedStats.active + (hasImportedDisruption || isCloudflareIncidentResolved ? 0 : 1) + (maintenanceActive ? 1 : 0),
+    resolved: recordedStats.resolved + (!hasImportedDisruption && isCloudflareIncidentResolved ? 1 : 0),
+    minutes: recordedStats.minutes + (hasImportedDisruption ? 0 : cloudflareMinutes),
   };
   const displayRows = rows;
   const issues = displayRows.filter(row => row.state === "outage" || row.state === "degraded").length;
@@ -117,7 +118,7 @@ function StatusPage() {
         {incidents.isPending && <p className="mt-4 text-muted-foreground">Loading incidents…</p>}
         {incidents.isError && <p role="alert" className="mt-4 text-destructive">Incident history could not be loaded.</p>}
         {maintenanceActive && <article className="mt-4 rounded-xl border border-status-warning/40 bg-card p-5 shadow-sm"><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-bold">Cloudflare Maintenance – Account Registration Issues</h3><span className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-1 text-xs font-bold uppercase text-yellow-500">Active · Maintenance</span></div><p className="mt-2 text-xs text-muted-foreground">Cloudflare · Reported 30 October 2026 (UK)</p><p className="mt-3 text-sm">Some users have reported being unable to create Streamly accounts while Cloudflare maintenance is underway. We are investigating the registration flow and reviewing Cloudflare-related signup verification. Existing site-wide security protections remain enabled.</p></article>}
-        <article className="mt-4 rounded-xl border border-border bg-card p-5 shadow-sm" aria-label="Cloudflare partial service disruption advisory">
+        {!hasImportedDisruption && <article className="mt-4 rounded-xl border border-border bg-card p-5 shadow-sm" aria-label="Cloudflare partial service disruption advisory">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <h3 className="break-words font-bold">Cloudflare partial service disruption</h3>
             <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide ${isCloudflareIncidentResolved ? "border-green-500/40 bg-green-500/10 text-green-500" : "border-yellow-500/40 bg-yellow-500/10 text-yellow-500"}`} aria-label={isCloudflareIncidentResolved ? "Incident resolved" : "Risk severity: Medium"}>{isCloudflareIncidentResolved ? "Resolved" : "Medium"}</span>
@@ -125,7 +126,7 @@ function StatusPage() {
           <p className="mt-2 text-xs text-muted-foreground">Cloudflare · Streamly advisory reported <time dateTime="2026-10-29T00:37:00Z">{new Date("2026-10-29T00:37:00Z").toLocaleString("en-GB", { dateStyle: "long", timeStyle: "short", timeZone: "Europe/London" })} (UK time)</time></p>
           {isCloudflareIncidentResolved && cloudflareResolvedAt && <p className="mt-1 text-xs text-status-good">Resolved {new Date(cloudflareResolvedAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</p>}
           <p className="mt-3 whitespace-pre-wrap break-words text-sm">Some parts of Cloudflare have experienced partial system outages affecting certain services and regions. This does not mean Cloudflare is completely down, and many of its services may still be available to use.</p>
-        </article>
+        </article>}
         {incidents.data?.map(i => <article key={i.id} className="mt-4 rounded-xl border border-border bg-card p-5 shadow-sm"><div className="flex flex-wrap items-start justify-between gap-2"><h3 className="break-words font-bold">{i.title}</h3><span className={i.status === "resolved" ? "text-status-good" : "text-status-warning"}>{i.status}</span></div><p className="mt-2 text-xs text-muted-foreground">{i.service} · {new Date(i.started_at).toLocaleString()}{i.resolved_at ? ` · Resolved ${new Date(i.resolved_at).toLocaleString()}` : ""}</p><p className="mt-3 whitespace-pre-wrap break-words text-sm">{i.body}</p></article>)}
       </section>
       <div className="mt-10 flex flex-col items-center gap-3 border-t border-border pt-6"><Button variant="outline" disabled={checks.isFetching || incidents.isFetching} onClick={() => { void checks.refetch(); void incidents.refetch(); void cloudflareMonitor.refetch(); }}><RefreshCw size={16} className={checks.isFetching ? "animate-spin motion-reduce:animate-none" : ""} />{checks.isFetching ? "Refreshing…" : "Refresh"}</Button><p className="text-xs text-muted-foreground">Refreshes every five minutes while this page is open.</p><p className="text-sm font-medium text-muted-foreground" role="timer">Refreshing in <span className="tabular-nums text-foreground">{String(Math.floor(secondsRemaining / 60)).padStart(2, "0")}:{String(secondsRemaining % 60).padStart(2, "0")}</span></p></div>
