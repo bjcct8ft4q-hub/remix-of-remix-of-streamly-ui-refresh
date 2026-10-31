@@ -111,7 +111,7 @@ function PublicProfile() {
         <section className="overflow-hidden rounded-2xl border border-border bg-card">
           {/* Banner */}
           <div className="relative h-44 sm:h-60 lg:h-72">
-            {p.public_banner_url ? <img src={p.public_banner_url} alt="Profile banner" className="h-full w-full object-cover" /> : <div className="relative h-full w-full overflow-hidden bg-gradient-to-r from-[#87380d] via-[#321a11] to-[#08090e]"><img src="https://img.anili.st/16498" alt="" loading="lazy" className="absolute right-0 top-[-65%] h-[240%] w-[58%] object-cover object-top opacity-45 [mask-image:linear-gradient(to_left,black_30%,transparent_100%)]" /><div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-black/30" /></div>}
+            {p.public_banner_url ? <img src={p.public_banner_url} alt="Profile banner" className="h-full w-full object-cover" /> : <div className="relative h-full w-full overflow-hidden bg-gradient-to-r from-[#87380d] via-[#321a11] to-[#08090e]"><img src="https://img.anili.st/16498" alt="" loading="eager" decoding="async" className="absolute inset-y-0 right-0 h-full w-[65%] object-cover object-[center_30%] opacity-75 [mask-image:linear-gradient(to_right,transparent_0%,black_45%)]" onError={(event) => { event.currentTarget.style.display = "none"; }} /><div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#9c4109]/70 via-transparent to-[#08090e]/25" /></div>}
             <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
           </div>
 
