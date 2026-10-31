@@ -383,32 +383,76 @@ function ReportManager() {
 
 type TrafficRow = { day: string; path: string; views: number };
 function AnalyticsPanel() {
-  const { data = [], isPending, error } = useQuery({
-    queryKey: ["admin-traffic"],
+  const [period, setPeriod] = useState<7 | 30>(30);
+  const { data = [], isPending, error, refetch, isFetching } = useQuery({
+    queryKey: ["admin-traffic", period],
     queryFn: async () => {
-      const since = new Date(Date.now() - 29 * 86400000).toISOString().slice(0, 10);
+      const since = new Date(Date.now() - (period - 1) * 86400000).toISOString().slice(0, 10);
       const { data, error } = await (supabase as any).from("page_view_counts").select("day,path,views").gte("day", since).order("day", { ascending: false }).limit(3000);
       if (error) throw error;
       return (data ?? []) as TrafficRow[];
     }, retry: 0, refetchInterval: 60000,
   });
   const total = data.reduce((sum, row) => sum + Number(row.views), 0);
-  const today = new Date().toISOString().slice(0,10);
-  const todayViews = data.filter((row) => row.day === today).reduce((sum,row) => sum + Number(row.views), 0);
-  const paths = Object.entries(data.reduce((acc, row) => { acc[row.path] = (acc[row.path] || 0) + Number(row.views); return acc; }, {} as Record<string, number>)).sort((a,b) => b[1]-a[1]).slice(0,10);
-  const days = Object.entries(data.reduce((acc, row) => { acc[row.day] = (acc[row.day] || 0) + Number(row.views); return acc; }, {} as Record<string,number>)).sort((a,b)=>a[0].localeCompare(b[0]));
-  const peak = Math.max(1,...days.map(([,n])=>n));
-  return <section className="space-y-5">
-    <div><h2 className="text-2xl font-extrabold">Visitor analytics</h2><p className="mt-1 text-sm text-muted-foreground">Actual page views, aggregated without storing IP addresses or visitor identities. Counts begin when the database migration is applied.</p></div>
-    {error && <p role="alert" className="rounded-lg border border-destructive/40 p-4 text-sm text-destructive">Analytics are not available yet. Apply the page view analytics SQL migration in Supabase.</p>}
-    <div className="grid gap-3 sm:grid-cols-3">
-      {([["Today",todayViews],["Last 30 days",total],["Pages visited",paths.length]] as const).map(([label,value])=><div key={label} className="rounded-xl border border-border bg-card p-5"><p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{label}</p><p className="mt-2 text-3xl font-black text-primary">{isPending ? "…" : value.toLocaleString()}</p></div>)}
+  const today = new Date().toISOString().slice(0, 10);
+  const todayViews = data.filter(row => row.day === today).reduce((sum, row) => sum + Number(row.views), 0);
+  const paths = Object.entries(data.reduce((acc, row) => {
+    acc[row.path] = (acc[row.path] || 0) + Number(row.views);
+    return acc;
+  }, {} as Record<string, number>)).sort((a,b) => b[1] - a[1]).slice(0, 10);
+  const daily = Array.from({length: period}, (_, i) => {
+    const d = new Date(); d.setUTCHours(12, 0, 0, 0); d.setUTCDate(d.getUTCDate() - (period - i - 1));
+    const day = d.toISOString().slice(0, 10);
+    return { day, views: data.filter(row => row.day === day).reduce((sum,row) => sum + Number(row.views), 0) };
+  });
+  const peak = Math.max(1, ...daily.map(d => d.views));
+  const previous = daily.slice(0, Math.floor(period / 2)).reduce((n,d) => n + d.views, 0);
+  const recent = daily.slice(Math.floor(period / 2)).reduce((n,d) => n + d.views, 0);
+  const trend = previous ? Math.round((recent - previous) / previous * 100) : null;
+  const cards = [
+    {label: "Page views", value: total, note: "All recorded views in period"},
+    {label: "Today", value: todayViews, note: "Views recorded today"},
+    {label: "Average per day", value: Math.round(total / period), note: "Across the selected period"},
+    {label: "Pages visited", value: paths.length, note: "Top tracked paths (max 10)"},
+  ];
+  return <section className="space-y-6">
+    <div className="flex flex-wrap items-start justify-between gap-4">
+      <div><p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Audience insights</p><h2 className="mt-1 text-2xl font-extrabold">Visitor analytics</h2><p className="mt-1 text-sm text-muted-foreground">Privacy-friendly aggregated page views. No IP addresses or visitor identities are stored in these counts.</p></div>
+      <div className="flex flex-wrap gap-2">
+        {([7,30] as const).map(n => <Button key={n} size="sm" variant={period === n ? "default" : "outline"} onClick={() => setPeriod(n)}>{n} days</Button>)}
+        <Button size="sm" variant="outline" onClick={() => void refetch()} disabled={isFetching}>{isFetching ? "Refreshing…" : "Refresh"}</Button>
+      </div>
     </div>
-    <div className="grid gap-5 lg:grid-cols-2">
-      <div className="rounded-xl border border-border bg-card p-5"><h3 className="font-bold">Daily page views</h3><div className="mt-6 flex h-44 items-end gap-1">{days.length ? days.map(([day,count])=><div key={day} className="group relative min-w-1 flex-1 rounded-t bg-primary/80 hover:bg-primary" style={{height:`${Math.max(2,count/peak*100)}%`}} title={`${day}: ${count.toLocaleString()} views`} />) : <p className="self-center text-sm text-muted-foreground">No visits recorded yet.</p>}</div><p className="mt-2 text-xs text-muted-foreground">Last 30 days · hover over a bar for daily totals</p></div>
-      <div className="rounded-xl border border-border bg-card p-5"><h3 className="font-bold">Most visited pages</h3><div className="mt-4 space-y-3">{paths.length ? paths.map(([path,count])=><div key={path} className="flex items-center justify-between gap-3 border-b border-border/50 pb-2 text-sm"><span className="min-w-0 truncate text-muted-foreground">{path}</span><span className="font-bold tabular-nums">{count.toLocaleString()}</span></div>) : <p className="text-sm text-muted-foreground">No page data yet.</p>}</div></div>
+    {error && <p role="alert" className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">Unable to load analytics. Verify the page_view_counts table and its read permissions in Supabase.</p>}
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      {cards.map(card => <div key={card.label} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{card.label}</p>
+        <p className="mt-3 text-3xl font-black tabular-nums text-foreground">{isPending ? "…" : card.value.toLocaleString()}</p>
+        <p className="mt-2 text-xs text-muted-foreground">{card.note}</p>
+      </div>)}
     </div>
-    <p className="text-xs text-muted-foreground">Page views are not unique visitors or live online users. Refreshes and repeat visits can count again.</p>
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+      <div className="min-w-0 rounded-2xl border border-border bg-card p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-bold">Traffic over time</h3><p className="mt-1 text-xs text-muted-foreground">Daily page views · last {period} days</p></div>
+          {trend !== null && <span className={`rounded-full px-3 py-1 text-xs font-semibold ${trend >= 0 ? "bg-emerald-500/10 text-emerald-500" : "bg-destructive/10 text-destructive"}`}>{trend > 0 ? "+" : ""}{trend}% vs earlier half</span>}
+        </div>
+        <div className="mt-8 flex h-48 items-end gap-1 border-b border-border pb-1" role="img" aria-label="Daily page views bar chart">
+          {daily.map(({day,views}) => <div key={day} className="group relative flex h-full min-w-0 flex-1 items-end" title={`${day}: ${views.toLocaleString()} page views`}>
+            <div className="w-full rounded-t-sm bg-primary/70 transition-colors group-hover:bg-primary" style={{height: `${views ? Math.max(3, views / peak * 100) : 1}%`}} />
+          </div>)}
+        </div>
+        <div className="mt-2 flex justify-between text-xs text-muted-foreground"><span>{daily[0]?.day}</span><span>{daily[daily.length - 1]?.day}</span></div>
+        {!total && !isPending && <p className="mt-4 text-sm text-muted-foreground">No page views recorded in this period.</p>}
+      </div>
+      <div className="min-w-0 rounded-2xl border border-border bg-card p-5 sm:p-6">
+        <h3 className="font-bold">Most visited pages</h3><p className="mt-1 text-xs text-muted-foreground">Ranked by total page views</p>
+        <div className="mt-5 space-y-4">{paths.length ? paths.map(([path,count],i) => <div key={path} className="space-y-1.5">
+          <div className="flex items-center justify-between gap-3 text-sm"><span className="min-w-0 truncate" title={path}><span className="mr-2 text-xs text-muted-foreground">{i+1}.</span>{path}</span><span className="shrink-0 font-bold tabular-nums">{count.toLocaleString()}</span></div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{width: `${Math.max(2,count / Math.max(1,paths[0][1]) * 100)}%`}} /></div>
+        </div>) : <p className="text-sm text-muted-foreground">No page data yet.</p>}</div>
+      </div>
+    </div>
+    <p className="text-xs text-muted-foreground">Page views are not unique visitors or live online users. Country, device and referral breakdowns require additional privacy-aware event collection and are not inferred from these counts.</p>
   </section>;
 }
 function Admin() {
