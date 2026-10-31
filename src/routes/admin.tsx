@@ -1,3 +1,4 @@
+import { AdminMembers } from "@/components/AdminMembers";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -561,7 +562,7 @@ function Admin() {
   const qc = useQueryClient();
   const { data = [] } = useQuery({ ...seriesListQuery(), enabled: isAdmin });
   const [selected, setSelected] = useState<string | null>(null);
-  const [tab, setTab] = useState<"overview" | "analytics" | "reports" | "content" | "status" | "reliability" | "activity">("overview");
+  const [tab, setTab] = useState<"overview" | "analytics" | "reports" | "content" | "status" | "reliability" | "activity" | "members">("overview");
 
   if (loading) return <main className="pt-32 text-center text-muted-foreground">Loading...</main>;
   if (!user)
@@ -588,7 +589,7 @@ function Admin() {
         <Link to="/" className="rounded-lg border border-border px-4 py-2 text-sm font-semibold hover:border-primary">View website</Link>
       </div>
       <nav aria-label="Admin sections" className="mb-8 flex flex-wrap gap-2 border-b border-border pb-4">
-        {(["overview","analytics","reliability","reports","content","status","activity"] as const).map((section)=><Button key={section} type="button" variant={tab === section ? "default" : "outline"} aria-current={tab === section ? "page" : undefined} onClick={()=>setTab(section)} className="capitalize">{section === "content" ? "Content manager" : section === "status" ? "Status & incidents" : section}</Button>)}
+        {(["overview","analytics","reliability","reports","content","status","activity","members"] as const).map((section)=><Button key={section} type="button" variant={tab === section ? "default" : "outline"} aria-current={tab === section ? "page" : undefined} onClick={()=>setTab(section)} className="capitalize">{section === "content" ? "Content manager" : section === "status" ? "Status & incidents" : section}</Button>)}
       </nav>
       {tab === "overview" && <div className="space-y-6">
         <AdminAlerts openReports={() => setTab("reports")} />
@@ -605,6 +606,7 @@ function Admin() {
       {tab === "analytics" && <AnalyticsPanel />}
       {tab === "reliability" && <ReliabilityPanel />}
       {tab === "activity" && <AdminActivityLog />}
+      {tab === "members" && <AdminMembers />}
       {tab === "reports" && <ReportManager />}
       {tab === "status" && <StatusIncidentManager />}
       {tab === "content" && <div className="space-y-8">
