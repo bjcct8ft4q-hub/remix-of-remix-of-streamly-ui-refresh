@@ -76,6 +76,14 @@ function FilterPicker({ label, value, options, onChange }: { label: string; valu
 }
 
 
+// Seasons and subsequent cours belong in the title's Seasons menu, not as separate search cards.
+function isAdditionalSeason(anime: AnimeSummary): boolean {
+  const item = anime as AnimeSummary & { relations?: { edges?: Array<{ relationType?: string; node?: { format?: string } }> } };
+  const title = [anime.title.english, anime.title.romaji].filter(Boolean).join(" ");
+  const numberedSeason = /(?:season\s*[2-9]\d*|[2-9]\d*(?:st|nd|rd|th)\s+season|(?:part|cour)\s*[2-9]\d*|[2-9]\d*(?:st|nd|rd|th)\s+(?:part|cour))\b/i.test(title);
+  return numberedSeason && (item.relations?.edges?.some(edge => edge.relationType === "PREQUEL") ?? false);
+}
+
 async function fetchFilteredAnime(f: Filters, page: number): Promise<{ media: AnimeSummary[]; total: number; hasNextPage: boolean }> {
   if (f.sort === "latest") {
     const now = Math.floor(Date.now() / 1000);
@@ -142,7 +150,7 @@ async function fetchFilteredAnime(f: Filters, page: number): Promise<{ media: An
   if (!response.ok) throw new Error(response.status === 429 ? "Too many searches. Please try again shortly." : "Anime search is temporarily unavailable.");
   const json = await response.json();
   if (json.errors?.length) throw new Error("Unable to apply those filters.");
-  const found: AnimeSummary[] = json.data?.Page?.media ?? [];
+  const found: AnimeSummary[] = (json.data?.Page?.media ?? []).filter((anime: AnimeSummary) => !isAdditionalSeason(anime));
   if (found.length || !f.q.trim() || f.q.trim().length < 5) {
     return { media: found, total: json.data?.Page?.pageInfo?.total ?? found.length, hasNextPage: !!json.data?.Page?.pageInfo?.hasNextPage };
   }
