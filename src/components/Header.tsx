@@ -30,6 +30,15 @@ export function Header() {
   const qc = useQueryClient();
   const fetchIdentity = useServerFn(getAccountIdentity);
   const identity = useQuery({ queryKey: ["account-identity", user?.id], queryFn: () => fetchIdentity(), enabled: !!user, staleTime: 30_000 });
+  const incomingRequests = useQuery({
+    queryKey:["header-incoming-friends",user?.id],enabled:!!user,
+    queryFn:async()=>{
+      const {count,error}=await (supabase as any).from("friend_requests")
+        .select("id",{count:"exact",head:true}).eq("receiver_id",user!.id).eq("status","pending");
+      if(error)throw error;
+      return count??0;
+    },refetchInterval:30000,staleTime:15000,retry:0,
+  });
   const displayUsername = identity.data?.username || username || "Guest";
   const displayEmail = identity.data?.email || "Guest";
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -105,7 +114,7 @@ export function Header() {
               <DropdownMenuItem asChild><Link to="/my-list"><Library /> My List</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/friends"><Users /> Friends</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/continue-watching"><History /> Continue Watching</Link></DropdownMenuItem>
-              <DropdownMenuItem asChild><Link to="/notifications"><Bell /> Notifications</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link to="/notifications"><Bell /> Notifications{Boolean(incomingRequests.data) && <span className="ml-auto rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">{incomingRequests.data}</span>}</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/settings"><Settings /> Settings</Link></DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
