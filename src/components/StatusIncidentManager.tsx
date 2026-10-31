@@ -16,6 +16,21 @@ export function StatusIncidentManager() {
   const [editing, setEditing] = useState<Incident | null>(null);
   const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState(false);
+  const legacyIncidents = [
+    { title: "Cloudflare Maintenance – Account Registration Issues", service: "Cloudflare", body: "Some users have reported being unable to create Streamly accounts while Cloudflare maintenance is underway. We are investigating the registration flow and reviewing Cloudflare-related signup verification. Existing site-wide security protections remain enabled.", status: "investigating", severity: "maintenance", started_at: "2026-10-30T00:00:00Z", resolved_at: null },
+    { title: "Cloudflare partial service disruption", service: "Cloudflare", body: "Some parts of Cloudflare have experienced partial system outages affecting certain services and regions. This does not mean Cloudflare is completely down, and many of its services may still be available to use.", status: "resolved", severity: "degraded", started_at: "2026-10-29T00:37:00Z", resolved_at: "2026-10-29T08:28:00Z" },
+  ] as const;
+  const missingLegacy = legacyIncidents.filter(item => !incidents.data?.some(existing => existing.title === item.title));
+  async function importLegacy() {
+    setBusy(true);
+    try {
+      const { error } = await supabase.from("status_incidents").insert(missingLegacy.map(item => ({ ...item })));
+      if (error) throw error;
+      await qc.invalidateQueries({ queryKey: ["status-incidents"] });
+      toast.success("Existing advisories imported. You can edit them below.");
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Import failed"); }
+    finally { setBusy(false); }
+  }
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const fields = new FormData(event.currentTarget);
@@ -24,7 +39,8 @@ export function StatusIncidentManager() {
     setBusy(true);
     try {
       const { id, ...values } = parsed.data;
-      const result = id ? await supabase.from("status_incidents").update(values).eq("id", id).select().single() : await supabase.from("status_incidents").insert(values).select().single();
+      const payload = { ...values, resolved_at: values.status === "resolved" ? (editing?.resolved_at ?? new Date().toISOString()) : null };
+      const result = id ? await supabase.from("status_incidents").update(payload).eq("id", id).select().single() : await supabase.from("status_incidents").insert(payload).select().single();
       if (result.error) throw result.error;
       toast.success(id ? "Incident updated" : "Incident published");
       setEditing(null); setCreating(false);
@@ -34,6 +50,7 @@ export function StatusIncidentManager() {
   }
   return <section className="space-y-5">
     <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-2xl font-bold">Status & incident responses</h2><Button onClick={() => { setEditing(null); setCreating(true); }}><Plus /> New incident</Button></div>
+    {missingLegacy.length > 0 && <div className="rounded-lg border border-border bg-card p-4"><h3 className="font-semibold">Existing Cloudflare advisories</h3><p className="mt-1 text-sm text-muted-foreground">These older incidents were hard-coded into the public status page, so they do not appear in the editable database list yet. Import them to manage their status, description and resolution from here.</p><div className="mt-3 space-y-2">{missingLegacy.map(item => <p key={item.title} className="text-sm">{item.title} · {item.status}</p>)}</div><Button className="mt-4" type="button" disabled={busy || incidents.isPending || incidents.isError} onClick={() => void importLegacy()}>{busy ? "Importing…" : "Import existing incidents"}</Button></div>}
     {(creating || editing) && <form key={editing?.id ?? "new"} onSubmit={submit} className="space-y-4 border-y border-border py-5">
       <label className="block space-y-2 text-sm">Title<input name="title" required maxLength={160} defaultValue={editing?.title} className={inputClass} /></label>
       <div className="grid gap-4 sm:grid-cols-3">
