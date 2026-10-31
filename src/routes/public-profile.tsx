@@ -61,12 +61,17 @@ function PublicProfile() {
     queryKey: ["profile-badges", pid],
     enabled: !!pid,
     queryFn: async () => {
-      const [{ data: rows }, { data: admin }] = await Promise.all([
-        supabase.from("profile_badges").select("badge").eq("user_id", pid!),
-        supabase.rpc("is_public_admin", { profile_user_id: pid! }),
-      ]);
-      const list = (rows ?? []).map((r) => r.badge);
-      if (admin === true && !list.includes("owner")) list.push("moderator");
+      // Role badges must come from trusted server-side role checks, never
+      // from editable profile metadata or a matching username alone.
+      const { data: admin, error } = await supabase.rpc("is_public_admin", { profile_user_id: pid! });
+      if (error) throw error;
+      const list = ["verified"];
+      if (admin === true) {
+        list.push("moderator");
+        if (profile.data?.username?.toLowerCase() === "iamvraith") {
+          list.push("owner", "developer");
+        }
+      }
       return list;
     },
   });
@@ -102,18 +107,18 @@ function PublicProfile() {
 
   return (
     <main className="min-h-screen pb-24 pt-20">
-      <div className="mx-auto max-w-6xl px-3 sm:px-5">
+      <div className="mx-auto max-w-[1480px] px-3 sm:px-6 lg:px-10">
         <section className="overflow-hidden rounded-2xl border border-border bg-card">
           {/* Banner */}
-          <div className="relative h-40 sm:h-52">
-            {p.public_banner_url ? <img src={p.public_banner_url} alt="Profile banner" className="h-full w-full object-cover" /> : <div className="h-full w-full bg-gradient-to-br from-primary/80 via-primary/30 to-card" />}
+          <div className="relative h-44 sm:h-60 lg:h-72">
+            {p.public_banner_url ? <img src={p.public_banner_url} alt="Profile banner" className="h-full w-full object-cover" /> : <div className="relative h-full w-full overflow-hidden bg-gradient-to-r from-[#87380d] via-[#321a11] to-[#08090e]"><img src="https://img.anili.st/16498" alt="" loading="lazy" className="absolute right-0 top-[-65%] h-[240%] w-[58%] object-cover object-top opacity-45 [mask-image:linear-gradient(to_left,black_30%,transparent_100%)]" /><div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-black/30" /></div>}
             <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
           </div>
 
-          <div className="relative -mt-24 px-4 sm:-mt-28 sm:px-6">
+          <div className="relative -mt-20 px-4 sm:-mt-24 sm:px-8 lg:px-10">
             {/* Header */}
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-end">
-              <div className="h-32 w-32 shrink-0 overflow-hidden rounded-full border-4 border-primary bg-muted shadow-xl sm:h-40 sm:w-40">
+            <div className="flex flex-col gap-4 md:flex-row md:items-end">
+              <div className="h-28 w-28 shrink-0 overflow-hidden rounded-full border-4 border-primary bg-muted shadow-xl sm:h-36 sm:w-36">
                 {p.public_avatar_url ? <img src={p.public_avatar_url} alt={`${handle} avatar`} className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : <span className="grid h-full place-items-center text-5xl font-extrabold text-primary">{handle.charAt(0).toUpperCase()}</span>}
               </div>
               <div className="min-w-0 flex-1">
@@ -121,7 +126,7 @@ function PublicProfile() {
                 <p className="mt-1 text-lg text-muted-foreground">@{handle}</p>
                 <div className="mt-3"><ProfileBadges badges={badges.data ?? []} /></div>
               </div>
-              <div className="relative flex shrink-0 items-center gap-2 lg:mb-14">
+              <div className="relative flex shrink-0 flex-wrap items-center gap-2 md:mb-4">
                 <button type="button" aria-label="More options" onClick={() => setMenuOpen((v) => !v)} className="grid h-11 w-11 place-items-center rounded-lg border border-border bg-background/60 hover:bg-muted"><MoreHorizontal size={20} /></button>
                 {menuOpen && (
                   <div className="absolute right-0 top-12 z-20 w-52 rounded-lg border border-border bg-popover p-1.5 shadow-2xl">
@@ -140,7 +145,7 @@ function PublicProfile() {
             </div>
 
             {/* Meta */}
-            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground lg:pl-[184px]">
+            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground md:pl-[164px]">
               <span className="flex items-center gap-2"><CalendarDays size={16} /> Joined {joined}</span>
               <span className="hidden text-border sm:inline">|</span>
               <span className="flex items-center gap-2"><Eye size={16} /> Viewing history {isSelf ? "visible to you" : "private"}</span>
