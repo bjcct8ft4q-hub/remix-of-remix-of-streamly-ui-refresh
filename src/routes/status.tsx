@@ -110,7 +110,6 @@ function StatusPage() {
             </details>;
           })}
         </div>
-        <p className="mt-4 text-xs leading-relaxed text-muted-foreground">Cloudflare shows its provider-wide status, which can remain degraded even after an individual incident is resolved. Video-source checks measure reachability, not video playback. Blocked or timed-out checks are unverified. All service bars use server-side checks retained for up to 24 hours when background monitoring is available.</p>
       </section>
       <section className="mt-8 grid grid-cols-2 gap-5 border-y border-border py-5 sm:grid-cols-4" aria-label="Incident statistics">
         {[["Published incidents", stats.total], ["Active", stats.active], ["Resolved", stats.resolved], ["Resolved incident minutes", stats.minutes]].map(([label, value]) => <div key={label}><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 text-2xl font-bold">{value}</p></div>)}
