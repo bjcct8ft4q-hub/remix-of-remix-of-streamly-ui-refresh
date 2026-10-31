@@ -84,7 +84,7 @@ function PublicProfile() {
         {!activityPage && <div className="relative h-[240px] w-full overflow-hidden bg-gradient-to-r from-[#11263a] via-[#121b2a] to-[#050505] sm:h-[420px] lg:h-[480px]">
           {publicLookup.data.public_banner_url && <img src={publicLookup.data.public_banner_url} alt="Profile banner" className="h-full w-full object-cover"/>}
           <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-black/25 to-black/10"/>
-        </div>
+        </div>}
         <div className={`relative mx-auto w-full max-w-[920px] px-4 sm:px-5 ${activityPage ? "pt-12" : "-mt-10 sm:-mt-20"}`}>
           {!activityPage && <div className="grid min-w-0 grid-cols-1 gap-5 border-b border-white/10 pb-6 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-end sm:gap-6">
             <div className="relative z-10 w-fit shrink-0 rounded-full border-4 border-[#050505] bg-[#111] shadow-xl">
@@ -111,9 +111,9 @@ function PublicProfile() {
               <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-gray-400"><span className="flex items-center gap-1.5"><CalendarDays size={12}/> Joined {publicLookup.data.created_at ? new Date(publicLookup.data.created_at).toLocaleDateString("en-GB",{month:"long",year:"numeric"}) : "date unavailable"}</span><span className="flex items-center gap-1.5"><Film size={12}/> Viewing history private</span><span className="flex items-center gap-1.5"><Bookmark size={12}/> Watchlist private</span></p>
             </div>
             <div className="col-span-full grid min-w-0 w-full grid-cols-3 gap-1 rounded-xl border border-white/10 bg-white/5 px-1 py-4 text-center sm:gap-7 sm:px-2">{["COMPLETED","EPISODES","PLANNING"].map(label=><div key={label}><strong className="block text-xl font-black">—</strong><span className="text-[9px] font-bold tracking-wide text-gray-400">{label}</span></div>)}</div>
-          </div>
+          </div>}
           {activityPage ? <section className="py-8">
-            <button type="button" onClick={()=>setPublicActivityOpen(false)} className="mb-6 text-xs text-gray-400 hover:text-white">← Profile</button>
+            <button type="button" onClick={()=>window.location.assign("/public-profile?username="+encodeURIComponent(publicLookup.data!.username))} className="mb-6 text-xs text-gray-400 hover:text-white">← Profile</button>
             <div className="mb-7 flex items-center gap-4"><div className="h-16 w-16 overflow-hidden rounded-full border-2 border-primary bg-primary/15">{publicLookup.data.public_avatar_url ? <img src={publicLookup.data.public_avatar_url} alt="Profile avatar" className="h-full w-full object-cover"/> : <span className="grid h-full place-items-center text-2xl">{publicLookup.data.username.charAt(0).toUpperCase()}</span>}</div><div><h1 className="text-2xl font-extrabold">{publicLookup.data.public_display_name || publicLookup.data.username}</h1><p className="text-xs text-gray-400">@{publicLookup.data.username} · Activity</p></div></div>
             <p className="mb-7 text-xs text-gray-400">Member since {publicLookup.data.created_at ? new Date(publicLookup.data.created_at).toLocaleDateString("en-GB",{month:"long",year:"numeric"}) : "date unavailable"}</p>
             <div className="rounded-lg border border-white/10 bg-[#0d0e11] p-5"><h2 className="text-sm font-bold">Past year</h2><p className="mt-1 text-xs text-gray-400">Activity private</p><div className="mt-5 grid grid-flow-col grid-rows-7 justify-start gap-[3px] overflow-x-auto pb-2">{Array.from({length:364},(_,i)=><span key={i} className="h-[10px] w-[10px] rounded-[2px] bg-[#1c1e23]"/>)}</div><p className="mt-3 text-right text-[10px] text-gray-400">Less · · · More</p></div>
