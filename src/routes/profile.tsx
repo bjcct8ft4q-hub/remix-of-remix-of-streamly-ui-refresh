@@ -15,7 +15,7 @@ function Profile() {
   const episodes = history.data?.length ?? 0;
   const shows = new Set((history.data ?? []).map((row) => row.anilist_id)).size;
   const saved = watchlist.data?.length ?? 0;
-  const banner = typeof user?.user_metadata?.profile_banner_url === "string" && /^https:\/\//.test(user.user_metadata.profile_banner_url) ? user.user_metadata.profile_banner_url : "";
+  const banner = typeof user?.user_metadata?["profile_banner_url"] === "string" && /^https:\/\//.test(user.user_metadata["profile_banner_url"]) ? user.user_metadata["profile_banner_url"] : "";
   const badges = [
     { title: "First Episode", detail: "Watch your first episode", unlocked: episodes >= 1, icon: PlayCircle },
     { title: "Anime Explorer", detail: "Watch 5 different anime", unlocked: shows >= 5, icon: Film },
