@@ -72,7 +72,7 @@ function PublicProfile() {
       if (error) throw error;
       const list = ["verified"];
       if (admin === true) {
-        list.push("admin", "moderator");
+        list.push("moderator");
         if (profile.data?.username?.toLowerCase() === "iamvraith") {
           list.push("owner", "developer");
         }
