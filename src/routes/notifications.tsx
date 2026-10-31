@@ -90,3 +90,6 @@ function Notifications() {
         {!relevant.length&&!list.isPending&&!schedule.isPending&&!list.isError&&!schedule.isError&&<p className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">No upcoming episodes found for your watchlist.</p>}
       </section>
     </>}
+    <p className="mt-6 text-xs text-muted-foreground">Notifications refresh while the page is open. Friend activity and incident updates are based on your account; episode schedules use AniList and do not guarantee playback. Read status is saved on this device.</p>
+  </main>;
+}
