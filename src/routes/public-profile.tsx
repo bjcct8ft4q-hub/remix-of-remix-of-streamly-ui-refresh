@@ -17,7 +17,7 @@ function PublicProfile() {
     queryKey: ["public-profile-lookup", requestedUsername],
     enabled: !!requestedUsername,
     queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("id, username, public_avatar_url, public_display_name, public_banner_url").ilike("username", requestedUsername).maybeSingle();
+      const { data, error } = await supabase.from("profiles").select("id, username, public_avatar_url, public_display_name, public_banner_url, created_at").ilike("username", requestedUsername).maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -37,13 +37,13 @@ function PublicProfile() {
     .filter((value): value is string => typeof value === "string")
     .map(value => value.toLowerCase());
   // Staff display badges require a verified administrator role.
-  const isOwnerAccount = isAdmin && username?.toLowerCase() === "vraith";
+  const isOwnerAccount = isAdmin && username?.toLowerCase() === "iamvraith";
   const roleBadges = [
     { role: "owner", label: "Owner", Icon: Crown, style: "text-amber-400 border-amber-400/40 bg-amber-400/10" },
     { role: "moderator", label: "Moderator", Icon: Shield, style: "text-emerald-400 border-emerald-400/40 bg-emerald-400/10" },
     { role: "developer", label: "Developer", Icon: Code2, style: "text-violet-400 border-violet-400/40 bg-violet-400/10" },
   ].filter(badge => isOwnerAccount || roleValues.includes(badge.role));
-  const badges = <ProfileBadges episodes={watched} shows={series} saved={watchlist.data?.length ?? 0} isAdmin={isAdmin} isDeveloper={isAdmin && (isOwnerAccount || roleValues.includes("developer"))} />;
+  const badges = <ProfileBadges episodes={watched} shows={series} saved={watchlist.data?.length ?? 0} isAdmin={isAdmin} isDeveloper={isOwnerAccount || (isAdmin && roleValues.includes("developer"))} />;
   const profileBio = typeof user?.user_metadata?.bio === "string" ? user.user_metadata.bio : "";
   const displayName = typeof user?.user_metadata?.display_name === "string" ? user.user_metadata.display_name : username;
   const activityDays = Array.from({ length: 364 }, (_, index) => {
@@ -96,7 +96,7 @@ function PublicProfile() {
                 <h1 className="min-w-0 max-w-full break-words text-2xl font-extrabold sm:text-3xl">{publicLookup.data.public_display_name || publicLookup.data.username}</h1>
                 <p className="text-xs text-gray-400">@{publicLookup.data.username}</p>
                 <div className="flex w-full flex-wrap items-center gap-2">
-                  <ProfileBadges isAdmin={!!publicAdmin.data}/>
+                  <ProfileBadges isAdmin={!!publicAdmin.data} isDeveloper={!!publicAdmin.data && publicLookup.data.username.toLowerCase() === "iamvraith"}/>
                   <div className="relative">
                     <button type="button" aria-label="Profile information" aria-expanded={identityOpen} onClick={()=>setIdentityOpen(v=>!v)} className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white/80 hover:border-primary hover:text-primary"><Info size={15}/></button>
                     {identityOpen && <div className="absolute left-0 top-9 z-50 w-56 rounded-lg border border-white/15 bg-[#121317] p-1.5 shadow-2xl">
@@ -107,11 +107,19 @@ function PublicProfile() {
                   <button type="button" onClick={()=>{setPublicActivityOpen(v=>!v);setIdentityOpen(false);}} title="View profile activity" aria-label="View profile activity" className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white/80 hover:border-primary hover:text-primary"><HeartPulse size={15}/></button>
                 </div>
               </div>
-              <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-gray-400"><span className="flex items-center gap-1.5"><CalendarDays size={12}/> Streamly member</span><span className="flex items-center gap-1.5"><Film size={12}/> Viewing history private</span><span className="flex items-center gap-1.5"><Bookmark size={12}/> Watchlist private</span></p>
+              <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-gray-400"><span className="flex items-center gap-1.5"><CalendarDays size={12}/> Joined {publicLookup.data.created_at ? new Date(publicLookup.data.created_at).toLocaleDateString("en-GB",{month:"long",year:"numeric"}) : "date unavailable"}</span><span className="flex items-center gap-1.5"><Film size={12}/> Viewing history private</span><span className="flex items-center gap-1.5"><Bookmark size={12}/> Watchlist private</span></p>
             </div>
             <div className="col-span-full grid min-w-0 w-full grid-cols-3 gap-1 rounded-xl border border-white/10 bg-white/5 px-1 py-4 text-center sm:gap-7 sm:px-2">{["COMPLETED","EPISODES","PLANNING"].map(label=><div key={label}><strong className="block text-xl font-black">—</strong><span className="text-[9px] font-bold tracking-wide text-gray-400">{label}</span></div>)}</div>
           </div>
-          {publicActivityOpen ? <section className="py-8"><button type="button" onClick={()=>setPublicActivityOpen(false)} className="mb-5 text-xs text-gray-400 hover:text-white">← Profile</button><h2 className="text-lg font-bold">Activity</h2><div className="mt-5 rounded-lg border border-white/10 bg-[#0d0e11] p-6 text-sm text-gray-400">This member’s activity is private.</div></section> : <><div className="flex items-center justify-between border-b border-white/10 py-4"><h2 className="flex items-center gap-2 text-sm font-bold"><Bookmark size={16} className="text-primary"/> Watchlist</h2></div>
+          {publicActivityOpen ? <section className="py-8">
+            <button type="button" onClick={()=>setPublicActivityOpen(false)} className="mb-6 text-xs text-gray-400 hover:text-white">← Profile</button>
+            <div className="mb-7 flex items-center gap-4"><div className="h-16 w-16 overflow-hidden rounded-full border-2 border-primary bg-primary/15">{publicLookup.data.public_avatar_url ? <img src={publicLookup.data.public_avatar_url} alt="Profile avatar" className="h-full w-full object-cover"/> : <span className="grid h-full place-items-center text-2xl">{publicLookup.data.username.charAt(0).toUpperCase()}</span>}</div><div><h1 className="text-2xl font-extrabold">{publicLookup.data.public_display_name || publicLookup.data.username}</h1><p className="text-xs text-gray-400">@{publicLookup.data.username} · Activity</p></div></div>
+            <p className="mb-7 text-xs text-gray-400">Member since {publicLookup.data.created_at ? new Date(publicLookup.data.created_at).toLocaleDateString("en-GB",{month:"long",year:"numeric"}) : "date unavailable"}</p>
+            <div className="rounded-lg border border-white/10 bg-[#0d0e11] p-5"><h2 className="text-sm font-bold">Past year</h2><p className="mt-1 text-xs text-gray-400">Activity private</p><div className="mt-5 grid grid-flow-col grid-rows-7 justify-start gap-[3px] overflow-x-auto pb-2">{Array.from({length:364},(_,i)=><span key={i} className="h-[10px] w-[10px] rounded-[2px] bg-[#1c1e23]"/>)}</div><p className="mt-3 text-right text-[10px] text-gray-400">Less · · · More</p></div>
+            <div className="mt-7 border-b border-white/10 pb-3 text-xs text-gray-400">30 days　　 90 days　　 1 year</div>
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">{["Episodes","Anime","Watchlist","Active days"].map(label=><div key={label} className="rounded-lg border border-white/10 bg-[#0d0e11] p-4"><p className="text-xs text-gray-400">{label}</p><p className="mt-3 text-sm">Private</p></div>)}</div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2"><div className="min-h-36 rounded-lg border border-white/10 bg-[#0d0e11] p-5"><h2 className="text-sm font-bold">Watch time</h2><p className="mt-8 text-center text-xs text-gray-400">Private</p></div><div className="min-h-36 rounded-lg border border-white/10 bg-[#0d0e11] p-5"><h2 className="text-sm font-bold">Recent activity</h2><p className="mt-8 text-center text-xs text-gray-400">This member's activity is private.</p></div></div>
+          </section> : <><div className="flex items-center justify-between border-b border-white/10 py-4"><h2 className="flex items-center gap-2 text-sm font-bold"><Bookmark size={16} className="text-primary"/> Watchlist</h2></div>
           <div className="py-28 text-center"><Bookmark size={35} className="mx-auto mb-4 text-primary"/><h3 className="font-bold">Watchlist is private</h3><p className="mt-2 text-xs text-gray-400">This member has not shared their watchlist publicly.</p></div></>}
         </div>
       </>}
