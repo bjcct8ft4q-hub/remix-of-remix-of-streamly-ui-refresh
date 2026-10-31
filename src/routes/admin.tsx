@@ -480,12 +480,65 @@ function AdminAlerts({ openReports }: { openReports: () => void }) {
       : <p className="mt-4 rounded-lg bg-muted/40 p-4 text-sm text-muted-foreground">No open playback reports found.</p>}
   </section>;
 }
+type AuditEntry = { id: string; actor_id: string | null; action: string; resource_type: string; resource_id: string | null; created_at: string };
+function AdminActivityLog() {
+  const { data = [], isPending, error, refetch } = useQuery({
+    queryKey: ["admin-audit-events"],
+    queryFn: async () => {
+      const {data,error} = await (supabase as any).from("admin_activity_log")
+        .select("id,actor_id,action,resource_type,resource_id,created_at")
+        .order("created_at",{ascending:false}).limit(100);
+      if(error) throw error;
+      return (data ?? []) as AuditEntry[];
+    }, refetchInterval: 60000, retry: 0,
+  });
+  return <section className="space-y-5">
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-widest text-primary">Accountability</p><h2 className="mt-1 text-2xl font-extrabold">Admin activity log</h2><p className="mt-1 text-sm text-muted-foreground">Database-recorded changes to episodes, series, incident updates and report statuses. Only administrators can view this history.</p></div><Button variant="outline" onClick={() => void refetch()}>Refresh</Button></div>
+    {error && <p role="alert" className="rounded-xl border border-destructive/30 p-4 text-sm text-destructive">Could not load activity history. Check the database audit migration and permissions.</p>}
+    {isPending && <p className="text-sm text-muted-foreground">Loading activity…</p>}
+    {!isPending && !error && !data.length && <p className="rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">No recorded admin changes yet. Activity is tracked from the time auditing was enabled.</p>}
+    <div className="overflow-hidden rounded-2xl border border-border bg-card">
+      {data.map(entry => <div key={entry.id} className="flex flex-wrap items-start justify-between gap-3 border-b border-border/60 px-4 py-4 last:border-0 sm:px-5">
+        <div className="min-w-0"><p className="text-sm font-semibold capitalize">{entry.action} · {entry.resource_type.replaceAll("_"," ")}</p><p className="mt-1 break-all text-xs text-muted-foreground">Actor: {entry.actor_id ?? "System"}{entry.resource_id ? ` · Record: ${entry.resource_id}` : ""}</p></div>
+        <time className="shrink-0 text-xs text-muted-foreground" dateTime={entry.created_at}>{new Date(entry.created_at).toLocaleString()}</time>
+      </div>)}
+    </div>
+  </section>;
+}
+function ReliabilityPanel() {
+  const status = useQuery({queryKey:["admin-reliability-checks"],queryFn:async()=>{
+    const started=performance.now();
+    const response=await fetch("/api/public/service-status",{cache:"no-store",signal:AbortSignal.timeout(15000)});
+    if(!response.ok)throw new Error(`Status API returned HTTP ${response.status}`);
+    const payload=await response.json() as {services?:Array<{name:string;state:string;detail?:string;duration?:number|null;checkedAt?:string}>};
+    return {services:payload.services??[],latency:Math.round(performance.now()-started),checkedAt:new Date().toISOString()};
+  },refetchInterval:60000,retry:0});
+  const reports=useQuery({queryKey:["admin-reliability-reports"],queryFn:async()=>{
+    const {data,error}=await (supabase as any).from("episode_reports").select("id,status,category,anime_title,episode,created_at").in("status",["open","reviewing"]).order("created_at",{ascending:false}).limit(50);
+    if(error)throw error;return (data??[]) as Array<{id:string;status:string;category:string;anime_title:string;episode:number;created_at:string}>;
+  },refetchInterval:60000,retry:0});
+  const active=reports.data??[];
+  return <section className="space-y-6">
+    <div><p className="text-xs font-bold uppercase tracking-widest text-primary">Service health</p><h2 className="mt-1 text-2xl font-extrabold">Reliability monitoring</h2><p className="mt-1 text-sm text-muted-foreground">Live API checks and reported playback problems. Updates every minute while this dashboard is open.</p></div>
+    <div className="grid gap-3 sm:grid-cols-3">
+      <div className="rounded-2xl border border-border bg-card p-5"><p className="text-xs text-muted-foreground">Status API</p><p className={`mt-2 text-2xl font-black ${status.isError?"text-destructive":"text-primary"}`}>{status.isPending?"Checking…":status.isError?"Unavailable":"Responding"}</p><p className="mt-2 text-xs text-muted-foreground">{status.data ? `${status.data.latency} ms response` : "Awaiting check"}</p></div>
+      <div className="rounded-2xl border border-border bg-card p-5"><p className="text-xs text-muted-foreground">Services reporting issues</p><p className="mt-2 text-2xl font-black">{status.data?.services.filter(x=>x.state==="outage"||x.state==="degraded").length??"—"}</p><p className="mt-2 text-xs text-muted-foreground">From current service status</p></div>
+      <div className="rounded-2xl border border-border bg-card p-5"><p className="text-xs text-muted-foreground">Unresolved playback reports</p><p className="mt-2 text-2xl font-black">{reports.data?.length??"—"}</p><p className="mt-2 text-xs text-muted-foreground">Showing up to 50 recent reports</p></div>
+    </div>
+    {(status.isError||reports.isError)&&<p role="alert" className="text-sm text-destructive">Some monitoring data could not be retrieved. Check API availability and database permissions.</p>}
+    <div className="grid gap-5 lg:grid-cols-2">
+      <div className="rounded-2xl border border-border bg-card p-5"><h3 className="font-bold">External and internal services</h3><div className="mt-4 divide-y divide-border">{status.data?.services.map(item=><div key={item.name} className="flex items-center justify-between gap-3 py-3"><div className="min-w-0"><p className="text-sm font-semibold">{item.name}</p><p className="mt-1 truncate text-xs text-muted-foreground" title={item.detail}>{item.detail||"No details available"}</p></div><span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${item.state==="operational"?"bg-emerald-500/10 text-emerald-500":item.state==="unknown"?"bg-muted text-muted-foreground":"bg-amber-500/10 text-amber-500"}`}>{item.state}</span></div>)}{!status.data?.services.length&&<p className="py-4 text-sm text-muted-foreground">No service checks available.</p>}</div></div>
+      <div className="rounded-2xl border border-border bg-card p-5"><h3 className="font-bold">Playback issues awaiting attention</h3><div className="mt-4 divide-y divide-border">{active.slice(0,8).map(item=><div key={item.id} className="py-3"><p className="text-sm font-semibold">{item.anime_title} · Episode {item.episode}</p><p className="mt-1 text-xs text-muted-foreground">{item.category.replaceAll("_"," ")} · <span className="capitalize">{item.status}</span></p></div>)}{!active.length&&<p className="py-4 text-sm text-muted-foreground">No unresolved reports found.</p>}</div></div>
+    </div>
+    <p className="text-xs text-muted-foreground">Playback issues here are user-submitted reports, not automatic checks of every video. Browser-based checks cannot reliably verify every protected or third-party stream.</p>
+  </section>;
+}
 function Admin() {
   const { user, isAdmin, loading, openAuth } = useAuth();
   const qc = useQueryClient();
   const { data = [] } = useQuery({ ...seriesListQuery(), enabled: isAdmin });
   const [selected, setSelected] = useState<string | null>(null);
-  const [tab, setTab] = useState<"overview" | "analytics" | "reports" | "content" | "status">("overview");
+  const [tab, setTab] = useState<"overview" | "analytics" | "reports" | "content" | "status" | "reliability" | "activity">("overview");
 
   if (loading) return <main className="pt-32 text-center text-muted-foreground">Loading...</main>;
   if (!user)
@@ -512,7 +565,7 @@ function Admin() {
         <Link to="/" className="rounded-lg border border-border px-4 py-2 text-sm font-semibold hover:border-primary">View website</Link>
       </div>
       <nav aria-label="Admin sections" className="mb-8 flex flex-wrap gap-2 border-b border-border pb-4">
-        {(["overview","analytics","reports","content","status"] as const).map((section)=><Button key={section} type="button" variant={tab === section ? "default" : "outline"} aria-current={tab === section ? "page" : undefined} onClick={()=>setTab(section)} className="capitalize">{section === "content" ? "Content manager" : section === "status" ? "Status & incidents" : section}</Button>)}
+        {(["overview","analytics","reliability","reports","content","status","activity"] as const).map((section)=><Button key={section} type="button" variant={tab === section ? "default" : "outline"} aria-current={tab === section ? "page" : undefined} onClick={()=>setTab(section)} className="capitalize">{section === "content" ? "Content manager" : section === "status" ? "Status & incidents" : section}</Button>)}
       </nav>
       {tab === "overview" && <div className="space-y-6">
         <AdminAlerts openReports={() => setTab("reports")} />\n        <div className="grid gap-4 sm:grid-cols-3">
@@ -526,6 +579,8 @@ function Admin() {
         </div>
       </div>}
       {tab === "analytics" && <AnalyticsPanel />}
+      {tab === "reliability" && <ReliabilityPanel />}
+      {tab === "activity" && <AdminActivityLog />}
       {tab === "reports" && <ReportManager />}
       {tab === "status" && <StatusIncidentManager />}
       {tab === "content" && <div className="space-y-8">
