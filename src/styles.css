@@ -478,16 +478,21 @@ html.streamly-theme-swap-hidden .streamly-glitch-color {
 
 
 
-/* Christmas preview: festive evergreen, cranberry and warm gold. */
+/* Christmas mode: deep crimson, winter-white and restrained festive gold. */
 .christmas {
-  --primary: oklch(0.75 0.16 150);
-  --primary-foreground: oklch(0.11 0.02 150);
-  --ring: oklch(0.75 0.16 150);
-  --accent: oklch(0.25 0.07 150);
-  --border: oklch(0.30 0.035 150);
-  --star: oklch(0.88 0.16 90);
-  --background: oklch(0.095 0.016 155);
-  --card: oklch(0.15 0.02 155);
-  --popover: oklch(0.14 0.02 155);
+  --primary: oklch(0.67 0.23 25);
+  --primary-foreground: oklch(0.99 0 0);
+  --ring: oklch(0.67 0.23 25);
+  --accent: oklch(0.25 0.08 25);
+  --border: oklch(0.29 0.045 25);
+  --star: oklch(0.87 0.16 85);
+  --background: oklch(0.095 0.015 22);
+  --card: oklch(0.15 0.023 22);
+  --popover: oklch(0.14 0.025 22);
 }
-.christmas body { background-image: radial-gradient(ellipse at 90% 0%, oklch(0.28 0.09 25 / 0.15), transparent 42%); }
+.christmas body { background-image: radial-gradient(ellipse at 90% 0%, oklch(0.35 0.13 25 / 0.18), transparent 48%); }
+.christmas .streamly-logo-wordmark { color: oklch(0.71 0.22 25); }
+.christmas .streamly-logo-wordmark span { color: oklch(0.71 0.22 25); }
+@keyframes streamly-snowfall { from { transform: translate3d(0,-12vh,0); } to { transform: translate3d(20px,112vh,0); } }
+.streamly-snowflake { position: absolute; top: 0; left: var(--snow-left); width: var(--snow-size); height: var(--snow-size); border-radius: 50%; background: rgba(255,255,255,.85); box-shadow: 0 0 5px rgba(255,255,255,.4); opacity: var(--snow-opacity); animation: streamly-snowfall var(--snow-duration) linear infinite; animation-delay: var(--snow-delay); }
+@media (prefers-reduced-motion: reduce) { .streamly-snowflake { animation: none; display: none; } }
