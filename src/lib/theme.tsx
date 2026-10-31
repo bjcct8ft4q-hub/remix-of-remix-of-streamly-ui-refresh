@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { isHalloweenSeason } from "./season";
+import { isHalloweenSeason, isChristmasSeason } from "./season";
 
 const Ctx = createContext<{ halloween: boolean; christmas: boolean; toggleHalloween: () => void; toggleChristmas: () => void }>({ halloween: false, christmas: false, toggleHalloween: () => {}, toggleChristmas: () => {} });
 
@@ -10,10 +10,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const update = () => {
       try {
         const saved = window.localStorage.getItem("streamly-theme");
-        setChristmas(saved === "christmas");
-        setHalloween(saved === "halloween" ? true : saved === "blue" || saved === "christmas" ? false : isHalloweenSeason(new Date()));
+        const now = new Date();
+        const christmasActive = isChristmasSeason(now) && !isHalloweenSeason(now);
+        setChristmas(christmasActive);
+        setHalloween(!christmasActive && isHalloweenSeason(now) && saved !== "blue");
       } catch {
-        setHalloween(isHalloweenSeason(new Date()));
+        const now = new Date();
+        setChristmas(isChristmasSeason(now) && !isHalloweenSeason(now));
+        setHalloween(isHalloweenSeason(now));
       }
     };
     update();
@@ -41,6 +45,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     });
   };
   const toggleChristmas = () => {
+    if (!isChristmasSeason(new Date())) return;
     const next = !christmas;
     setChristmas(next);
     setHalloween(false);
