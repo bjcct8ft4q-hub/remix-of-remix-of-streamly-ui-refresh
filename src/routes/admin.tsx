@@ -482,6 +482,10 @@ function AdminAlerts({ openReports }: { openReports: () => void }) {
 }
 type AuditEntry = { id: string; actor_id: string | null; action: string; resource_type: string; resource_id: string | null; created_at: string };
 function AdminActivityLog() {
+  const [actionFilter,setActionFilter]=useState("all");
+  const [resourceFilter,setResourceFilter]=useState("all");
+  const [searchTerm,setSearchTerm]=useState("");
+  const [days,setDays]=useState("30");
   const { data = [], isPending, error, refetch } = useQuery({
     queryKey: ["admin-audit-events"],
     queryFn: async () => {
@@ -492,13 +496,26 @@ function AdminActivityLog() {
       return (data ?? []) as AuditEntry[];
     }, refetchInterval: 60000, retry: 0,
   });
+  const filtered=data.filter(entry=>{
+    if(actionFilter!=="all"&&entry.action!==actionFilter)return false;
+    if(resourceFilter!=="all"&&entry.resource_type!==resourceFilter)return false;
+    if(days!=="all"&&new Date(entry.created_at).getTime()<Date.now()-Number(days)*86400000)return false;
+    return !searchTerm.trim()||[entry.actor_id,entry.resource_id,entry.resource_type,entry.action].some(v=>v?.toLowerCase().includes(searchTerm.trim().toLowerCase()));
+  });
   return <section className="space-y-5">
     <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-widest text-primary">Accountability</p><h2 className="mt-1 text-2xl font-extrabold">Admin activity log</h2><p className="mt-1 text-sm text-muted-foreground">Database-recorded changes to episodes, series, incident updates and report statuses. Only administrators can view this history.</p></div><Button variant="outline" onClick={() => void refetch()}>Refresh</Button></div>
+    <div className="grid gap-3 rounded-xl border border-border bg-card p-4 sm:grid-cols-2 xl:grid-cols-4">
+      <label className="space-y-1 text-xs font-semibold">Action<select className={inputCls} value={actionFilter} onChange={e=>setActionFilter(e.target.value)}><option value="all">All actions</option>{["insert","update","delete"].map(x=><option key={x} value={x}>{x}</option>)}</select></label>
+      <label className="space-y-1 text-xs font-semibold">Resource<select className={inputCls} value={resourceFilter} onChange={e=>setResourceFilter(e.target.value)}><option value="all">All resources</option>{[...new Set(data.map(x=>x.resource_type))].map(x=><option key={x} value={x}>{x.replaceAll("_"," ")}</option>)}</select></label>
+      <label className="space-y-1 text-xs font-semibold">Date range<select className={inputCls} value={days} onChange={e=>setDays(e.target.value)}><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="all">All loaded</option></select></label>
+      <label className="space-y-1 text-xs font-semibold">Search actor or record<input className={inputCls} value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="ID or resource…" /></label>
+    </div>
+    <p className="text-xs text-muted-foreground">Showing {filtered.length} of {data.length} recent events (up to 100 loaded).</p>
     {error && <p role="alert" className="rounded-xl border border-destructive/30 p-4 text-sm text-destructive">Could not load activity history. Check the database audit migration and permissions.</p>}
     {isPending && <p className="text-sm text-muted-foreground">Loading activity…</p>}
     {!isPending && !error && !data.length && <p className="rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">No recorded admin changes yet. Activity is tracked from the time auditing was enabled.</p>}
     <div className="overflow-hidden rounded-2xl border border-border bg-card">
-      {data.map(entry => <div key={entry.id} className="flex flex-wrap items-start justify-between gap-3 border-b border-border/60 px-4 py-4 last:border-0 sm:px-5">
+      {filtered.map(entry => <div key={entry.id} className="flex flex-wrap items-start justify-between gap-3 border-b border-border/60 px-4 py-4 last:border-0 sm:px-5">
         <div className="min-w-0"><p className="text-sm font-semibold capitalize">{entry.action} · {entry.resource_type.replaceAll("_"," ")}</p><p className="mt-1 break-all text-xs text-muted-foreground">Actor: {entry.actor_id ?? "System"}{entry.resource_id ? ` · Record: ${entry.resource_id}` : ""}</p></div>
         <time className="shrink-0 text-xs text-muted-foreground" dateTime={entry.created_at}>{new Date(entry.created_at).toLocaleString()}</time>
       </div>)}
@@ -518,6 +535,11 @@ function ReliabilityPanel() {
     if(error)throw error;return (data??[]) as Array<{id:string;status:string;category:string;anime_title:string;episode:number;created_at:string}>;
   },refetchInterval:60000,retry:0});
   const active=reports.data??[];
+  const grouped=Object.values(active.reduce((acc,item)=>{
+    const key=`${item.anime_title}:${item.episode}`;
+    if(!acc[key])acc[key]={key,title:item.anime_title,episode:item.episode,count:0};
+    acc[key].count++;return acc;
+  },{} as Record<string,{key:string;title:string;episode:number;count:number}>)).sort((a,b)=>b.count-a.count).slice(0,8);
   return <section className="space-y-6">
     <div><p className="text-xs font-bold uppercase tracking-widest text-primary">Service health</p><h2 className="mt-1 text-2xl font-extrabold">Reliability monitoring</h2><p className="mt-1 text-sm text-muted-foreground">Live API checks and reported playback problems. Updates every minute while this dashboard is open.</p></div>
     <div className="grid gap-3 sm:grid-cols-3">
@@ -530,6 +552,7 @@ function ReliabilityPanel() {
       <div className="rounded-2xl border border-border bg-card p-5"><h3 className="font-bold">External and internal services</h3><div className="mt-4 divide-y divide-border">{status.data?.services.map(item=><div key={item.name} className="flex items-center justify-between gap-3 py-3"><div className="min-w-0"><p className="text-sm font-semibold">{item.name}</p><p className="mt-1 truncate text-xs text-muted-foreground" title={item.detail}>{item.detail||"No details available"}</p></div><span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${item.state==="operational"?"bg-emerald-500/10 text-emerald-500":item.state==="unknown"?"bg-muted text-muted-foreground":"bg-amber-500/10 text-amber-500"}`}>{item.state}</span></div>)}{!status.data?.services.length&&<p className="py-4 text-sm text-muted-foreground">No service checks available.</p>}</div></div>
       <div className="rounded-2xl border border-border bg-card p-5"><h3 className="font-bold">Playback issues awaiting attention</h3><div className="mt-4 divide-y divide-border">{active.slice(0,8).map(item=><div key={item.id} className="py-3"><p className="text-sm font-semibold">{item.anime_title} · Episode {item.episode}</p><p className="mt-1 text-xs text-muted-foreground">{item.category.replaceAll("_"," ")} · <span className="capitalize">{item.status}</span></p></div>)}{!active.length&&<p className="py-4 text-sm text-muted-foreground">No unresolved reports found.</p>}</div></div>
     </div>
+    <div className="rounded-2xl border border-border bg-card p-5"><h3 className="font-bold">Playback health dashboard</h3><p className="mt-1 text-xs text-muted-foreground">Episodes with the most unresolved reports · up to 50 recent reports</p><div className="mt-4 space-y-3">{grouped.map(item=><div key={item.key} className="space-y-1"><div className="flex justify-between gap-3 text-sm"><span className="min-w-0 truncate">{item.title} · Episode {item.episode}</span><span className="shrink-0 font-bold tabular-nums">{item.count} {item.count===1?"report":"reports"}</span></div><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{width:`${item.count/Math.max(1,grouped[0]?.count??1)*100}%`}}/></div></div>)}{!grouped.length&&<p className="text-sm text-muted-foreground">No unresolved playback issues.</p>}</div></div>
     <p className="text-xs text-muted-foreground">Playback issues here are user-submitted reports, not automatic checks of every video. Browser-based checks cannot reliably verify every protected or third-party stream.</p>
   </section>;
 }
@@ -568,7 +591,8 @@ function Admin() {
         {(["overview","analytics","reliability","reports","content","status","activity"] as const).map((section)=><Button key={section} type="button" variant={tab === section ? "default" : "outline"} aria-current={tab === section ? "page" : undefined} onClick={()=>setTab(section)} className="capitalize">{section === "content" ? "Content manager" : section === "status" ? "Status & incidents" : section}</Button>)}
       </nav>
       {tab === "overview" && <div className="space-y-6">
-        <AdminAlerts openReports={() => setTab("reports")} />\n        <div className="grid gap-4 sm:grid-cols-3">
+        <AdminAlerts openReports={() => setTab("reports")} />
+        <div className="grid gap-4 sm:grid-cols-3">
           <div className="rounded-xl border border-border bg-card p-6"><p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Managed series</p><p className="mt-3 text-4xl font-black text-primary">{data.length}</p></div>
           <div className="rounded-xl border border-border bg-card p-6"><p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Uploaded episodes</p><p className="mt-3 text-4xl font-black text-primary">{data.reduce((n,s)=>n+(s.episodes?.[0]?.count ?? 0),0)}</p></div>
           <div className="rounded-xl border border-border bg-card p-6"><p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Moderation</p><button onClick={()=>setTab("reports")} className="mt-3 text-lg font-extrabold text-primary hover:underline">Review episode reports →</button></div>
