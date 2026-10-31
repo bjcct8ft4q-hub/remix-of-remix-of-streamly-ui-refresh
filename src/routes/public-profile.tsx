@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Activity, BarChart3, Bookmark, CalendarDays, Check, Clock, LayoutGrid, Link2, List, MessageCircle, MoreHorizontal, Search, Settings, Star, UserPlus, Users, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useTheme } from "@/lib/theme";
 import { historyQuery, watchlistQuery } from "@/lib/library";
 import { ProfileBadges } from "@/components/ProfileBadges";
 
@@ -36,6 +37,7 @@ const FILTERS = ["All", "Watching", "Completed", "On Hold", "Dropped", "Planning
 function PublicProfile() {
   const { username: requested } = Route.useSearch();
   const { user, username: myName, isAdmin } = useAuth();
+  const { halloween, christmas } = useTheme();
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<string>("Watchlist");
   const [filter, setFilter] = useState("All");
@@ -111,7 +113,13 @@ function PublicProfile() {
         <section className="overflow-hidden rounded-2xl border border-border bg-card">
           {/* Banner */}
           <div className="relative h-44 sm:h-60 lg:h-72">
-            {p.public_banner_url ? <img src={p.public_banner_url} alt="Profile banner" className="h-full w-full object-cover" /> : <div className="relative h-full w-full overflow-hidden bg-gradient-to-r from-[#87380d] via-[#321a11] to-[#08090e]"><img src="https://img.anili.st/16498" alt="" loading="eager" decoding="async" className="absolute inset-y-0 right-0 h-full w-[65%] object-cover object-[center_30%] opacity-75 [mask-image:linear-gradient(to_right,transparent_0%,black_45%)]" onError={(event) => { event.currentTarget.style.display = "none"; }} /><div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#9c4109]/70 via-transparent to-[#08090e]/25" /></div>}
+            {p.public_banner_url ? <img src={p.public_banner_url} alt="Profile banner" className="h-full w-full object-cover" /> : <div className={`relative h-full w-full overflow-hidden ${christmas ? "bg-gradient-to-r from-[#a5000d] via-[#48060d] to-[#050407]" : halloween ? "bg-gradient-to-r from-[#fa6900] via-[#4d1c07] to-[#050407]" : "bg-gradient-to-r from-[#00a7ff] via-[#06275a] to-[#030611]"}`}>
+              <picture>
+                <source srcSet={christmas ? "/banners/default-red.webp" : halloween ? "/banners/default-orange.webp" : "/banners/default-blue.webp"} type="image/webp" />
+                <img src="https://img.anili.st/16498" alt="" loading="eager" decoding="async" className="absolute inset-0 h-full w-full object-cover object-center opacity-75" onError={(event) => { event.currentTarget.style.display = "none"; }} />
+              </picture>
+              <div className={`pointer-events-none absolute inset-0 ${christmas ? "bg-gradient-to-r from-[#a5000d]/40 via-transparent to-black/10" : halloween ? "bg-gradient-to-r from-[#fa6900]/40 via-transparent to-black/10" : "bg-gradient-to-r from-[#00a7ff]/40 via-transparent to-black/10"}`} />
+            </div>}
             <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
           </div>
 
