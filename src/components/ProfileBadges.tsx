@@ -1,10 +1,11 @@
 import { BadgeCheck, Bot, Code2, Crown, Disc3, Gamepad2, Gem, Shield, Sword } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-export type BadgeKey = "owner" | "moderator" | "developer" | "verified" | "supporter" | "gamer" | "creator" | "partner" | "bot";
+export type BadgeKey = "owner" | "admin" | "moderator" | "developer" | "verified" | "supporter" | "gamer" | "creator" | "partner" | "bot";
 
 export const BADGES: Record<BadgeKey, { label: string; description: string; Icon: LucideIcon; color: string }> = {
   owner: { label: "Owner", description: "The person responsible for running and managing Streamly.", Icon: Crown, color: "var(--badge-owner)" },
+  admin: { label: "Admin", description: "A Streamly administrator who manages the platform and its community.", Icon: Shield, color: "#f97316" },
   moderator: { label: "Moderator", description: "Helps keep the Streamly community safe and welcoming.", Icon: Shield, color: "var(--badge-moderator)" },
   developer: { label: "Developer", description: "Builds and maintains Streamly features and improvements.", Icon: Code2, color: "var(--badge-developer)" },
   verified: { label: "Verified", description: "Registered Streamly member. This badge is given automatically when you join; it does not verify your real-world identity.", Icon: BadgeCheck, color: "var(--badge-verified)" },
@@ -15,7 +16,7 @@ export const BADGES: Record<BadgeKey, { label: string; description: string; Icon
   bot: { label: "Bot", description: "An automated account operated for Streamly.", Icon: Bot, color: "var(--badge-bot)" },
 };
 
-const ORDER: BadgeKey[] = ["owner", "moderator", "developer", "verified", "supporter", "gamer", "creator", "partner", "bot"];
+const ORDER: BadgeKey[] = ["owner", "admin", "moderator", "developer", "verified", "supporter", "gamer", "creator", "partner", "bot"];
 
 /** Renders role badges in a fixed order. "verified" is always shown. */
 export function ProfileBadges({ badges = [] }: { badges?: string[] }) {
