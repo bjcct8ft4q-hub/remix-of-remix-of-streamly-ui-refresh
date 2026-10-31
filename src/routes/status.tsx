@@ -111,7 +111,7 @@ function StatusPage() {
           })}
         </div>
       </section>
-      <section className="mt-8 grid grid-cols-2 gap-5 border-y border-border py-5 sm:grid-cols-4" aria-label="Incident statistics">
+      <section className="mt-4 grid grid-cols-2 gap-5 border-b border-border pb-5 sm:grid-cols-4" aria-label="Incident statistics">
         {[["Published incidents", stats.total], ["Active", stats.active], ["Resolved", stats.resolved], ["Resolved incident minutes", stats.minutes]].map(([label, value]) => <div key={label}><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 text-2xl font-bold">{value}</p></div>)}
       </section>
       <section className="mt-10"><h2 className="text-2xl font-bold">Past incidents</h2>
