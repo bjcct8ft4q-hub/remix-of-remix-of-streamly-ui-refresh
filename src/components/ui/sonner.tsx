@@ -2,22 +2,32 @@ import { Toaster as Sonner } from "sonner";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
-const Toaster = ({ ...props }: ToasterProps) => {
-  return (
-    <Sonner
-      className="toaster group"
-      toastOptions={{
-        classNames: {
-          toast:
-            "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
-          description: "group-[.toast]:text-muted-foreground",
-          actionButton: "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
-          cancelButton: "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
-        },
-      }}
-      {...props}
-    />
-  );
-};
+/** Shared Streamly notification styling across all success, error and info messages. */
+const Toaster = ({ ...props }: ToasterProps) => (
+  <Sonner
+    position="top-right"
+    richColors={false}
+    closeButton
+    visibleToasts={4}
+    duration={4000}
+    gap={10}
+    className="streamly-toaster"
+    toastOptions={{
+      classNames: {
+        toast: "streamly-toast",
+        title: "streamly-toast-title",
+        description: "streamly-toast-description",
+        success: "streamly-toast-success",
+        error: "streamly-toast-error",
+        warning: "streamly-toast-warning",
+        info: "streamly-toast-info",
+        closeButton: "streamly-toast-close",
+        actionButton: "streamly-toast-action",
+        cancelButton: "streamly-toast-cancel",
+      },
+    }}
+    {...props}
+  />
+);
 
 export { Toaster };
