@@ -112,6 +112,27 @@ function Settings() {
     setBannerSaving(false);
     setBannerMessage(error ? error.message : "Profile banner saved.");
   };
+  const uploadBanner = async (file?: File) => {
+    if (!file || !user) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) { setBannerMessage("Choose a JPG, PNG or WebP image."); return; }
+    if (file.size > 5 * 1024 * 1024) { setBannerMessage("Banner must be smaller than 5 MB."); return; }
+    setBannerSaving(true);
+    setBannerMessage("");
+    try {
+      const extension = file.type === "image/jpeg" ? "jpg" : file.type.split("/")[1];
+      const path = user.id + "/banners/" + crypto.randomUUID() + "." + extension;
+      const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, { contentType: file.type });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      const { error: authError } = await supabase.auth.updateUser({ data: { profile_banner_url: data.publicUrl } });
+      if (authError) throw authError;
+      const { error: profileError } = await supabase.from("profiles").update({ public_banner_url: data.publicUrl }).eq("id", user.id);
+      if (profileError) throw profileError;
+      setBannerUrl(data.publicUrl);
+      setBannerMessage("Profile banner uploaded and saved.");
+    } catch (error) { setBannerMessage(error instanceof Error ? error.message : "Banner upload failed."); }
+    finally { setBannerSaving(false); }
+  };
   const fetchIdentity = useServerFn(getAccountIdentity);
   const updateIdentity = useServerFn(updateAccountIdentity);
   const [accountName, setAccountName] = useState("");
@@ -248,8 +269,11 @@ function Settings() {
         {true && <section id="settings-section-profile" className="rounded-2xl border border-border bg-card/90 p-4 shadow-xl shadow-black/10 sm:p-7"><h2 className="mb-6 text-3xl font-bold">Account</h2>
           <div className="mb-7 rounded-xl border border-border bg-background/50 p-4">
             <h2 className="text-lg font-bold">Profile banner</h2>
-            <p className="mt-1 text-xs text-muted-foreground">Add an HTTPS image URL for the banner at the top of your profile. Wide images work best.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Upload a wide JPG, PNG or WebP image (up to 5 MB), or paste an HTTPS image URL.</p>
             {bannerUrl.trim().startsWith("https://") && <img src={bannerUrl.trim()} alt="Banner preview" className="mt-3 h-32 w-full rounded-lg object-cover" onError={() => setBannerMessage("Could not preview this image. Check the URL.")} />}
+            <label htmlFor="profile-banner-upload" className="mt-3 block text-xs font-semibold">Upload banner image</label>
+            <input id="profile-banner-upload" type="file" accept="image/jpeg,image/png,image/webp" disabled={!user || bannerSaving} onChange={(e) => { const file = e.currentTarget.files?.[0]; if (file) void uploadBanner(file); e.currentTarget.value = ""; }} className="mt-1 block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1 file:font-semibold file:text-primary-foreground disabled:opacity-50" />
+            <p className="mt-2 text-xs text-muted-foreground">A wide landscape image works best. Uploading automatically saves your new banner.</p>
             <label htmlFor="profile-banner-url" className="mt-3 block text-xs font-semibold">Banner image URL</label>
             <input id="profile-banner-url" type="url" value={bannerUrl} onChange={(e) => { setBannerUrl(e.target.value); setBannerMessage(""); }} placeholder="https://example.com/banner.jpg" className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
             <div className="mt-3 flex items-center gap-3"><button type="button" onClick={() => void saveBanner()} disabled={!user || bannerSaving} className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50">{bannerSaving ? "Saving…" : "Save banner"}</button><button type="button" onClick={() => { setBannerUrl(""); setBannerMessage(""); }} className="text-xs text-muted-foreground hover:text-primary">Clear</button></div>
