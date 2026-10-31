@@ -11,7 +11,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
-import { AuthProvider } from "@/lib/auth";
+import { AuthProvider, useAuth } from "@/lib/auth";
 import { ThemeProvider, useTheme } from "@/lib/theme";
 import { Header } from "@/components/Header";
 import { AuthDialog } from "@/components/AuthDialog";
@@ -283,6 +283,53 @@ function AgeRatingsNotice() {
   return <div role="status" className="fixed bottom-5 left-1/2 z-[110] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 rounded-xl border border-primary/40 bg-background/95 p-4 shadow-2xl backdrop-blur-md sm:bottom-7"><div className="flex items-start gap-3"><div className="min-w-0 flex-1"><p className="text-sm font-bold text-foreground">Age ratings are being updated</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">We are currently working on anime age ratings. Some titles may temporarily show “Not applicable” while we fix this. Thank you for your patience.</p></div><button type="button" aria-label="Dismiss age ratings notice" className="rounded p-1 text-muted-foreground hover:text-foreground" onClick={() => { try { sessionStorage.setItem("streamly-age-ratings-notice-dismissed", "yes"); } catch {} setVisible(false); }}>✕</button></div></div>;
 }
 
+
+function TrackingPrivacyOnboarding() {
+  const { user, loading } = useAuth();
+  const [pending, setPending] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [watchlistPublic, setWatchlistPublic] = useState(false);
+  const [historyPublic, setHistoryPublic] = useState(false);
+  useEffect(() => {
+    setReady(false);
+    if (!user || loading) return;
+    let active = true;
+    void (async () => {
+      const { data, error } = await (supabase as any).from("profiles").select("tracking_onboarding_done").eq("id", user.id).maybeSingle();
+      if (active && !error && data && !data.tracking_onboarding_done) setReady(true);
+    })();
+    return () => { active = false; };
+  }, [user?.id, loading]);
+  const finish = async () => {
+    if (!user || pending) return;
+    setPending(true);
+    const { error } = await (supabase as any).from("profiles").update({
+      show_watchlist: watchlistPublic, show_history: historyPublic, tracking_onboarding_done: true,
+    }).eq("id", user.id);
+    setPending(false);
+    if (error) { const { toast } = await import("sonner"); toast.error("Could not save your privacy choices. Please try again."); }
+    else setReady(false);
+  };
+  if (!ready || !user) return null;
+  return <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm">
+    <section role="dialog" aria-modal="true" aria-labelledby="tracking-onboarding-title" className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl sm:p-8">
+      <p className="text-xs font-bold uppercase tracking-widest text-primary">Welcome to Streamly</p>
+      <h2 id="tracking-onboarding-title" className="mt-2 text-2xl font-extrabold">Choose what appears on your public profile</h2>
+      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">Your anime activity is private unless you choose to share it. You can change these options later on your public profile.</p>
+      <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-xl border border-border p-4">
+        <input type="checkbox" className="mt-1 accent-primary" checked={watchlistPublic} onChange={e => setWatchlistPublic(e.target.checked)} />
+        <span><strong className="block">Show my watchlist</strong><span className="mt-1 block text-sm text-muted-foreground">Let everyone see the anime you are watching, planning or have completed.</span></span>
+      </label>
+      <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-xl border border-border p-4">
+        <input type="checkbox" className="mt-1 accent-primary" checked={historyPublic} onChange={e => setHistoryPublic(e.target.checked)} />
+        <span><strong className="block">Show my viewing history</strong><span className="mt-1 block text-sm text-muted-foreground">Share watched episodes and viewing statistics with profile visitors.</span></span>
+      </label>
+      <p className="mt-4 text-xs text-muted-foreground">Both options are off by default. Public information can be viewed without signing in.</p>
+      <button type="button" disabled={pending} onClick={() => void finish()} className="mt-6 w-full rounded-lg bg-primary px-5 py-3 font-bold text-primary-foreground disabled:opacity-50">{pending ? "Saving..." : "Save preferences & continue"}</button>
+    </section>
+  </div>;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
@@ -300,6 +347,7 @@ function RootComponent() {
             <Footer />
           </div>
           <AuthDialog />
+          <TrackingPrivacyOnboarding />
           <Toaster />
         </AuthProvider>
       </ThemeProvider>
