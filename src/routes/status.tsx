@@ -75,7 +75,8 @@ function StatusPage() {
     resolved: recordedStats.resolved + (!hasImportedDisruption && isCloudflareIncidentResolved ? 1 : 0),
     minutes: recordedStats.minutes + (hasImportedDisruption ? 0 : cloudflareMinutes),
   };
-  const displayRows = rows;
+  const cloudflareMaintenance = active.some(i => i.service === "Cloudflare" && i.severity === "maintenance");
+  const displayRows = rows.map(row => row.name === "Cloudflare" && cloudflareMaintenance ? { ...row, state: "degraded" as const, detail: "Under Maintenance — an active Streamly Cloudflare maintenance incident is being tracked. Live reachability and historical checks are displayed separately." } : row);
   const issues = displayRows.filter(row => row.state === "outage" || row.state === "degraded").length;
   const unknown = rows.filter(row => row.state === "unknown").length;
   const headline = checks.isPending && !cloudflareMonitor.data ? "Checking services" : issues || active.length ? "Some services need attention" : unknown ? "Available services are responding" : "All services operational";
@@ -91,7 +92,7 @@ function StatusPage() {
         <p className="mt-3 flex items-center justify-center gap-2 text-sm text-muted-foreground"><Clock3 size={14} />Last checked: {checkedAt ? new Date(checkedAt).toLocaleString() : "Waiting for checks"}</p>
       </header>
       {checks.isError && <p role="alert" className="mb-5 text-destructive">Service checks could not be loaded. Try Refresh below.</p>}
-      {active.length > 0 && <section className="mb-6 border-l-2 border-status-warning pl-4"><h2 className="mb-2 font-bold">Active incidents</h2>{active.map(i => <div key={i.id} className="py-2"><h3 className="font-semibold">{i.title}</h3><p className="text-xs text-status-warning">{i.service} · {i.status}</p><p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted-foreground">{i.body}</p></div>)}</section>}
+      
       <section>
         <h2 className="mb-3 flex items-center gap-2 font-bold"><Server size={18} className="text-primary" />Services</h2>
         <div className="divide-y divide-border border-y border-border">
@@ -101,7 +102,7 @@ function StatusPage() {
             const confirmed = samples.filter(s => s.state !== "unknown");
             const percent = confirmed.length ? Math.round(confirmed.filter(s => s.state === "operational").length / confirmed.length * 100) : null;
             return <details key={row.name} className="group py-4">
-              <summary className="cursor-pointer list-none"><div className="flex items-center justify-between gap-4"><div className="flex min-w-0 items-center gap-3"><Activity size={18} className={`shrink-0 ${stateClass[row.state]}`} /><div><h3 className="font-semibold">{row.name === "Cloudflare" ? "Cloudflare overall status" : row.name}</h3><p className="mt-1 text-xs text-muted-foreground">{row.duration === null ? "No response time" : `${row.duration} ms`}</p></div></div><span className={`shrink-0 text-sm font-semibold ${stateClass[row.state]}`}>{checks.isPending ? "Checking" : labels[row.state]}</span></div>
+              <summary className="cursor-pointer list-none"><div className="flex items-center justify-between gap-4"><div className="flex min-w-0 items-center gap-3"><Activity size={18} className={`shrink-0 ${stateClass[row.state]}`} /><div><h3 className="font-semibold">{row.name === "Cloudflare" ? "Cloudflare overall status" : row.name}</h3><p className="mt-1 text-xs text-muted-foreground">{row.duration === null ? "No response time" : `${row.duration} ms`}</p></div></div><span className={`shrink-0 text-sm font-semibold ${stateClass[row.state]}`}>{checks.isPending ? "Checking" : row.name === "Cloudflare" && cloudflareMaintenance ? "Under Maintenance" : labels[row.state]}</span></div>
               <div className="mt-4 flex h-6 gap-0.5" aria-label={`${row.name} sampled checks`}>
                 {Array.from({ length: 288 }, (_, index) => { const length = 288; const sample = samples[index - (length - samples.length)]; return <span key={index} title={sample ? `${new Date(sample.checkedAt).toLocaleString()}: ${labels[sample.state]}` : "No check recorded"} className={`min-w-0 flex-1 rounded-sm ${sample ? barClass[sample.state] : "bg-muted"}`} />; })}
               </div><div className="mt-2 flex justify-between gap-3 text-xs text-muted-foreground"><span>Earlier checks</span><span>{percent === null ? "No confirmed samples" : `${percent}% of ${confirmed.length} confirmed checks successful`}</span><span>Latest</span></div></summary>
