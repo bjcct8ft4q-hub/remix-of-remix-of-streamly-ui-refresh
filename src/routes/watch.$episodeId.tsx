@@ -62,6 +62,18 @@ function Watch() {
   } });
   const { data: series } = useQuery({ ...seriesQuery(ep?.series_id ?? ""), enabled: !!ep });
   const { data: catalog = [] } = useQuery(seriesListQuery());
+  const { data: recentHistory = [] } = useQuery({
+    queryKey: ["personal-recommendation-history", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const {data,error} = await (supabase as any).from("watch_history")
+        .select("anilist_id,updated_at").eq("user_id",user!.id)
+        .order("updated_at",{ascending:false}).limit(100);
+      if(error) throw error;
+      return (data ?? []) as {anilist_id:number;updated_at:string}[];
+    },
+    staleTime: 5 * 60_000,
+  });
   const { data: comments = [] } = useQuery(commentsQuery(episodeId));
   const { data: commentLikes = [] } = useQuery({ queryKey: ["comment-likes", episodeId, comments.length], queryFn: async () => { const ids=comments.map(c=>c.id); if(!ids.length)return [] as {comment_id:string;user_id:string}[]; const {data,error}=await supabase.from("comment_likes" as any).select("comment_id,user_id").in("comment_id",ids); if(error)throw error; return (data??[]) as {comment_id:string;user_id:string}[]; }, enabled:comments.length>0 });
   const [replyTo,setReplyTo]=useState<string|null>(null);
@@ -114,7 +126,20 @@ function Watch() {
   const next = episodes[index + 1];
   const nextPlayable = episodes.slice(index + 1).find((episode) => version === "sub" || !!episode.dub_video_path);
   const shown = episodes.filter((episode) => (filter !== "dub" || !!episode.dub_video_path) && `${episode.number} ${episode.title ?? ""}`.toLowerCase().includes(episodeSearch.toLowerCase()));
-  const recommendations = catalog.filter((item) => item.id !== series?.id).sort((a, b) => Number(b.genres.some((genre) => series?.genres.includes(genre))) - Number(a.genres.some((genre) => series?.genres.includes(genre)))).slice(0, 6);
+  // Prefer shared genres with recently watched titles, while retaining a relevant
+  // genre-based fallback for signed-out viewers and accounts without history.
+  const watchedIds = new Set(recentHistory.map(item => item.anilist_id));
+  const taste = new Map<string,number>();
+  for (const [index, entry] of recentHistory.entries()) {
+    const watched = catalog.find(item => item.anilist_id === entry.anilist_id);
+    if (!watched) continue;
+    const weight = Math.max(1, 5 - Math.floor(index / 15));
+    for (const genre of watched.genres ?? []) taste.set(genre,(taste.get(genre)??0)+weight);
+  }
+  const recommendations = catalog.filter(item => item.id !== series?.id && (!item.anilist_id || !watchedIds.has(item.anilist_id)))
+    .map(item => ({item, relevance: (item.genres??[]).reduce((sum,genre)=>sum+(taste.get(genre)??0)+(series?.genres.includes(genre)?3:0),0)}))
+    .sort((a,b)=>b.relevance-a.relevance || Number(b.item.score??0)-Number(a.item.score??0))
+    .slice(0,6).map(result=>result.item);
 
   const post = async (event: React.FormEvent) => {
     event.preventDefault();
