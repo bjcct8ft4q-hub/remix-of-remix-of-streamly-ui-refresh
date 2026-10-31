@@ -104,14 +104,7 @@ function PublicProfile() {
     queryKey: ["public-profile-tracking", pid, user?.id], enabled: !!pid,
     queryFn: async () => { const { data, error } = await (supabase as any).rpc("public_profile_tracking", { target_user: pid }); if (error) throw error; return data as { watchlist_public: boolean; history_public: boolean; watchlist: Array<{ anilist_id: number; title: string; cover_url: string | null; status: string }>; history: Array<{ anilist_id: number; episode: number; title: string }> }; },
   });
-  const togglePrivacy = async (field: "show_watchlist" | "show_history", value: boolean) => {
-    if (!user || !isSelf || privacyBusy) return;
-    setPrivacyBusy(true);
-    const { error } = await (supabase as any).from("profiles").update({ [field]: value }).eq("id", user.id);
-    setPrivacyBusy(false);
-    if (error) toast.error(error.message);
-    else { toast.success(value ? "Now public" : "Now private"); void qc.invalidateQueries({ queryKey: ["public-profile-tracking", pid] }); }
-  };
+
   const history = useQuery(historyQuery(isSelf ? user?.id : undefined));
   const watchlist = useQuery(watchlistQuery(isSelf ? user?.id : undefined));
 
