@@ -74,7 +74,7 @@ function MessagesPage() {
       if (error) throw error;
       const list = ["verified"];
       if (data === true) {
-        list.push("moderator");
+        list.push("admin", "moderator");
         if (peer.data?.username?.toLowerCase() === "iamvraith") list.push("owner", "developer");
       }
       return list;
