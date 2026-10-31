@@ -1,9 +1,12 @@
+/** Seasonal themes repeat every year using the visitor's local date. */
 export function isHalloweenSeason(date: Date): boolean {
   const month = date.getMonth();
   const day = date.getDate();
-  return (month === 9 && day >= 5) || (month === 10 && day === 1);
+  return month === 9 && day >= 5 && day <= 31;
 }
-/** Christmas is active from 10 November through 31 December 2026 (local date). */
+
+/** Christmas runs from 10 November through 31 December, inclusive. */
 export function isChristmasSeason(date: Date): boolean {
-  return date.getFullYear() === 2026 && (date.getMonth() === 11 || (date.getMonth() === 10 && date.getDate() >= 10));
+  const month = date.getMonth();
+  return (month === 10 && date.getDate() >= 10) || month === 11;
 }
