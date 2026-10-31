@@ -196,7 +196,6 @@ function PublicProfile() {
               <span className="flex items-center gap-2"><Bookmark size={16} /> Watchlist {tracking.data?.watchlist_public ? "public" : isSelf ? "private (only you)" : "private"}</span>
             </div>
 
-            {isSelf && <div className="mt-4 flex flex-wrap gap-4 rounded-xl border border-border bg-background/40 p-4 text-sm"><span className="w-full font-semibold">Profile privacy</span><label className="flex items-center gap-2"><input type="checkbox" disabled={privacyBusy || tracking.isPending} checked={!!tracking.data?.show_watchlist || !!tracking.data?.watchlist_public} onChange={(e) => void togglePrivacy("show_watchlist", e.target.checked)} /> Public watchlist</label><label className="flex items-center gap-2"><input type="checkbox" disabled={privacyBusy || tracking.isPending} checked={!!tracking.data?.history_public} onChange={(e) => void togglePrivacy("show_history", e.target.checked)} /> Public viewing history and episode stats</label><p className="w-full text-xs text-muted-foreground">Both are private by default. Turn either on to share it with everyone, including visitors who are not signed in.</p></div>}
             {/* Stats */}
             <div className="mt-5 grid grid-cols-3 divide-x divide-border rounded-xl border border-border bg-background/40 py-4 text-center">
               {[{ l: "Completed", v: completed }, { l: "Episodes", v: episodes }, { l: "Planning", v: planning }].map((s) => (
